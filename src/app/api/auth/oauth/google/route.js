@@ -18,18 +18,26 @@ export async function POST(request) {
     // Generate a random state parameter for security
     const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     
-    // Get the base URL - use localhost:3000 for development
-    const baseUrl = process.env.NODE_ENV === 'development' 
-      ? 'http://localhost:3000' 
-      : (config.urls.base || 'http://localhost:3000');
+    // Get the base URL - handle both development and production
+    let baseUrl;
+    if (process.env.NODE_ENV === 'development') {
+      baseUrl = 'http://localhost:3000';
+    } else if (process.env.VERCEL_URL) {
+      baseUrl = `https://${process.env.VERCEL_URL}`;
+    } else if (config.urls.base) {
+      baseUrl = config.urls.base;
+    } else {
+      baseUrl = 'http://localhost:3000';
+    }
     
-    // Construct the redirect URI - try multiple formats
+    // Construct the redirect URI - use the correct callback for Vercel
     let redirectUri;
     if (useAlternative === 'callback') {
       redirectUri = `${baseUrl}/auth/callback`;
     } else if (useAlternative === 'google') {
       redirectUri = `${baseUrl}/api/auth/callback/google`;
     } else {
+      // Use the correct callback URL that matches your Google Cloud Console setup
       redirectUri = `${baseUrl}/api/auth/oauth-callback`;
     }
     

@@ -25,13 +25,13 @@ export const config = {
   
   // URLs
   urls: {
-    base: process.env.NEXT_PUBLIC_NEXTAUTH_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
-    signin: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/auth/signin` : '/auth/signin',
-    signup: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/auth/signup` : '/auth/signup',
-    dashboard: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/user/dashboard` : '/user/dashboard',
-    adminDashboard: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/admin/dashboard` : '/admin/dashboard',
-    verifyEmail: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/auth/verify-email` : '/auth/verify-email',
-    resetPassword: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/auth/reset-password` : '/auth/reset-password',
+    base: process.env.NEXT_PUBLIC_NEXTAUTH_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
+    signin: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/auth/signin` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/auth/signin` : '/auth/signin'),
+    signup: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/auth/signup` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/auth/signup` : '/auth/signup'),
+    dashboard: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/user/dashboard` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/user/dashboard` : '/user/dashboard'),
+    adminDashboard: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/admin/dashboard` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/admin/dashboard` : '/admin/dashboard'),
+    verifyEmail: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/auth/verify-email` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/auth/verify-email` : '/auth/verify-email'),
+    resetPassword: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/auth/reset-password` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/auth/reset-password` : '/auth/reset-password'),
   }
 };
 

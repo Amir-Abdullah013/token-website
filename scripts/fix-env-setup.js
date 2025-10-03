@@ -64,3 +64,4 @@ console.log('npx prisma generate');
 console.log('npx prisma db push');
 
 
+

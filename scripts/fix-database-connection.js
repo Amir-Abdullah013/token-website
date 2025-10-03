@@ -55,3 +55,4 @@ console.log('\n🚀 Now try:');
 console.log('npx prisma db push');
 
 
+
