@@ -5,15 +5,40 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "start": "next start"
+    "start": "next start",
+    "analyze": "ANALYZE=true npm run build",
+    "optimize": "node scripts/optimize.js",
+    "lighthouse": "lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html",
+    "test:performance": "npm run build && npm run start & sleep 5 && npm run lighthouse && pkill -f 'next start'",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "node prisma/seed.js",
+    "migrate:check": "node scripts/migrate-to-supabase.js",
+    "env:check": "node scripts/update-env-vars.js",
+    "env:migration-check": "node scripts/check-env-migration.js",
+    "fix-imports": "node scripts/fix-all-remaining-imports.js",
+    "setup:env": "node setup-helper.js",
+    "env:setup": "node scripts/setup-env-variables.js"
   },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "critters": "^0.0.23",
+    "date-fns": "^4.1.0",
+    "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.4"
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4"
+    "glob": "^11.0.3",
+    "lighthouse": "^12.0.0",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^4",
+    "webpack-bundle-analyzer": "^4.10.1"
   }
 }
