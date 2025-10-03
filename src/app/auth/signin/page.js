@@ -164,9 +164,11 @@ export default function SignInPage() {
                 fullWidth
                 loading={loading}
                 disabled={loading}
+                className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
-                Sign in
+                {loading ? 'Signing in...' : 'Sign in'}
               </Button>
+
             </form>
 
             <div className="mt-6">

@@ -30,13 +30,13 @@ export default function Home() {
             <div className="flex space-x-4">
               <Link
                 href="/auth/signin"
-                className="text-white hover:text-blue-300 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border border-white hover:border-blue-400 bg-transparent hover:bg-blue-500/10"
+                className="text-white hover:text-blue-300 px-4 py-3 mt-2 mb-2 rounded-lg text-sm font-semibold transition-colors border border-white hover:border-blue-400 bg-transparent hover:bg-blue-500/10"
               >
                 Sign In
               </Link>
               <Link
                 href="/auth/signup"
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                className="bg-gradient-to-r from-blue-500 to-purple-600 mt-2 mb-2 text-white hover:from-blue-600 hover:to-purple-700 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200"
               >
                 Get Started
               </Link>

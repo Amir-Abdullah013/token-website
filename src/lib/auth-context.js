@@ -152,36 +152,36 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setLoading(true);
       
-      // In development mode, simulate successful signin
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Development mode: simulating signin');
-        const mockUser = {
-          $id: 'mock-user-id',
-          name: 'Test User',
-          email: email,
-          role: 'user'
-        };
-        setUser(mockUser);
-        return { success: true, user: mockUser };
+      // Always use real authentication - no mock signin
+      console.log('Attempting to sign in user:', email);
+      
+      // Call the API route for authentication
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Sign in failed');
       }
-      
-      const session = await authHelpers.signIn(email, password);
-      const currentUser = await authHelpers.getCurrentUser();
-      const userRole = await getUserRole(currentUser);
-      
-      setUser({ ...currentUser, role: userRole });
-      
-      // Redirect based on role
-      // Don't redirect automatically - let the calling component handle it
-      // This allows for custom redirect logic in sign-in pages
-      
-      return { success: true, user: { ...currentUser, role: userRole } };
+
+      if (data.success && data.user) {
+        setUser(data.user);
+        console.log('Sign in successful:', data.user);
+        return { success: true, user: data.user };
+      } else {
+        throw new Error(data.error || 'Sign in failed');
+      }
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
       setLoading(false);
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -190,14 +190,24 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setLoading(true);
       
-      const account = await authHelpers.signUp(email, password, name);
-      
-      // Send verification email
-      await authHelpers.sendVerificationEmail();
-      
+      // Call the API route for user registration
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, name }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Sign up failed');
+      }
+
       return { 
         success: true, 
-        message: 'Account created successfully! Please check your email to verify your account.' 
+        message: data.message || 'Account created successfully! Please check your email to verify your account.' 
       };
     } catch (error) {
       const errorMessage = getErrorMessage(error);

@@ -1115,6 +1115,76 @@ export const databaseHelpers = {
         throw error
       }
     }
+  },
+
+  // User operations
+  user: {
+    // Get user by email
+    async getUserByEmail(email) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { email }
+        })
+        return user
+      } catch (error) {
+        console.error('Error getting user by email:', error)
+        throw error
+      }
+    },
+
+    // Get user by ID
+    async getUserById(id) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id }
+        })
+        return user
+      } catch (error) {
+        console.error('Error getting user by ID:', error)
+        throw error
+      }
+    },
+
+    // Create new user
+    async createUser(userData) {
+      try {
+        const user = await prisma.user.create({
+          data: userData
+        })
+        return user
+      } catch (error) {
+        console.error('Error creating user:', error)
+        throw error
+      }
+    },
+
+    // Update user
+    async updateUser(id, userData) {
+      try {
+        const user = await prisma.user.update({
+          where: { id },
+          data: userData
+        })
+        return user
+      } catch (error) {
+        console.error('Error updating user:', error)
+        throw error
+      }
+    },
+
+    // Verify user email
+    async verifyUserEmail(id) {
+      try {
+        const user = await prisma.user.update({
+          where: { id },
+          data: { emailVerified: true }
+        })
+        return user
+      } catch (error) {
+        console.error('Error verifying user email:', error)
+        throw error
+      }
+    }
   }
 }
 
