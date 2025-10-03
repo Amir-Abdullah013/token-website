@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 
-// Import database helpers with error handling
+// Import database helpers with error handling for Vercel compatibility
 let databaseHelpers;
-try {
-  databaseHelpers = require('../../../../lib/database.js').databaseHelpers;
-} catch (error) {
-  console.warn('Database helpers not available:', error.message);
-  databaseHelpers = null;
-}
+const loadDatabaseHelpers = async () => {
+  if (databaseHelpers) return databaseHelpers;
+  
+  try {
+    const dbModule = await import('../../../../lib/database.js');
+    databaseHelpers = dbModule.databaseHelpers;
+    return databaseHelpers;
+  } catch (error) {
+    console.warn('Database helpers not available:', error.message);
+    return null;
+  }
+};
 
 export async function POST(request) {
   try {
@@ -22,8 +28,9 @@ export async function POST(request) {
       );
     }
 
-    // Check if database is available
-    if (!databaseHelpers) {
+    // Load database helpers dynamically
+    const dbHelpers = await loadDatabaseHelpers();
+    if (!dbHelpers) {
       return NextResponse.json(
         { success: false, error: 'Database not available. Please try again later.' },
         { status: 503 }
@@ -31,7 +38,7 @@ export async function POST(request) {
     }
 
     // Check if user exists
-    const user = await databaseHelpers.user.getUserByEmail(email);
+    const user = await dbHelpers.user.getUserByEmail(email);
     
     if (!user) {
       return NextResponse.json(
