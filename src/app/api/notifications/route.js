@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma.js';
 
 export async function GET(request) {
   try {
@@ -53,6 +52,22 @@ export async function GET(request) {
       return NextResponse.json({ 
         notifications: mockNotifications.slice(offset, offset + limit),
         total: mockNotifications.length
+      });
+    }
+
+    // Try to load Prisma dynamically
+    let prisma;
+    try {
+      const prismaModule = await import('../../../lib/prisma.js');
+      prisma = prismaModule.prisma;
+    } catch (error) {
+      console.warn('Prisma not available:', error.message);
+      // Return mock data if database is not available
+      return NextResponse.json({
+        notifications: mockNotifications,
+        total: mockNotifications.length,
+        limit,
+        offset
       });
     }
 

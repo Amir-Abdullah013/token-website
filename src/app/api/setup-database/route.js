@@ -1,5 +1,3 @@
-import { databaseHelpers } from '../../../lib/database.js';
-
 export async function POST() {
   try {
     console.log('🚀 Starting database setup via API...');

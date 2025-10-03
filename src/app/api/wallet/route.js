@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
-import { loadPrisma, getMockData } from '../../../lib/database-loader.js';
-
 export async function GET(request) {
   try {
+    // Try to load Prisma dynamically
+    let prisma;
+    try {
+      const prismaModule = await import('../../../../lib/prisma.js');
+      prisma = prismaModule.prisma;
+    } catch (error) {
+      console.warn('Prisma not available:', error.message);
+      return NextResponse.json(
+        { success: false, error: 'Database not available' },
+        { status: 503 }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
@@ -11,15 +21,6 @@ export async function GET(request) {
         { error: 'User ID is required' },
         { status: 400 }
       );
-    }
-
-    // Try to load Prisma dynamically
-    const prisma = await loadPrisma();
-    if (!prisma) {
-      return NextResponse.json({
-        ...getMockData.wallet(),
-        message: 'Database not available - returning mock data'
-      });
     }
 
     // Get user's wallet
@@ -51,6 +52,18 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    // Try to load Prisma dynamically
+    let prisma;
+    try {
+      const prismaModule = await import('../../../../lib/prisma.js');
+      prisma = prismaModule.prisma;
+    } catch (error) {
+      console.warn('Prisma not available:', error.message);
+      return NextResponse.json(
+        { success: false, error: 'Database not available' },
+        { status: 503 }
+      );
+    }
     const { userId, currency = 'PKR' } = await request.json();
 
     if (!userId) {

@@ -1,5 +1,3 @@
-import { databaseHelpers } from '../../../lib/database.js';
-
 export async function GET() {
   try {
     console.log('🔍 Testing database connection...');

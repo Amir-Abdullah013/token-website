@@ -26,22 +26,18 @@ export async function POST(request, { params }) {
       prisma = prismaModule.prisma;
     } catch (error) {
       console.warn('Prisma not available:', error.message);
-      prisma = null;
-    }
-
-    // If Prisma is not available, return mock success
-    if (!prisma) {
+      // Return success without database operation
       return NextResponse.json({ 
         success: true,
-        message: 'Notification marked as read (database not available)'
+        message: 'Notification marked as read (database unavailable)'
       });
     }
 
-    // Use actual database
+    // Use database if available
     try {
       const notification = await prisma.notification.update({
         where: { id },
-        data: { isRead: true }
+        data: { status: 'READ' } // Use correct field name based on schema
       });
 
       return NextResponse.json({ 

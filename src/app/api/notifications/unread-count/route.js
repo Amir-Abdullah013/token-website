@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma.js';
-
 export async function GET(request) {
   try {
+    // Try to load Prisma dynamically
+    let prisma;
+    try {
+      const prismaModule = await import('../../../../lib/prisma.js');
+      prisma = prismaModule.prisma;
+    } catch (error) {
+      console.warn('Prisma not available:', error.message);
+      return NextResponse.json(
+        { success: false, error: 'Database not available' },
+        { status: 503 }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
@@ -20,6 +30,18 @@ export async function GET(request) {
 
     // Production mode - use actual database
     try {
+    // Try to load Prisma dynamically
+    let prisma;
+    try {
+      const prismaModule = await import('../../../../lib/prisma.js');
+      prisma = prismaModule.prisma;
+    } catch (error) {
+      console.warn('Prisma not available:', error.message);
+      return NextResponse.json(
+        { success: false, error: 'Database not available' },
+        { status: 503 }
+      );
+    }
       const count = await prisma.notification.count({
         where: {
           OR: [
