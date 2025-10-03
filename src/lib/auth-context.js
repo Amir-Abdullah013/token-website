@@ -167,6 +167,10 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle database connection errors gracefully
+        if (response.status === 503) {
+          throw new Error('Database is currently unavailable. Please try again later.');
+        }
         throw new Error(data.error || 'Sign in failed');
       }
 
@@ -202,6 +206,10 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle database connection errors gracefully
+        if (response.status === 503) {
+          throw new Error('Database is currently unavailable. Please try again later.');
+        }
         throw new Error(data.error || 'Sign up failed');
       }
 

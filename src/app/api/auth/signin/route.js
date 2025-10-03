@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
-import { databaseHelpers } from '../../../../lib/database.js';
 import bcrypt from 'bcryptjs';
+
+// Import database helpers with error handling
+let databaseHelpers;
+try {
+  databaseHelpers = require('../../../../lib/database.js').databaseHelpers;
+} catch (error) {
+  console.warn('Database helpers not available:', error.message);
+  databaseHelpers = null;
+}
 
 export async function POST(request) {
   try {
@@ -11,6 +19,14 @@ export async function POST(request) {
       return NextResponse.json(
         { success: false, error: 'Email and password are required' },
         { status: 400 }
+      );
+    }
+
+    // Check if database is available
+    if (!databaseHelpers) {
+      return NextResponse.json(
+        { success: false, error: 'Database not available. Please try again later.' },
+        { status: 503 }
       );
     }
 
@@ -56,6 +72,17 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Sign in error:', error);
+    
+    // Handle specific database connection errors
+    if (error.message.includes('Can\'t reach database server') || 
+        error.message.includes('Connection refused') ||
+        error.message.includes('timeout')) {
+      return NextResponse.json(
+        { success: false, error: 'Database connection failed. Please try again later.' },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
