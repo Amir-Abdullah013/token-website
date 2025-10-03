@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { databaseHelpers } from '../../../lib/database';
+import { loadDatabaseHelpers, getMockData } from '../../../lib/database-loader.js';
 
 export async function GET(request) {
   try {
@@ -14,6 +14,16 @@ export async function GET(request) {
         { error: 'User ID is required' },
         { status: 400 }
       );
+    }
+
+    // Try to load database helpers dynamically
+    const databaseHelpers = await loadDatabaseHelpers();
+    if (!databaseHelpers) {
+      // Return mock data if database is not available
+      return NextResponse.json({
+        ...getMockData.transactions(),
+        message: 'Database not available - returning mock data'
+      });
     }
 
     let transactionsData;

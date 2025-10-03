@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma.js';
+import { loadPrisma, getMockData } from '../../../lib/database-loader.js';
 
 export async function GET(request) {
   try {
@@ -11,6 +11,15 @@ export async function GET(request) {
         { error: 'User ID is required' },
         { status: 400 }
       );
+    }
+
+    // Try to load Prisma dynamically
+    const prisma = await loadPrisma();
+    if (!prisma) {
+      return NextResponse.json({
+        ...getMockData.wallet(),
+        message: 'Database not available - returning mock data'
+      });
     }
 
     // Get user's wallet
