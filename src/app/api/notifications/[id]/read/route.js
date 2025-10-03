@@ -1,11 +1,25 @@
 import { NextResponse } from 'next/server';
-import { databaseHelpers } from '@/lib/database';
-import { authHelpers } from '@/lib/supabase';
 
 // PUT /api/notifications/[id]/read - Mark notification as read
 export async function PUT(request, { params }) {
   try {
     const { id } = params;
+
+    // Try to load modules dynamically
+    let databaseHelpers, authHelpers;
+    try {
+      const dbModule = await import('@/lib/database');
+      databaseHelpers = dbModule.databaseHelpers;
+      
+      const authModule = await import('@/lib/supabase');
+      authHelpers = authModule.authHelpers;
+    } catch (error) {
+      console.warn('Modules not available:', error.message);
+      return NextResponse.json(
+        { error: 'Service not available' },
+        { status: 503 }
+      );
+    }
 
     // Get current user
     const user = await authHelpers.getCurrentUser();
@@ -40,6 +54,3 @@ export async function PUT(request, { params }) {
     );
   }
 }
-
-
-

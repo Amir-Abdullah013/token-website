@@ -1,13 +1,53 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 
 export async function POST(request) {
-  try {
-    // Sign out from Supabase
-    const { error } = await supabase.auth.signOut();
+    // Dynamic import helper
+    const loadModules = async () => {
+      const modules = {};
+      try {
+        if (content.includes('databaseHelpers.')) {
+          const dbModule = await import('@/lib/database');
+          modules.databaseHelpers = dbModule.databaseHelpers;
+        }
+        if (content.includes('authHelpers.')) {
+          const authModule = await import('@/lib/supabase');
+          modules.authHelpers = authModule.authHelpers;
+        }
+        if (content.includes('prisma.')) {
+          const prismaModule = await import('@/lib/prisma');
+          modules.prisma = prismaModule.prisma;
+        }
+        if (content.includes('supabase.')) {
+          const supabaseModule = await import('@/lib/supabase');
+          modules.supabase = supabaseModule.supabase;
+        }
+      } catch (error) {
+        console.warn('Modules not available:', error.message);
+        throw new Error('Required modules not available');
+      }
+      return modules;
+    };
     
-    if (error) {
-      console.error('Supabase logout error:', error);
+    const { databaseHelpers, authHelpers, prisma, supabase } = await loadModules();
+
+  try {
+    // Try to load supabase dynamically
+    let supabase;
+    try {
+      const supabaseModule = await import('@/lib/supabase');
+      supabase = supabaseModule.supabase;
+    } catch (error) {
+      console.warn('Supabase not available:', error.message);
+      // Continue with logout even if supabase is not available
+    }
+
+    // Sign out from Supabase if available
+    if (supabase) {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Supabase logout error:', error);
+      }
     }
 
     // Create response
