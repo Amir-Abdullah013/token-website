@@ -91,44 +91,14 @@ export const AuthProvider = ({ children }) => {
             return;
           }
           
-          // If no user session found, check if we're on dashboard with OAuth params
-          const urlParams = new URLSearchParams(window.location.search);
-          const oauthSuccess = urlParams.get('oauth') === 'success';
-          const userEmail = urlParams.get('userEmail');
-          const userName = urlParams.get('userName');
-          const userId = urlParams.get('userId');
-          const userPicture = urlParams.get('userPicture');
+          // OAuth session found but no user session - this shouldn't happen
+          // as the oauth-success page should have set both
+          console.warn('OAuth session found but no user session - clearing OAuth session');
+          localStorage.removeItem('oauthSession');
           
-          if (oauthSuccess && userEmail) {
-            console.log('Found OAuth URL parameters, creating user session');
-            const userData = {
-              $id: userId || oauthData.session,
-              id: userId || oauthData.session,
-              email: userEmail,
-              name: userName || 'OAuth User',
-              picture: userPicture,
-              provider: oauthData.provider,
-              role: 'USER',
-              emailVerified: true
-            };
-            
-            // Store the user session
-            localStorage.setItem('userSession', JSON.stringify(userData));
-            setUser(userData);
-            setConfigValid(true);
-            setLoading(false);
-            return;
-          }
-          
-          // Fallback: create basic user object if no user session found
-          setUser({
-            $id: oauthData.session,
-            name: 'OAuth User',
-            email: 'oauth@example.com',
-            role: 'user',
-            provider: oauthData.provider
-          });
-          setConfigValid(true);
+          // No valid OAuth session found
+          setUser(null);
+          setConfigValid(false);
           setLoading(false);
           return;
         } catch (error) {
