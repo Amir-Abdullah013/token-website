@@ -278,12 +278,7 @@ export default function UserDashboard() {
               {/* Wallet Overview */}
               <Card className="cursor-pointer">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Wallet Overview</CardTitle>
-                    <Button variant="outline" size="sm">
-                      View All
-                    </Button>
-                  </div>
+                  
                 </CardHeader>
                 <CardContent>
                   <WalletOverview />
