@@ -13,7 +13,7 @@ DATABASE_URL=postgresql://username:password@localhost:5432/database_name
 
 # Google OAuth Configuration
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # GitHub OAuth Configuration (optional)
 NEXT_PUBLIC_GITHUB_CLIENT_ID=your-github-client-id
@@ -48,7 +48,7 @@ console.log('\n🔍 Required Environment Variables:');
 console.log('=====================================');
 console.log('DATABASE_URL - Your database connection string');
 console.log('NEXT_PUBLIC_GOOGLE_CLIENT_ID - Your Google OAuth client ID');
-console.log('GOOGLE_CLIENT_SECRET - Your Google OAuth client secret');
+console.log('NEXT_PUBLIC_GOOGLE_CLIENT_SECRET - Your Google OAuth client secret');
 console.log('NEXT_PUBLIC_GITHUB_CLIENT_ID - Your GitHub OAuth client ID (optional)');
 console.log('GITHUB_CLIENT_SECRET - Your GitHub OAuth client secret (optional)');
 console.log('\n📚 For detailed setup instructions, see: ENVIRONMENT_SETUP.md');
