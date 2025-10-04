@@ -3,7 +3,7 @@ import { config } from '../../../../../lib/config';
 import { getBaseUrl, getOAuthCallbackUrl, logUrlConfig } from '../../../../../lib/url-utils';
 import { getGoogleOAuthConfig, logOAuthConfig, validateOAuthConfig } from '../../../../../lib/oauth-config';
 
-export async function POST(request) {
+export async function GET(request) {
   try {
     // Validate OAuth configuration
     const validation = validateOAuthConfig();
@@ -51,10 +51,8 @@ export async function POST(request) {
 
     console.log('Generated Google OAuth URL:', googleAuthUrl);
 
-    return NextResponse.json({
-      url: googleAuthUrl,
-      state: state
-    });
+    // Redirect directly to Google OAuth instead of returning JSON
+    return NextResponse.redirect(googleAuthUrl);
 
   } catch (error) {
     console.error('Google OAuth initiation error:', error);
