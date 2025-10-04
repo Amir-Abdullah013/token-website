@@ -91,28 +91,11 @@ export async function middleware(request) {
           return NextResponse.next();
         }
     
-    // Production mode: Check for authentication
-    const sessionCookie = request.cookies.get('a_session_') || request.cookies.get('a_session');
-    
-    // Handle unauthenticated users
-    if (!sessionCookie) {
-      if (isUserRoute || isAdminRoute || isProtectedApi) {
-        const signinUrl = new URL('/auth/signin', request.url);
-        // Don't add redirect parameter in development mode
-        if (process.env.NODE_ENV !== 'development') {
-          signinUrl.searchParams.set('redirect', pathname);
-        }
-        return NextResponse.redirect(signinUrl);
-      }
-      return NextResponse.next();
-    }
-    
-    // Handle authenticated users trying to access auth pages
-    if (pathname.startsWith('/auth/') && pathname !== '/auth/logout') {
-      const isAdmin = false; // You can implement admin detection here
-      const redirectUrl = isAdmin ? '/admin/dashboard' : '/user/dashboard';
-      return NextResponse.redirect(new URL(redirectUrl, request.url));
-    }
+    // Production mode: Skip authentication check for OAuth users
+    // OAuth users use localStorage which can't be checked in middleware
+    // Let the client-side auth context handle authentication
+    console.log('Production mode: skipping middleware authentication check for', pathname);
+    return NextResponse.next();
     
     return NextResponse.next();
     

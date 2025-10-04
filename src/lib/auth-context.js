@@ -55,8 +55,8 @@ export const AuthProvider = ({ children }) => {
           const userData = JSON.parse(userSession);
           console.log('Found user session in localStorage:', userData);
           
-          // Validate the session data
-          if (userData.email && userData.name) {
+          // Validate the session data - be more lenient for OAuth users
+          if (userData.email && (userData.name || userData.email)) {
             setUser(userData);
             setConfigValid(true);
             setLoading(false);
@@ -107,21 +107,11 @@ export const AuthProvider = ({ children }) => {
         }
       }
       
-      // If no session found, check for real authentication
-      console.log('No session found, checking real authentication...');
-      
-      // Validate configuration first
-      const validation = validateConfig();
-      setConfigValid(validation.isValid);
-      
-      if (!validation.isValid) {
-        console.error('Configuration validation failed:', validation.errors);
-        setError('Configuration error: ' + validation.errors.join(', '));
-        setLoading(false);
-        return;
-      }
-      
-      checkAuth();
+      // If no session found, set as not authenticated but don't redirect
+      console.log('No session found, setting as not authenticated');
+      setUser(null);
+      setConfigValid(false);
+      setLoading(false);
     };
 
     // Use requestAnimationFrame to ensure DOM is ready

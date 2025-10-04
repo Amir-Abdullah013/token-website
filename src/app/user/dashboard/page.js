@@ -125,6 +125,16 @@ export default function UserDashboard() {
           setIsOAuthCallback(true);
         }
       }
+
+      // Additional check: If we have OAuth data but auth context hasn't loaded yet,
+      // force a page reload to ensure auth context picks up the session
+      const hasOAuthData = localStorage.getItem('userSession') && localStorage.getItem('oauthSession');
+      if (hasOAuthData && !user) {
+        console.log('Dashboard: OAuth data exists but user not loaded, reloading page');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
     };
 
     // Use requestAnimationFrame to ensure DOM is ready
@@ -143,20 +153,13 @@ export default function UserDashboard() {
     );
   }
 
-  // ✅ Show signin redirect if not authenticated (with delay to allow auth context to load)
-  if (!isAuthenticated) {
-    // Give auth context time to load user session
-    setTimeout(() => {
-      if (!isAuthenticated) {
-        router.push('/auth/signin?redirect=/user/dashboard');
-      }
-    }, 1000);
-    
+  // ✅ Show loading state if not authenticated (NO REDIRECT)
+  if (!isAuthenticated && !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking authentication...</p>
+          <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
     );
