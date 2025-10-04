@@ -38,7 +38,7 @@ export const fallbackConfig = {
 export function getConfigWithFallbacks() {
   return {
     database: {
-      url: process.env.DATABASE_URL || process.env.NEXT_PUBLIC_DATABASE_URL || fallbackConfig.database.url,
+      url: process.env.DATABASE_URL || process.env.DATABASE_URL || fallbackConfig.database.url,
     },
     
     oauth: {

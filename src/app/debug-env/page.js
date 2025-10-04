@@ -11,7 +11,7 @@ export default function DebugEnv() {
       const vars = {
         NODE_ENV: process.env.NODE_ENV,
         DATABASE_URL: process.env.DATABASE_URL ? 'Set' : 'Not set',
-        NEXT_PUBLIC_DATABASE_URL: process.env.NEXT_PUBLIC_DATABASE_URL ? 'Set' : 'Not set',
+        PUBLIC_DATABASE_URL: process.env.DATABASE_URL ? 'Set' : 'Not set',
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? 'Set' : 'Not set',
         NEXT_PUBLIC_NEXTAUTH_URL: process.env.NEXT_PUBLIC_NEXTAUTH_URL ? 'Set' : 'Not set',
         VERCEL_URL: process.env.VERCEL_URL ? 'Set' : 'Not set',

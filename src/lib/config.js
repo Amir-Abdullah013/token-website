@@ -18,7 +18,7 @@ export const validateConfig = () => {
     warnings.push('NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set - Google OAuth will be disabled');
   }
   
-  // Note: NEXT_PUBLIC_GOOGLE_CLIENT_SECRET is not needed for client-side OAuth
+  // Note: GOOGLE_CLIENT_SECRET is not needed for client-side OAuth
   // Note: NextAuth variables are not needed for Appwrite authentication
   
   return {
