@@ -1,222 +1,313 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { authHelpers } from '@/lib/supabase';;
-import { Button, Input, Card, CardContent, AlertModal, Loader } from '../../../components';
 
 export default function ResetPasswordPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: ''
-  });
-  const [formErrors, setFormErrors] = useState({});
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState('error');
-  const [loading, setLoading] = useState(false);
-  const [isValidLink, setIsValidLink] = useState(true);
-
-  const userId = searchParams.get('userId');
-  const secret = searchParams.get('secret');
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState(1); // 1: Enter OTP, 2: Enter new password
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    if (!userId || !secret) {
-      setIsValidLink(false);
-      setAlertMessage('Invalid reset link. Please request a new password reset.');
-      setAlertType('error');
-      setShowAlert(true);
+    // Get email from URL params if available
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setEmail(emailParam);
     }
-  }, [userId, secret]);
+  }, [searchParams]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+  const handleOtpChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setOtp(value);
+    if (errors.otp) {
+      setErrors(prev => ({ ...prev, otp: '' }));
     }
   };
 
-  const validateForm = () => {
-    const errors = {};
-    
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      errors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
+  const handlePasswordChange = (e) => {
+    setNewPassword(e.target.value);
+    if (errors.newPassword) {
+      setErrors(prev => ({ ...prev, newPassword: '' }));
     }
-    
-    if (!formData.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleConfirmPasswordChange = (e) => {
+    setConfirmPassword(e.target.value);
+    if (errors.confirmPassword) {
+      setErrors(prev => ({ ...prev, confirmPassword: '' }));
+    }
+  };
+
+  const validateOtp = () => {
+    const newErrors = {};
+    
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (!otp) {
+      newErrors.otp = 'OTP is required';
+    } else if (otp.length !== 6) {
+      newErrors.otp = 'OTP must be 6 digits';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validatePassword = () => {
+    const newErrors = {};
+    
+    if (!newPassword) {
+      newErrors.newPassword = 'New password is required';
+    } else if (newPassword.length < 8) {
+      newErrors.newPassword = 'Password must be at least 8 characters long';
+    }
+    
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (newPassword !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleVerifyOtp = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateOtp()) {
       return;
     }
-    
-    setLoading(true);
-    
+
+    setIsLoading(true);
+    setMessage('');
+
     try {
-      await authHelpers.resetPassword(userId, secret, formData.password, formData.confirmPassword);
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      const data = await response.json();
       
-      setAlertMessage('Password reset successfully! You can now sign in with your new password.');
-      setAlertType('success');
-      setShowAlert(true);
-      
-      // Redirect to sign in after 3 seconds
-      setTimeout(() => {
-        router.push('/auth/signin');
-      }, 3000);
+      if (data.success) {
+        setMessage('OTP verified successfully! Please enter your new password.');
+        setStep(2);
+      } else {
+        setMessage(data.error);
+      }
     } catch (error) {
-      setAlertMessage(error.message || 'An error occurred while resetting your password. Please try again.');
-      setAlertType('error');
-      setShowAlert(true);
+      setMessage('Network error. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  if (!isValidLink) {
-    return (
-      <div className="min-h-screen bg-secondary-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-error-100">
-              <svg className="h-6 w-6 text-error-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <h2 className="mt-6 text-3xl font-bold text-secondary-900">Invalid Link</h2>
-            <p className="mt-2 text-sm text-secondary-600">
-              This password reset link is invalid or has expired.
-            </p>
-          </div>
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    
+    if (!validatePassword()) {
+      return;
+    }
 
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="space-y-4">
-                <p className="text-sm text-secondary-600">
-                  Please request a new password reset link.
-                </p>
-                <div className="flex flex-col space-y-2">
-                  <Link href="/auth/forgot-password">
-                    <Button variant="primary" fullWidth>
-                      Request New Reset Link
-                    </Button>
-                  </Link>
-                  <Link href="/auth/signin">
-                    <Button variant="outline" fullWidth>
-                      Back to Sign In
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+    setIsLoading(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp, newPassword }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setMessage('Password reset successfully! You can now sign in with your new password.');
+        setTimeout(() => {
+          router.push('/auth/signin');
+        }, 2000);
+      } else {
+        setMessage(data.error);
+      }
+    } catch (error) {
+      setMessage('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-secondary-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-secondary-900">Reset your password</h2>
-          <p className="mt-2 text-sm text-secondary-600">
-            Enter your new password below.
-          </p>
-        </div>
-
-        <Card>
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <Input
-                label="New password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                error={formErrors.password}
-                placeholder="Enter your new password"
-                helperText="Must be at least 8 characters with uppercase, lowercase, and number"
-                leftIcon={
-                  <svg className="h-5 w-5 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                }
-                required
-              />
-
-              <Input
-                label="Confirm new password"
-                name="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                error={formErrors.confirmPassword}
-                placeholder="Confirm your new password"
-                leftIcon={
-                  <svg className="h-5 w-5 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                }
-                required
-              />
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                fullWidth
-                loading={loading}
-                disabled={loading}
-              >
-                Reset password
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <Link href="/auth/signin" className="text-sm font-medium text-primary-600 hover:text-primary-500">
-                Back to sign in
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          {step === 1 ? 'Verify OTP' : 'Reset Password'}
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          {step === 1 
+            ? 'Enter the 6-digit OTP sent to your email'
+            : 'Enter your new password'
+          }
+        </p>
       </div>
 
-      <AlertModal
-        isOpen={showAlert}
-        onClose={() => setShowAlert(false)}
-        title={alertType === 'success' ? 'Password Reset!' : 'Reset Failed'}
-        message={alertMessage}
-        type={alertType}
-        buttonText="OK"
-      />
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {message && (
+            <div className={`mb-4 p-3 rounded-md ${
+              message.includes('successfully') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}>
+              {message}
+            </div>
+          )}
+
+          {step === 1 ? (
+            <form className="space-y-6" onSubmit={handleVerifyOtp}>
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                      errors.email ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter your email"
+                  />
+                  {errors.email && (
+                    <p className="mt-2 text-sm text-red-600">{errors.email}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="otp" className="block text-sm font-medium text-gray-700">
+                  OTP Code
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="otp"
+                    name="otp"
+                    type="text"
+                    autoComplete="off"
+                    required
+                    value={otp}
+                    onChange={handleOtpChange}
+                    className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-center text-2xl tracking-widest ${
+                      errors.otp ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="000000"
+                    maxLength={6}
+                  />
+                  {errors.otp && (
+                    <p className="mt-2 text-sm text-red-600">{errors.otp}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Verifying...' : 'Verify OTP'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form className="space-y-6" onSubmit={handleResetPassword}>
+              <div>
+                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                  New Password
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={newPassword}
+                    onChange={handlePasswordChange}
+                    className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                      errors.newPassword ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter new password"
+                  />
+                  {errors.newPassword && (
+                    <p className="mt-2 text-sm text-red-600">{errors.newPassword}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  Confirm Password
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={confirmPassword}
+                    onChange={handleConfirmPasswordChange}
+                    className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                      errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Confirm new password"
+                  />
+                  {errors.confirmPassword && (
+                    <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Resetting...' : 'Reset Password'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          <div className="mt-6 text-center">
+            <Link href="/auth/signin" className="text-sm text-blue-600 hover:text-blue-500">
+              Back to Sign In
+            </Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
-
-

@@ -134,6 +134,18 @@ model SystemSetting {
   @@map("system_settings")
 }
 
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  hashedOtp String
+  expiry    DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("password_resets")
+}
+
 // Enums
 enum Role {
   USER

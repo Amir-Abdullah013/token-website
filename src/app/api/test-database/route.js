@@ -1,58 +1,42 @@
+import { NextResponse } from 'next/server';
+import { databaseHelpers } from '../../../lib/database.js';
+
 export async function GET() {
   try {
-    console.log('🔍 Testing database connection...');
+    // Test basic database operations
+    const testEmail = 'test@example.com';
     
-    // Test 1: Try to access wallets collection
-    console.log('1. Testing access to wallets collection...');
-    try {
-      const walletsResponse = await databases.listDocuments('wallets_db', 'wallets', []);
-      console.log('✅ Wallets collection accessible, documents:', walletsResponse.total);
-    } catch (error) {
-      console.log('❌ Wallets collection not accessible:', error.message);
-      return Response.json({
-        success: false,
-        message: 'Wallets collection not accessible',
-        error: error.message,
-        code: error.code
-      });
-    }
+    // Try to get a user (this will fail if database is not connected)
+    await databaseHelpers.user.getUserByEmail(testEmail);
     
-    // Test 2: Try to access transactions collection
-    console.log('2. Testing access to transactions collection...');
-    try {
-      const transactionsResponse = await databases.listDocuments('wallets_db', 'transactions', []);
-      console.log('✅ Transactions collection accessible, documents:', transactionsResponse.total);
-    } catch (error) {
-      console.log('❌ Transactions collection not accessible:', error.message);
-      return Response.json({
-        success: false,
-        message: 'Transactions collection not accessible',
-        error: error.message,
-        code: error.code
-      });
-    }
-    
-    return Response.json({
+    return NextResponse.json({
       success: true,
-      message: 'Database connection successful',
-      database: {
-        id: 'wallets_db',
-        name: 'Wallets Database'
-      },
-      collections: {
-        wallets: 'accessible',
-        transactions: 'accessible'
-      },
-      status: 'complete'
+      message: 'Database connection is working properly!'
     });
-    
+
   } catch (error) {
-    console.error('❌ Database test failed:', error);
-    return Response.json({
-      success: false,
-      message: `Database test failed: ${error.message}`,
-      error: error.message,
-      code: error.code
-    }, { status: 500 });
+    console.error('Database test error:', error);
+    
+    // Check if it's a connection error
+    if (error.message.includes('Can\'t reach database server') || 
+        error.message.includes('Connection refused') ||
+        error.message.includes('timeout') ||
+        error.message.includes('ECONNREFUSED')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Database connection failed. Please check your DATABASE_URL and ensure the database server is running.' 
+        },
+        { status: 503 }
+      );
+    }
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: `Database test failed: ${error.message}` 
+      },
+      { status: 500 }
+    );
   }
 }

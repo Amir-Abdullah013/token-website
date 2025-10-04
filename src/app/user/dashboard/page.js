@@ -26,10 +26,47 @@ export default function UserDashboard() {
     const initializeDashboard = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const oauthSuccess = urlParams.get('oauth') === 'success';
+      const provider = urlParams.get('provider');
+      const session = urlParams.get('session');
+      const userEmail = urlParams.get('userEmail');
+      const userName = urlParams.get('userName');
+      const userId = urlParams.get('userId');
+      const userPicture = urlParams.get('userPicture');
       
-      if (oauthSuccess) {
-        console.log('Dashboard: Coming from OAuth callback, skipping initial auth check');
+      if (oauthSuccess && provider && session && userEmail) {
+        console.log('Dashboard: Coming from OAuth callback', { 
+          provider, 
+          session, 
+          userEmail, 
+          userName 
+        });
         setIsOAuthCallback(true);
+        
+        // Store complete OAuth user data
+        const oauthData = {
+          provider,
+          session,
+          timestamp: Date.now()
+        };
+        
+        // Store user session data with complete user information
+        const userSessionData = {
+          $id: userId,
+          id: userId,
+          email: userEmail,
+          name: userName,
+          picture: userPicture,
+          provider: provider,
+          role: 'USER',
+          emailVerified: true
+        };
+        
+        localStorage.setItem('oauthSession', JSON.stringify(oauthData));
+        localStorage.setItem('userSession', JSON.stringify(userSessionData));
+        
+        console.log('Dashboard: OAuth user data stored:', userSessionData);
+        
+        // Clean up URL
         window.history.replaceState({}, '', '/user/dashboard');
       }
     };

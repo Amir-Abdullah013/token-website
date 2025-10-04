@@ -46,25 +46,61 @@ export const AuthProvider = ({ children }) => {
     
     // Only run auth check on client side after component mounts
     const initializeAuth = () => {
-      // Check if we're on OAuth callback page
-      const isOAuthCallback = window.location.pathname === '/auth/callback';
+      console.log('Initializing authentication...');
       
-      // In development mode, only set mock user if not on OAuth callback
-      if (process.env.NODE_ENV === 'development' && !isOAuthCallback) {
-        console.log('Development mode: setting mock user immediately');
-        setUser({
-          $id: 'mock-user-id',
-          name: 'Test User',
-          email: 'test@example.com',
-          role: 'user'
-        });
-        setConfigValid(true);
-        setLoading(false);
-        return;
+      // First, check for existing user session in localStorage
+      const userSession = localStorage.getItem('userSession');
+      if (userSession) {
+        try {
+          const userData = JSON.parse(userSession);
+          console.log('Found user session in localStorage:', userData);
+          setUser(userData);
+          setConfigValid(true);
+          setLoading(false);
+          return;
+        } catch (error) {
+          console.error('Error parsing user session:', error);
+          localStorage.removeItem('userSession');
+        }
+      }
+
+      // Check for OAuth session (but userSession should already be set by dashboard)
+      const oauthSession = localStorage.getItem('oauthSession');
+      if (oauthSession) {
+        try {
+          const oauthData = JSON.parse(oauthSession);
+          console.log('Found OAuth session:', oauthData);
+          
+          // Check if we already have user session data (set by dashboard)
+          const userSession = localStorage.getItem('userSession');
+          if (userSession) {
+            const userData = JSON.parse(userSession);
+            console.log('Found OAuth user session:', userData);
+            setUser(userData);
+            setConfigValid(true);
+            setLoading(false);
+            return;
+          }
+          
+          // Fallback: create basic user object if no user session found
+          setUser({
+            $id: oauthData.session,
+            name: 'OAuth User',
+            email: 'oauth@example.com',
+            role: 'user',
+            provider: oauthData.provider
+          });
+          setConfigValid(true);
+          setLoading(false);
+          return;
+        } catch (error) {
+          console.error('Error parsing OAuth session:', error);
+          localStorage.removeItem('oauthSession');
+        }
       }
       
-      // For OAuth callback or production, check real auth
-      console.log('Checking real authentication...');
+      // If no session found, check for real authentication
+      console.log('No session found, checking real authentication...');
       
       // Validate configuration first
       const validation = validateConfig();
@@ -180,8 +216,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (data.success && data.user) {
+        // Store user session in localStorage
+        localStorage.setItem('userSession', JSON.stringify(data.user));
         setUser(data.user);
-        console.log('Sign in successful:', data.user);
+        console.log('Sign in successful, user session stored:', data.user);
         return { success: true, user: data.user };
       } else {
         throw new Error(data.error || 'Sign in failed');
@@ -234,8 +272,20 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     try {
       setError(null);
-      await logoutFn();
+      
+      // Clear all session data from localStorage
+      localStorage.removeItem('userSession');
+      localStorage.removeItem('oauthSession');
+      
+      // Clear user state
       setUser(null);
+      
+      // Call logout function if available
+      if (logoutFn) {
+        await logoutFn();
+      }
+      
+      console.log('User signed out successfully');
       return { success: true };
     } catch (error) {
       const errorMessage = getErrorMessage(error);

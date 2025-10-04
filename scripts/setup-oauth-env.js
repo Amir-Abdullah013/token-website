@@ -13,7 +13,7 @@ DATABASE_URL=postgresql://username:password@localhost:5432/database_name
 
 # Google OAuth Configuration
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id
-NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # GitHub OAuth Configuration (optional)
 NEXT_PUBLIC_GITHUB_CLIENT_ID=your-github-client-id

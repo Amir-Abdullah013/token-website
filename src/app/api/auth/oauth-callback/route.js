@@ -42,9 +42,30 @@ export async function GET(request) {
     }
 
     if (userData) {
-      // Store user data in session or database
-      // For now, redirect to dashboard with success
-      return NextResponse.redirect(`${dashboardUrl}?oauth=success&provider=${provider}`);
+      // Create a session token for the user
+      const sessionToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      
+      // Store user session data
+      const sessionData = {
+        user: userData,
+        token: sessionToken,
+        provider: provider,
+        createdAt: new Date().toISOString()
+      };
+
+      // Store complete user data in localStorage via URL parameters
+      const redirectUrl = new URL(dashboardUrl);
+      redirectUrl.searchParams.set('oauth', 'success');
+      redirectUrl.searchParams.set('provider', provider);
+      redirectUrl.searchParams.set('session', sessionToken);
+      redirectUrl.searchParams.set('userEmail', userData.email);
+      redirectUrl.searchParams.set('userName', userData.name);
+      redirectUrl.searchParams.set('userId', userData.id);
+      if (userData.picture) {
+        redirectUrl.searchParams.set('userPicture', userData.picture);
+      }
+      
+      return NextResponse.redirect(redirectUrl.toString());
     } else {
       return NextResponse.redirect(`${signinUrl}?error=Failed to authenticate`);
     }

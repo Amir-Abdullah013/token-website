@@ -1184,6 +1184,114 @@ export const databaseHelpers = {
         console.error('Error verifying user email:', error)
         throw error
       }
+    },
+
+    // Update user password
+    async updatePassword(id, hashedPassword) {
+      try {
+        const user = await prisma.user.update({
+          where: { id },
+          data: { password: hashedPassword }
+        })
+        return user
+      } catch (error) {
+        console.error('Error updating user password:', error)
+        throw error
+      }
+    }
+  },
+
+  // Password Reset operations
+  passwordReset: {
+    // Create password reset record
+    async createPasswordReset(email, hashedOtp, expiry) {
+      try {
+        // First, invalidate any existing password resets for this email
+        await prisma.passwordReset.updateMany({
+          where: { email },
+          data: { used: true }
+        });
+
+        // Create new password reset record
+        const passwordReset = await prisma.passwordReset.create({
+          data: {
+            email,
+            hashedOtp,
+            expiry
+          }
+        });
+        return passwordReset;
+      } catch (error) {
+        console.error('Error creating password reset:', error);
+        throw error;
+      }
+    },
+
+    // Get password reset by email
+    async getPasswordResetByEmail(email) {
+      try {
+        const passwordReset = await prisma.passwordReset.findFirst({
+          where: {
+            email,
+            used: false,
+            expiry: {
+              gt: new Date()
+            }
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        });
+        return passwordReset;
+      } catch (error) {
+        console.error('Error getting password reset by email:', error);
+        throw error;
+      }
+    },
+
+    // Mark password reset as used
+    async markPasswordResetAsUsed(id) {
+      try {
+        const passwordReset = await prisma.passwordReset.update({
+          where: { id },
+          data: { used: true }
+        });
+        return passwordReset;
+      } catch (error) {
+        console.error('Error marking password reset as used:', error);
+        throw error;
+      }
+    },
+
+    // Clean up expired password resets
+    async cleanupExpiredResets() {
+      try {
+        const result = await prisma.passwordReset.deleteMany({
+          where: {
+            OR: [
+              { expiry: { lt: new Date() } },
+              { used: true }
+            ]
+          }
+        });
+        return result;
+      } catch (error) {
+        console.error('Error cleaning up expired password resets:', error);
+        throw error;
+      }
+    },
+
+    // Get password reset by ID
+    async getPasswordResetById(id) {
+      try {
+        const passwordReset = await prisma.passwordReset.findUnique({
+          where: { id }
+        });
+        return passwordReset;
+      } catch (error) {
+        console.error('Error getting password reset by ID:', error);
+        throw error;
+      }
     }
   }
 }

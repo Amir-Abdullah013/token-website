@@ -1,0 +1,111 @@
+import { NextResponse } from 'next/server';
+import { databaseHelpers } from '../../../../lib/database.js';
+const { generateOTP, hashOTP, getOTPExpiry } = require('../../../../lib/otp-utils-simple.js');
+const { sendOTPEmail } = require('../../../../lib/email-service-simple.js');
+
+export async function POST(request) {
+  try {
+    const { email } = await request.json();
+
+    // Validate input
+    if (!email) {
+      return NextResponse.json(
+        { success: false, error: 'Email is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { success: false, error: 'Please enter a valid email address' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user exists
+    const user = await databaseHelpers.user.getUserByEmail(email);
+    
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Email not registered' },
+        { status: 400 }
+      );
+    }
+
+    // Generate OTP
+    const otp = generateOTP();
+    console.log(`Generated OTP for ${email}: ${otp}`);
+
+    // Hash the OTP
+    const hashedOtp = await hashOTP(otp);
+
+    // Set expiry time (10 minutes from now)
+    const expiry = getOTPExpiry(10);
+
+    // Store password reset record in database
+    const passwordReset = await databaseHelpers.passwordReset.createPasswordReset(
+      email,
+      hashedOtp,
+      expiry
+    );
+
+    console.log(`Password reset record created for ${email} with ID: ${passwordReset.id}`);
+
+    // Send OTP email
+    try {
+      const emailResult = await sendOTPEmail(email, otp, user.name);
+      console.log(`OTP email sent successfully to ${email}:`, emailResult.messageId);
+    } catch (emailError) {
+      console.error('Failed to send OTP email:', emailError);
+      
+      // If email fails, we should still return success to prevent OTP enumeration
+      // but log the error for debugging
+      console.error('Email service error - OTP generated but not sent:', emailError.message);
+    }
+
+    // Clean up expired password resets (run in background)
+    databaseHelpers.passwordReset.cleanupExpiredResets()
+      .then(result => {
+        if (result.count > 0) {
+          console.log(`Cleaned up ${result.count} expired password resets`);
+        }
+      })
+      .catch(error => {
+        console.error('Error cleaning up expired password resets:', error);
+      });
+
+    return NextResponse.json({
+      success: true,
+      message: 'OTP sent successfully to your email'
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    
+    // Handle specific database connection errors
+    if (error.message.includes('Can\'t reach database server') || 
+        error.message.includes('Connection refused') ||
+        error.message.includes('timeout')) {
+      return NextResponse.json(
+        { success: false, error: 'Database connection failed. Please try again later.' },
+        { status: 503 }
+      );
+    }
+
+    // Handle email service errors
+    if (error.message.includes('Email service not configured') ||
+        error.message.includes('Failed to send email')) {
+      return NextResponse.json(
+        { success: false, error: 'Email service is currently unavailable. Please try again later.' },
+        { status: 503 }
+      );
+    }
+    
+    return NextResponse.json(
+      { success: false, error: 'Failed to process forgot password request. Please try again.' },
+      { status: 500 }
+    );
+  }
+}
