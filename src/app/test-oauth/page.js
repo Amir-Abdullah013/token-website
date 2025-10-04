@@ -42,7 +42,7 @@ export default function TestOAuth() {
       }
       
       // Test 3: Check environment variables
-      const hasGoogleClientId = !!process.env.GOOGLE_CLIENT_ID;
+      const hasGoogleClientId = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
       const hasGoogleClientSecret = !!process.env.GOOGLE_CLIENT_SECRET;
       addResult(`🔑 Google Client ID: ${hasGoogleClientId ? '✅ Set' : '❌ Missing'}`, hasGoogleClientId ? 'success' : 'error');
       addResult(`🔑 Google Client Secret: ${hasGoogleClientSecret ? '✅ Set' : '❌ Missing'}`, hasGoogleClientSecret ? 'success' : 'error');

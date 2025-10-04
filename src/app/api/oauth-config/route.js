@@ -32,13 +32,13 @@ export async function GET() {
         NODE_ENV: process.env.NODE_ENV,
         VERCEL_URL: process.env.VERCEL_URL,
         NEXT_PUBLIC_NEXTAUTH_URL: process.env.NEXT_PUBLIC_NEXTAUTH_URL,
-        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
         NEXT_PUBLIC_GITHUB_CLIENT_ID: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID,
         GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? 'Set (hidden)' : 'Not set',
         GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ? 'Set (hidden)' : 'Not set',
         isVercel: !!process.env.VERCEL_URL,
         isProduction: process.env.NODE_ENV === 'production',
-        hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
+        hasGoogleClientId: !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
         hasNextAuthUrl: !!process.env.NEXT_PUBLIC_NEXTAUTH_URL
       }
     };

@@ -13,7 +13,7 @@ export default function DebugOAuthVercel() {
       NODE_ENV: process.env.NODE_ENV,
       VERCEL_URL: process.env.VERCEL_URL,
       NEXT_PUBLIC_NEXTAUTH_URL: process.env.NEXT_PUBLIC_NEXTAUTH_URL,
-      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
       currentUrl: typeof window !== 'undefined' ? window.location.origin : 'N/A'
     };
     setEnvironment(env);
@@ -33,8 +33,8 @@ export default function DebugOAuthVercel() {
 
     // Get OAuth config
     const oauthConfig = {
-      clientId: env.GOOGLE_CLIENT_ID,
-      hasClientId: !!env.GOOGLE_CLIENT_ID,
+      clientId: env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+      hasClientId: !!env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
       redirectUri: urlConfig.oauthCallback
     };
     setConfig(oauthConfig);

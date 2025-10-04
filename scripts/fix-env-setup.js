@@ -19,7 +19,7 @@ DATABASE_URL=your_database_connection_string_here
 
 
 # Optional - Google OAuth
-GOOGLE_CLIENT_ID=your_GOOGLE_CLIENT_ID`;
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_NEXT_PUBLIC_GOOGLE_CLIENT_ID`;
   
   fs.writeFileSync(envPath, envTemplate);
   console.log('✅ Created .env.local file');

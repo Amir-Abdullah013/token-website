@@ -62,7 +62,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 DATABASE_URL=postgresql://postgres:password@db.your-project.supabase.co:5432/postgres
 
 # Optional - Google OAuth
-GOOGLE_CLIENT_ID=your_GOOGLE_CLIENT_ID`;
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_NEXT_PUBLIC_GOOGLE_CLIENT_ID`;
 
 console.log(template);
 

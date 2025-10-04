@@ -28,7 +28,7 @@ export default function OAuthDiagnostic() {
             ...prev,
             ...env,
             // Use server-side data for accurate detection
-            GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID,
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID: env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
             NEXT_PUBLIC_NEXTAUTH_URL: env.NEXT_PUBLIC_NEXTAUTH_URL,
             VERCEL_URL: env.VERCEL_URL
           }));
@@ -49,11 +49,11 @@ export default function OAuthDiagnostic() {
             });
           }
 
-          if (!env.OOGLE_CLIENT_ID) {
+          if (!env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
             recs.push({
               type: 'error',
               title: 'Missing Google Client ID',
-              message: 'GOOGLE_CLIENT_ID is not set',
+              message: 'NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set',
               action: 'Add your Google Client ID to environment variables'
             });
           } else {
@@ -77,7 +77,7 @@ export default function OAuthDiagnostic() {
           NODE_ENV: process.env.NODE_ENV,
           VERCEL_URL: process.env.VERCEL_URL,
           NEXT_PUBLIC_NEXTAUTH_URL: process.env.NEXT_PUBLIC_NEXTAUTH_URL,
-          GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
           currentUrl: typeof window !== 'undefined' ? window.location.origin : 'N/A',
           userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'N/A',
           timestamp: new Date().toISOString()
@@ -136,11 +136,11 @@ export default function OAuthDiagnostic() {
           });
         }
 
-        if (!env.GOOGLE_CLIENT_ID) {
+        if (!env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
           recs.push({
             type: 'error',
             title: 'Missing Google Client ID',
-            message: 'GOOGLE_CLIENT_ID is not set',
+            message: 'NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set',
             action: 'Add your Google Client ID to environment variables'
           });
         } else {

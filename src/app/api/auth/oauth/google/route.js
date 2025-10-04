@@ -21,7 +21,7 @@ export async function GET(request) {
     
     if (!googleConfig.clientId) {
       return NextResponse.json(
-        { error: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID in your environment variables.' },
+        { error: 'Google OAuth is not configured. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment variables.' },
         { status: 400 }
       );
     }

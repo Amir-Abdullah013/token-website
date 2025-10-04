@@ -15,7 +15,7 @@ export default function DebugEnvVars() {
           NODE_ENV: process.env.NODE_ENV,
           VERCEL_URL: process.env.VERCEL_URL,
           NEXT_PUBLIC_NEXTAUTH_URL: process.env.NEXT_PUBLIC_NEXTAUTH_URL,
-          GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
           NEXT_PUBLIC_GITHUB_CLIENT_ID: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID,
           currentUrl: window.location.origin,
           timestamp: new Date().toISOString()
@@ -106,9 +106,9 @@ export default function DebugEnvVars() {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>GOOGLE_CLIENT_ID:</span>
-                      <span className={envVars.GOOGLE_CLIENT_ID ? 'text-green-600' : 'text-red-600'}>
-                        {envVars.GOOGLE_CLIENT_ID ? 'Set' : 'Missing'}
+                      <span>NEXT_PUBLIC_GOOGLE_CLIENT_ID:</span>
+                      <span className={envVars.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? 'text-green-600' : 'text-red-600'}>
+                        {envVars.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? 'Set' : 'Missing'}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -163,9 +163,9 @@ export default function DebugEnvVars() {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>GOOGLE_CLIENT_ID:</span>
-                        <span className={serverEnvVars.GOOGLE_CLIENT_ID ? 'text-green-600' : 'text-red-600'}>
-                          {serverEnvVars.GOOGLE_CLIENT_ID ? 'Set' : 'Missing'}
+                        <span>NEXT_PUBLIC_GOOGLE_CLIENT_ID:</span>
+                        <span className={serverEnvVars.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? 'text-green-600' : 'text-red-600'}>
+                          {serverEnvVars.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? 'Set' : 'Missing'}
                         </span>
                       </div>
                     </div>
@@ -189,7 +189,7 @@ export default function DebugEnvVars() {
           <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <h3 className="font-semibold text-yellow-800 mb-2">🔧 Troubleshooting</h3>
             <div className="text-sm text-yellow-700 space-y-2">
-              <p><strong>If GOOGLE_CLIENT_ID shows as "Missing":</strong></p>
+              <p><strong>If NEXT_PUBLIC_GOOGLE_CLIENT_ID shows as "Missing":</strong></p>
               <ul className="list-disc list-inside ml-4 space-y-1">
                 <li>Check that the variable is set in Vercel Dashboard</li>
                 <li>Ensure it's set for the correct environment (Production)</li>

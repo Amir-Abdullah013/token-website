@@ -7,7 +7,7 @@ export async function GET() {
       NODE_ENV: process.env.NODE_ENV,
       VERCEL_URL: process.env.VERCEL_URL,
       NEXT_PUBLIC_NEXTAUTH_URL: process.env.NEXT_PUBLIC_NEXTAUTH_URL,
-      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
       NEXT_PUBLIC_GITHUB_CLIENT_ID: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID,
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? 'Set (hidden)' : 'Not set',
       GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ? 'Set (hidden)' : 'Not set',
@@ -17,7 +17,7 @@ export async function GET() {
 
     // Check which variables are missing
     const missing = [];
-    if (!process.env.GOOGLE_CLIENT_ID) missing.push('GOOGLE_CLIENT_ID');
+    if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) missing.push('NEXT_PUBLIC_GOOGLE_CLIENT_ID');
     if (!process.env.NEXT_PUBLIC_NEXTAUTH_URL) missing.push('NEXT_PUBLIC_NEXTAUTH_URL');
     if (!process.env.GOOGLE_CLIENT_SECRET) missing.push('GOOGLE_CLIENT_SECRET');
 

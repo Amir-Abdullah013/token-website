@@ -13,7 +13,7 @@ const config = {
   // OAuth Configuration (optional)
   oauth: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID || null
+      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || null
     }
   }
 };
