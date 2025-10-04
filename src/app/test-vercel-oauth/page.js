@@ -179,7 +179,7 @@ export default function TestVercelOAuth() {
             <h3 className="font-semibold text-red-800 mb-3">🔧 Google Cloud Console Setup</h3>
             <div className="text-sm text-red-700 space-y-2">
               <p><strong>1. Go to:</strong> <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Google Cloud Console</a></p>
-              <p><strong>2. Navigate to:</strong> APIs &amp; Services → Credentials</p>
+              <p><strong>2. Navigate to:</strong> APIs & Services → Credentials</p>
               <p><strong>3. Edit your OAuth 2.0 Client ID</strong></p>
               <p><strong>4. Add to Authorized JavaScript origins:</strong></p>
               <div className="ml-4 space-y-1">

@@ -122,7 +122,7 @@ export default function DebugOAuthVercel() {
             <div className="text-sm text-red-700 space-y-2">
               <p><strong>1. Go to Google Cloud Console:</strong> <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">https://console.cloud.google.com/</a></p>
               <p><strong>2. Navigate to:</strong> APIs & Services → Credentials</p>
-              <p><strong>3. Edit your OAuth 2.0 Client ID</p>
+              <p><strong>3. Edit your OAuth 2.0 Client ID</strong></p>
               <p><strong>4. Add these URLs to Authorized JavaScript origins:</strong></p>
               <div className="ml-4">
                 <code className="bg-gray-100 px-2 py-1 rounded text-xs block">{urls.baseUrl}</code>
