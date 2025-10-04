@@ -23,6 +23,16 @@ export default function OAuthDiagnostic() {
           const recs = [];
           const env = data.config.environment;
           
+          // Update environment with server data for consistency
+          setEnvironment(prev => ({
+            ...prev,
+            ...env,
+            // Use server-side data for accurate detection
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID: env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+            NEXT_PUBLIC_NEXTAUTH_URL: env.NEXT_PUBLIC_NEXTAUTH_URL,
+            VERCEL_URL: env.VERCEL_URL
+          }));
+          
           if (env.isVercel) {
             recs.push({
               type: 'success',
