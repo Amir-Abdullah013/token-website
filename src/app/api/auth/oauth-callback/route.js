@@ -65,6 +65,11 @@ export async function GET(request) {
         redirectUrl.searchParams.set('userPicture', userData.picture);
       }
       
+      console.log('🔧 OAuth Callback Redirect:');
+      console.log('  Dashboard URL:', dashboardUrl);
+      console.log('  Redirect URL:', redirectUrl.toString());
+      console.log('  User Data:', userData);
+      
       return NextResponse.redirect(redirectUrl.toString());
     } else {
       return NextResponse.redirect(`${signinUrl}?error=Failed to authenticate`);

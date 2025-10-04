@@ -66,6 +66,11 @@ export default function UserDashboard() {
         
         console.log('Dashboard: OAuth user data stored:', userSessionData);
         
+        // Force page reload to ensure auth context updates
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
+        
         // Clean up URL
         window.history.replaceState({}, '', '/user/dashboard');
       }
