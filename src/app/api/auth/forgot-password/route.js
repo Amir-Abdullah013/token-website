@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { databaseHelpers } from '../../../../lib/database.js';
-const { generateOTP, hashOTP, getOTPExpiry } = require('../../../../lib/otp-utils-simple.js');
-const { sendOTPEmail } = require('../../../../lib/email-service-simple.js');
+import { generateOTP, hashOTP, getOTPExpiry } from '../../../../lib/otp-utils-simple.js';
+import { sendOTPEmail } from '../../../../lib/email-service-simple.js';
 
 export async function POST(request) {
   try {

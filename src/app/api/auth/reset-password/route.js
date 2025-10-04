@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-const bcrypt = require('bcryptjs');
+import bcrypt from 'bcryptjs';
 import { databaseHelpers } from '../../../../lib/database.js';
-const { verifyOTP, isOTPExpired, isValidOTP } = require('../../../../lib/otp-utils-simple.js');
+import { verifyOTP, isOTPExpired, isValidOTP } from '../../../../lib/otp-utils-simple.js';
 
 export async function POST(request) {
   try {

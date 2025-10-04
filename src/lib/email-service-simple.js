@@ -1,5 +1,5 @@
 // Simple email service for Next.js compatibility
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 // Email configuration
 const getEmailConfig = () => ({
@@ -135,7 +135,7 @@ const testEmailConfig = async () => {
   }
 };
 
-module.exports = {
+export {
   sendOTPEmail,
   testEmailConfig
 };

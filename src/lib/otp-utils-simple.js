@@ -1,6 +1,6 @@
 // Simple OTP utilities for Next.js compatibility
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 // Generate a 6-digit OTP
 const generateOTP = () => {
@@ -53,7 +53,7 @@ const isValidOTP = (otp) => {
   return otpRegex.test(otp);
 };
 
-module.exports = {
+export {
   generateOTP,
   hashOTP,
   verifyOTP,

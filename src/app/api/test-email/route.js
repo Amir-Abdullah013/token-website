@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-const { testEmailConfig } = require('../../../lib/email-service-simple.js');
+import { testEmailConfig } from '../../../lib/email-service-simple.js';
 
 export async function GET() {
   try {
