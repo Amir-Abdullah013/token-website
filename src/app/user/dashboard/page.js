@@ -68,6 +68,9 @@ export default function UserDashboard() {
         
         // Force page reload to ensure auth context updates
         setTimeout(() => {
+          // Clear URL parameters first
+          window.history.replaceState({}, '', '/user/dashboard');
+          // Then reload to trigger auth context update
           window.location.reload();
         }, 100);
         

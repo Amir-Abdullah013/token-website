@@ -54,13 +54,22 @@ export const AuthProvider = ({ children }) => {
         try {
           const userData = JSON.parse(userSession);
           console.log('Found user session in localStorage:', userData);
-          setUser(userData);
-          setConfigValid(true);
-          setLoading(false);
-          return;
+          
+          // Validate the session data
+          if (userData.email && userData.name) {
+            setUser(userData);
+            setConfigValid(true);
+            setLoading(false);
+            return;
+          } else {
+            console.warn('Invalid user session data, clearing...');
+            localStorage.removeItem('userSession');
+            localStorage.removeItem('oauthSession');
+          }
         } catch (error) {
           console.error('Error parsing user session:', error);
           localStorage.removeItem('userSession');
+          localStorage.removeItem('oauthSession');
         }
       }
 
