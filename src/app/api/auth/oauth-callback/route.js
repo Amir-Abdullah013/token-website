@@ -53,22 +53,23 @@ export async function GET(request) {
         createdAt: new Date().toISOString()
       };
 
-      // Create a temporary session storage page that will handle the OAuth callback
-      const sessionStorageUrl = new URL(`${baseUrl}/auth/oauth-success`);
-      sessionStorageUrl.searchParams.set('provider', provider);
-      sessionStorageUrl.searchParams.set('session', sessionToken);
-      sessionStorageUrl.searchParams.set('userEmail', userData.email);
-      sessionStorageUrl.searchParams.set('userName', userData.name);
-      sessionStorageUrl.searchParams.set('userId', userData.id);
+      // Create a direct redirect to dashboard with session data in URL
+      const dashboardUrl = new URL(`${baseUrl}/user/dashboard`);
+      dashboardUrl.searchParams.set('oauth_success', 'true');
+      dashboardUrl.searchParams.set('provider', provider);
+      dashboardUrl.searchParams.set('session', sessionToken);
+      dashboardUrl.searchParams.set('userEmail', userData.email);
+      dashboardUrl.searchParams.set('userName', userData.name);
+      dashboardUrl.searchParams.set('userId', userData.id);
       if (userData.picture) {
-        sessionStorageUrl.searchParams.set('userPicture', userData.picture);
+        dashboardUrl.searchParams.set('userPicture', userData.picture);
       }
       
       console.log('🔧 OAuth Callback Redirect:');
-      console.log('  Session Storage URL:', sessionStorageUrl.toString());
+      console.log('  Dashboard URL:', dashboardUrl.toString());
       console.log('  User Data:', userData);
       
-      return NextResponse.redirect(sessionStorageUrl.toString());
+      return NextResponse.redirect(dashboardUrl.toString());
     } else {
       return NextResponse.redirect(`${signinUrl}?error=Failed to authenticate`);
     }

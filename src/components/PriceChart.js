@@ -170,7 +170,7 @@ const PriceChart = ({ className = '' }) => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Token Price Chart</CardTitle>
+           
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">Time Range:</span>
               <div className="flex space-x-1">
