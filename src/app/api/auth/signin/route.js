@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 
 export async function POST(request) {
   try {
@@ -22,6 +21,9 @@ export async function POST(request) {
       );
     }
 
+    // Dynamic import to avoid build-time issues
+    const bcrypt = (await import('bcryptjs')).default;
+    
     // Try to use database, fallback to mock user if database fails
     let user;
     try {

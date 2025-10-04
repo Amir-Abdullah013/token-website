@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { databaseHelpers } from '../../../lib/database.js';
 
 export async function GET() {
   try {
+    // Dynamic import to avoid build-time issues
+    const { databaseHelpers } = await import('../../../lib/database.js');
+    
     // Test basic database operations
     const testEmail = 'test@example.com';
     
