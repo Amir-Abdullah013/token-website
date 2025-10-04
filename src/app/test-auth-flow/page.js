@@ -114,22 +114,8 @@ export default function TestAuthFlow() {
 
   const testGoogleOAuth = async () => {
     try {
-      const response = await fetch('/api/auth/oauth/google', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      console.log('Google OAuth response:', data);
-      
-      if (data.url) {
-        alert('Redirecting to Google OAuth...');
-        window.location.href = data.url;
-      } else {
-        alert(`Google OAuth failed: ${data.error}`);
-      }
+      // Direct redirect to Google OAuth
+      window.location.href = '/api/auth/oauth/google';
     } catch (error) {
       console.error('Google OAuth error:', error);
       alert('Network error during Google OAuth');

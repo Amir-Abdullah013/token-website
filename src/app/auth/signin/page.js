@@ -122,21 +122,8 @@ export default function SignIn() {
     setErrors({});
 
     try {
-      const response = await fetch('/api/auth/oauth/google', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (data.url) {
-        // Redirect to Google OAuth
-        window.location.href = data.url;
-      } else {
-        setErrors({ general: data.error || 'Failed to initiate Google sign in' });
-      }
+      // Direct redirect to Google OAuth endpoint
+      window.location.href = '/api/auth/oauth/google';
     } catch (error) {
       console.error('Google sign in error:', error);
       setErrors({ general: 'Network error. Please try again.' });

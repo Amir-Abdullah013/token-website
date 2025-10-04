@@ -43,19 +43,16 @@ export default function TestOAuth() {
       
       // Test 3: Check environment variables
       const hasGoogleClientId = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-      const hasGoogleClientSecret = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET;
+      const hasGoogleClientSecret = !!process.env.GOOGLE_CLIENT_SECRET;
       addResult(`🔑 Google Client ID: ${hasGoogleClientId ? '✅ Set' : '❌ Missing'}`, hasGoogleClientId ? 'success' : 'error');
       addResult(`🔑 Google Client Secret: ${hasGoogleClientSecret ? '✅ Set' : '❌ Missing'}`, hasGoogleClientSecret ? 'success' : 'error');
       
       // Test 4: Test OAuth initiation
       addResult('🚀 Testing OAuth initiation...', 'info');
       
-      const response = await fetch('/api/auth/oauth/google', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // Test OAuth by redirecting directly
+      window.location.href = '/api/auth/oauth/google';
+      return; // Exit early since we're redirecting
       
       if (response.ok) {
         const data = await response.json();
