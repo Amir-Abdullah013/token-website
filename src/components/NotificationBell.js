@@ -28,20 +28,36 @@ export default function NotificationBell() {
       setUser(currentUser);
       
       // Load recent notifications (last 5)
-      const notificationsResponse = await fetch(`/api/notifications?userId=${currentUser.id}&limit=5&offset=0`);
-      if (notificationsResponse.ok) {
-        const notificationsData = await notificationsResponse.json();
-        setNotifications(notificationsData.notifications);
+      try {
+        const notificationsResponse = await fetch(`/api/notifications?userId=${currentUser.id}&limit=5&offset=0`);
+        if (notificationsResponse.ok) {
+          const notificationsData = await notificationsResponse.json();
+          setNotifications(notificationsData.notifications || []);
+        } else {
+          console.warn('Failed to load notifications:', notificationsResponse.status);
+          setNotifications([]);
+        }
+      } catch (notifError) {
+        console.error('Error loading notifications:', notifError);
+        setNotifications([]);
       }
       
       // Get unread count
-      const unreadResponse = await fetch(`/api/notifications/unread-count?userId=${currentUser.id}`);
-      if (unreadResponse.ok) {
-        const unreadData = await unreadResponse.json();
-        setUnreadCount(unreadData.count);
+      try {
+        const unreadResponse = await fetch(`/api/notifications/unread-count?userId=${currentUser.id}`);
+        if (unreadResponse.ok) {
+          const unreadData = await unreadResponse.json();
+          setUnreadCount(unreadData.count || 0);
+        } else {
+          console.warn('Failed to load unread count:', unreadResponse.status);
+          setUnreadCount(0);
+        }
+      } catch (unreadError) {
+        console.error('Error loading unread count:', unreadError);
+        setUnreadCount(0);
       }
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      console.error('Error loading user and notifications:', error);
     }
   };
 
@@ -85,31 +101,31 @@ export default function NotificationBell() {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'success':
+      case 'SUCCESS':
         return '✅';
-      case 'warning':
+      case 'WARNING':
         return '⚠️';
-      case 'alert':
+      case 'ALERT':
         return '🚨';
-      case 'info':
+      case 'INFO':
       default:
         return 'ℹ️';
     }
   };
 
   const getNotificationColor = (type, status) => {
-    if (status === 'read') {
+    if (status === 'READ') {
       return 'bg-gray-50';
     }
     
     switch (type) {
-      case 'success':
+      case 'SUCCESS':
         return 'bg-green-50';
-      case 'warning':
+      case 'WARNING':
         return 'bg-yellow-50';
-      case 'alert':
+      case 'ALERT':
         return 'bg-red-50';
-      case 'info':
+      case 'INFO':
       default:
         return 'bg-blue-50';
     }
@@ -200,11 +216,11 @@ export default function NotificationBell() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <h4 className={`text-sm font-medium ${
-                              notification.status === 'unread' ? 'text-gray-900' : 'text-gray-700'
+                              notification.status === 'UNREAD' ? 'text-gray-900' : 'text-gray-700'
                             }`}>
                               {notification.title}
                             </h4>
-                            {notification.status === 'unread' && (
+                            {notification.status === 'UNREAD' && (
                               <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
                             )}
                           </div>
@@ -221,7 +237,7 @@ export default function NotificationBell() {
                               {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                             </span>
                             
-                            {notification.status === 'unread' && (
+                            {notification.status === 'UNREAD' && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();

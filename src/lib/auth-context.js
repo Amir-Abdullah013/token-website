@@ -60,6 +60,7 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             setConfigValid(true);
             setLoading(false);
+            console.log('User authenticated from localStorage:', userData.email);
             return;
           } else {
             console.warn('Invalid user session data, clearing...');
@@ -88,6 +89,7 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             setConfigValid(true);
             setLoading(false);
+            console.log('User authenticated from OAuth session:', userData.email);
             return;
           }
           
@@ -95,12 +97,6 @@ export const AuthProvider = ({ children }) => {
           // as the oauth-success page should have set both
           console.warn('OAuth session found but no user session - clearing OAuth session');
           localStorage.removeItem('oauthSession');
-          
-          // No valid OAuth session found
-          setUser(null);
-          setConfigValid(false);
-          setLoading(false);
-          return;
         } catch (error) {
           console.error('Error parsing OAuth session:', error);
           localStorage.removeItem('oauthSession');

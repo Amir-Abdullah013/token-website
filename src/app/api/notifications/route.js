@@ -22,8 +22,8 @@ export async function GET(request) {
           userId: userId,
           title: 'Welcome to TokenApp!',
           message: 'Your account has been successfully created.',
-          type: 'info',
-          isRead: false,
+          type: 'INFO',
+          status: 'UNREAD',
           createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
           updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString()
         },
@@ -32,8 +32,8 @@ export async function GET(request) {
           userId: userId,
           title: 'Deposit Successful',
           message: 'Your deposit of $500 has been processed.',
-          type: 'success',
-          isRead: false,
+          type: 'SUCCESS',
+          status: 'UNREAD',
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
           updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
         },
@@ -42,8 +42,8 @@ export async function GET(request) {
           userId: null,
           title: 'System Maintenance',
           message: 'Scheduled maintenance will occur tonight at 2 AM.',
-          type: 'warning',
-          isRead: true,
+          type: 'WARNING',
+          status: 'READ',
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
           updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString()
         }
@@ -63,6 +63,19 @@ export async function GET(request) {
     } catch (error) {
       console.warn('Prisma not available:', error.message);
       // Return mock data if database is not available
+      const mockNotifications = [
+        {
+          id: 'fallback-notif-1',
+          userId: userId,
+          title: 'System Status',
+          message: 'All systems are operational.',
+          type: 'info',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ];
+      
       return NextResponse.json({
         notifications: mockNotifications,
         total: mockNotifications.length,
@@ -108,8 +121,8 @@ export async function GET(request) {
           userId: userId,
           title: 'System Status',
           message: 'All systems are operational.',
-          type: 'info',
-          isRead: false,
+          type: 'INFO',
+          status: 'UNREAD',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }

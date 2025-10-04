@@ -54,13 +54,17 @@ export default function OAuthSuccess() {
 
         setStatus('OAuth successful! Redirecting to dashboard...');
 
-        // Immediate redirect to dashboard - no delay
-        router.replace('/user/dashboard');
+        // Use window.location.href for more reliable redirect on Vercel
+        setTimeout(() => {
+          window.location.href = '/user/dashboard';
+        }, 500);
 
       } catch (error) {
         console.error('OAuth Success Page Error:', error);
         // Even on error, redirect to dashboard to avoid loops
-        router.replace('/user/dashboard');
+        setTimeout(() => {
+          window.location.href = '/user/dashboard';
+        }, 1000);
       }
     };
 

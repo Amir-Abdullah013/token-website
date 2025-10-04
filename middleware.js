@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { supabase } from './src/lib/supabase.js';
 
 // Routes that require authentication
 const protectedRoutes = [
@@ -21,45 +20,10 @@ const publicRoutes = [
   '/contact',
   '/design-system',
   '/redirect-dashboard',
-  '/auth/callback'
+  '/auth/callback',
+  '/auth/oauth-success',
+  '/auth/oauth-callback'
 ];
-
-// Helper function to get user session
-async function getUserSession(request) {
-  try {
-    // Get session from Supabase
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error || !user) {
-      return null;
-    }
-
-    return user;
-  } catch (error) {
-    // Session is invalid or expired
-    return null;
-  }
-}
-
-// Helper function to get user role
-async function getUserRole(user) {
-  try {
-    // Check user metadata for role
-    if (user.user_metadata && user.user_metadata.role) {
-      return user.user_metadata.role;
-    }
-    
-    // Check app_metadata for role
-    if (user.app_metadata && user.app_metadata.role) {
-      return user.app_metadata.role;
-    }
-    
-    return 'user';
-  } catch (error) {
-    console.error('Error getting user role in middleware:', error);
-    return 'user';
-  }
-}
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
@@ -71,12 +35,6 @@ export async function middleware(request) {
     pathname.includes('.') ||
     pathname.startsWith('/favicon.ico')
   ) {
-    return NextResponse.next();
-  }
-
-  // In development mode, skip all middleware to prevent OAuth issues
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Development mode: skipping middleware for', pathname);
     return NextResponse.next();
   }
 
@@ -100,37 +58,24 @@ export async function middleware(request) {
     return NextResponse.next();
   }
 
-  // Get user session
-  const user = await getUserSession(request);
-
-  // Handle protected routes
-  if (isProtectedRoute) {
-    if (!user) {
-      // Redirect to login if not authenticated
-      const loginUrl = new URL('/auth/signin', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    // Get user role and redirect accordingly
-    const userRole = await getUserRole(user);
-    
-    if (pathname.startsWith('/user') && userRole !== 'user') {
-      // Admin trying to access user routes
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-    }
-    
-    if (pathname.startsWith('/admin') && userRole !== 'admin') {
-      // User trying to access admin routes
-      return NextResponse.redirect(new URL('/user/dashboard', request.url));
-    }
+  // For OAuth callback routes, allow access (they handle their own redirects)
+  if (pathname.startsWith('/auth/oauth') || pathname.startsWith('/auth/callback')) {
+    return NextResponse.next();
   }
 
-  // Handle auth routes (redirect authenticated users)
-  if (isAuthRoute && user) {
-    const userRole = await getUserRole(user);
-    const redirectPath = userRole === 'admin' ? '/admin/dashboard' : '/user/dashboard';
-    return NextResponse.redirect(new URL(redirectPath, request.url));
+  // For protected routes in production, let client-side auth handle authentication
+  // This prevents middleware from interfering with OAuth localStorage sessions
+  if (isProtectedRoute) {
+    // In production, skip server-side auth checks for OAuth users
+    // Let the client-side auth context handle authentication
+    console.log('Protected route accessed:', pathname, '- letting client handle auth');
+    return NextResponse.next();
+  }
+
+  // For auth routes, let client-side handle redirects
+  if (isAuthRoute) {
+    console.log('Auth route accessed:', pathname, '- letting client handle redirects');
+    return NextResponse.next();
   }
 
   return NextResponse.next();
@@ -148,4 +93,3 @@ export const config = {
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
-

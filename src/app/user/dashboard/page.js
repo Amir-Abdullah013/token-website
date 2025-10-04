@@ -126,20 +126,24 @@ export default function UserDashboard() {
         }
       }
 
-      // Additional check: If we have OAuth data but auth context hasn't loaded yet,
-      // force a page reload to ensure auth context picks up the session
-      const hasOAuthData = localStorage.getItem('userSession') && localStorage.getItem('oauthSession');
-      if (hasOAuthData && !user) {
-        console.log('Dashboard: OAuth data exists but user not loaded, reloading page');
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      }
+      // REMOVED: The problematic reload logic that was causing infinite loops
+      // The auth context will handle user session loading properly
     };
 
     // Use requestAnimationFrame to ensure DOM is ready
     requestAnimationFrame(initializeDashboard);
   }, []);
+
+  // ✅ Redirect to signin if not authenticated (only after component mounts)
+  useEffect(() => {
+    if (mounted && !loading && !isAuthenticated && !user) {
+      console.log('Dashboard: User not authenticated, redirecting to signin');
+      // Add a small delay to prevent race conditions on Vercel
+      setTimeout(() => {
+        router.push('/auth/signin?redirect=/user/dashboard');
+      }, 100);
+    }
+  }, [mounted, loading, isAuthenticated, user, router]);
 
   // ✅ Show loading state while checking authentication
   if (!mounted || loading) {
@@ -159,7 +163,7 @@ export default function UserDashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <p className="text-gray-600">Redirecting to sign in...</p>
         </div>
       </div>
     );

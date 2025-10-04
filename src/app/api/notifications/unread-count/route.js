@@ -1,47 +1,7 @@
 import { NextResponse } from 'next/server';
-export async function GET(request) {
-    // Dynamic import helper
-    const loadModules = async () => {
-      const modules = {};
-      try {
-        if (content.includes('databaseHelpers.')) {
-          const dbModule = await import('@/lib/database');
-          modules.databaseHelpers = dbModule.databaseHelpers;
-        }
-        if (content.includes('authHelpers.')) {
-          const authModule = await import('@/lib/supabase');
-          modules.authHelpers = authModule.authHelpers;
-        }
-        if (content.includes('prisma.')) {
-          const prismaModule = await import('@/lib/prisma');
-          modules.prisma = prismaModule.prisma;
-        }
-        if (content.includes('supabase.')) {
-          const supabaseModule = await import('@/lib/supabase');
-          modules.supabase = supabaseModule.supabase;
-        }
-      } catch (error) {
-        console.warn('Modules not available:', error.message);
-        throw new Error('Required modules not available');
-      }
-      return modules;
-    };
-    
-    const { databaseHelpers, authHelpers, prisma, supabase } = await loadModules();
 
+export async function GET(request) {
   try {
-    // Try to load Prisma dynamically
-    let prisma;
-    try {
-      const prismaModule = await import('../../../../lib/prisma.js');
-      prisma = prismaModule.prisma;
-    } catch (error) {
-      console.warn('Prisma not available:', error.message);
-      return NextResponse.json(
-        { success: false, error: 'Database not available' },
-        { status: 503 }
-      );
-    }
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
@@ -52,13 +12,6 @@ export async function GET(request) {
       );
     }
 
-    // In development mode, return mock count
-    if (process.env.NODE_ENV === 'development') {
-      return NextResponse.json({ count: 2 }); // Mock unread count
-    }
-
-    // Production mode - use actual database
-    try {
     // Try to load Prisma dynamically
     let prisma;
     try {
@@ -66,16 +19,17 @@ export async function GET(request) {
       prisma = prismaModule.prisma;
     } catch (error) {
       console.warn('Prisma not available:', error.message);
-      return NextResponse.json(
-        { success: false, error: 'Database not available' },
-        { status: 503 }
-      );
+      // Return mock count when database is unavailable
+      return NextResponse.json({ count: 2 });
     }
+
+    // Try to get unread count from database
+    try {
       const count = await prisma.notification.count({
         where: {
           OR: [
-            { userId, isRead: false },
-            { userId: null, isRead: false }
+            { userId, status: 'UNREAD' },
+            { userId: null, status: 'UNREAD' }
           ]
         }
       });
@@ -84,7 +38,7 @@ export async function GET(request) {
     } catch (dbError) {
       console.error('Database error:', dbError);
       
-      // Fallback to mock count
+      // Fallback to mock count when database query fails
       return NextResponse.json({ count: 0 });
     }
   } catch (error) {
@@ -95,4 +49,3 @@ export async function GET(request) {
     );
   }
 }
-
