@@ -8,14 +8,14 @@
  * @returns {string} The base URL (localhost for dev, Vercel URL for production)
  */
 export function getBaseUrl() {
+  // If NEXT_PUBLIC_NEXTAUTH_URL is set, use it (highest priority)
+  if (process.env.NEXT_PUBLIC_NEXTAUTH_URL) {
+    return process.env.NEXT_PUBLIC_NEXTAUTH_URL;
+  }
+  
   // In production on Vercel
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
-  }
-  
-  // If NEXT_PUBLIC_NEXTAUTH_URL is set, use it
-  if (process.env.NEXT_PUBLIC_NEXTAUTH_URL) {
-    return process.env.NEXT_PUBLIC_NEXTAUTH_URL;
   }
   
   // For development
@@ -23,7 +23,7 @@ export function getBaseUrl() {
     return 'http://localhost:3000';
   }
   
-  // Fallback for other production environments
+  // Fallback for other production environments (client-side)
   if (typeof window !== 'undefined') {
     return window.location.origin;
   }

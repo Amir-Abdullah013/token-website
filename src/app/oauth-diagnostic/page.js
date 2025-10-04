@@ -9,35 +9,69 @@ export default function OAuthDiagnostic() {
   const [recommendations, setRecommendations] = useState([]);
 
   useEffect(() => {
-    // Get comprehensive environment information
-    const env = {
-      NODE_ENV: process.env.NODE_ENV,
-      VERCEL_URL: process.env.VERCEL_URL,
-      NEXT_PUBLIC_NEXTAUTH_URL: process.env.NEXT_PUBLIC_NEXTAUTH_URL,
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-      currentUrl: typeof window !== 'undefined' ? window.location.origin : 'N/A',
-      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'N/A',
-      timestamp: new Date().toISOString()
-    };
-    setEnvironment(env);
+    const loadOAuthConfig = async () => {
+      try {
+        // Get server-side OAuth configuration
+        const response = await fetch('/api/oauth-config');
+        const data = await response.json();
+        
+        if (data.success) {
+          setOauthUrls(data.config);
+          setEnvironment(data.config.environment);
+        } else {
+          throw new Error(data.error || 'Failed to load OAuth config');
+        }
+      } catch (error) {
+        console.error('Failed to load OAuth config:', error);
+        
+        // Fallback to client-side detection
+        const env = {
+          NODE_ENV: process.env.NODE_ENV,
+          VERCEL_URL: process.env.VERCEL_URL,
+          NEXT_PUBLIC_NEXTAUTH_URL: process.env.NEXT_PUBLIC_NEXTAUTH_URL,
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          currentUrl: typeof window !== 'undefined' ? window.location.origin : 'N/A',
+          userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'N/A',
+          timestamp: new Date().toISOString()
+        };
+        setEnvironment(env);
 
-    // Calculate all possible OAuth URLs
-    const baseUrl = env.VERCEL_URL ? `https://${env.VERCEL_URL}` : 
-                   env.NEXT_PUBLIC_NEXTAUTH_URL || 
-                   (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+        // Calculate all possible OAuth URLs with better fallback logic
+        let baseUrl;
+        
+        // Priority 1: NEXT_PUBLIC_NEXTAUTH_URL (most reliable for client-side)
+        if (env.NEXT_PUBLIC_NEXTAUTH_URL) {
+          baseUrl = env.NEXT_PUBLIC_NEXTAUTH_URL;
+        }
+        // Priority 2: VERCEL_URL (server-side only)
+        else if (env.VERCEL_URL) {
+          baseUrl = `https://${env.VERCEL_URL}`;
+        }
+        // Priority 3: Current window location (client-side fallback)
+        else if (typeof window !== 'undefined') {
+          baseUrl = window.location.origin;
+        }
+        // Priority 4: Development fallback
+        else {
+          baseUrl = 'http://localhost:3000';
+        }
 
-    const urls = {
-      baseUrl,
-      oauthCallback: `${baseUrl}/api/auth/oauth-callback`,
-      googleOAuth: `${baseUrl}/api/auth/oauth/google`,
-      signinUrl: `${baseUrl}/auth/signin`,
-      dashboardUrl: `${baseUrl}/user/dashboard`,
-      // Alternative possible URLs
-      alternativeCallback1: `${baseUrl}/api/auth/callback/google`,
-      alternativeCallback2: `${baseUrl}/api/auth/oauth-callback`,
-      alternativeCallback3: `${baseUrl}/auth/callback`
+        const urls = {
+          baseUrl,
+          oauthCallback: `${baseUrl}/api/auth/oauth-callback`,
+          googleOAuth: `${baseUrl}/api/auth/oauth/google`,
+          signinUrl: `${baseUrl}/auth/signin`,
+          dashboardUrl: `${baseUrl}/user/dashboard`,
+          // Alternative possible URLs
+          alternativeCallback1: `${baseUrl}/api/auth/callback/google`,
+          alternativeCallback2: `${baseUrl}/api/auth/oauth-callback`,
+          alternativeCallback3: `${baseUrl}/auth/callback`
+        };
+        setOauthUrls(urls);
+      }
     };
-    setOauthUrls(urls);
+
+    loadOAuthConfig();
 
     // Generate recommendations based on environment
     const recs = [];
