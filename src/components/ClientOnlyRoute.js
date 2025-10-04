@@ -1,40 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import ProtectedRoute from './ProtectedRoute';
+import { useState, useEffect } from 'react';
 
-const ClientOnlyRoute = ({ children, ...props }) => {
-  const [mounted, setMounted] = useState(false);
+export default function ClientOnlyRoute({ children, fallback = null }) {
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setHasMounted(true);
   }, []);
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
+  if (!hasMounted) {
+    return fallback;
   }
 
-  return (
-    <ProtectedRoute {...props}>
-      {children}
-    </ProtectedRoute>
-  );
-};
-
-export default ClientOnlyRoute;
-
-
-
-
-
-
-
-
-
-
-
-
+  return children;
+}

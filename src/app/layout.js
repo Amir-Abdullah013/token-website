@@ -1,79 +1,25 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { AuthProvider } from "../lib/auth-context";
-import ConfigStatus from "../components/ConfigStatus";
-import AuthErrorBoundary from "../components/AuthErrorBoundary";
-import PerformanceMonitor from "../components/PerformanceMonitor";
-import ErrorBoundary from "../components/ErrorBoundary";
-import AuthDebug from "../components/AuthDebug";
+import { Inter } from 'next/font/google';
+import './globals.css';
+import ClientOnlyRoute from '../components/ClientOnlyRoute';
+import { AuthProvider } from '../lib/auth-context';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: "Token Website - Secure Digital Wallet Platform",
-  description: "Experience lightning-fast crypto trading with institutional-grade security. Join thousands of traders who trust our platform for secure digital wallet management.",
-  keywords: "digital wallet, cryptocurrency, secure trading, blockchain, crypto platform, token management",
-  authors: [{ name: "Token Website Team" }],
-  creator: "Token Website",
-  publisher: "Token Website",
-  robots: "index, follow",
-  metadataBase: new URL('https://token-website.com'),
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://token-website.com",
-    siteName: "Token Website",
-    title: "Token Website - Secure Digital Wallet Platform",
-    description: "Experience lightning-fast crypto trading with institutional-grade security.",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Token Website - Secure Digital Wallet Platform",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Token Website - Secure Digital Wallet Platform",
-    description: "Experience lightning-fast crypto trading with institutional-grade security.",
-    images: ["/og-image.jpg"],
-  },
-  manifest: "/manifest.json",
-};
-
-export const viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: "#3b82f6",
+  title: 'Token Website - Secure Token Management',
+  description: 'A modern token management platform with secure authentication and advanced features.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        suppressHydrationWarning
-      >
-        <ErrorBoundary>
-          <AuthErrorBoundary>
-            <AuthProvider>
-              {children}
-              <ConfigStatus />
-              <PerformanceMonitor />
-              <AuthDebug />
-            </AuthProvider>
-          </AuthErrorBoundary>
-        </ErrorBoundary>
+    <html lang="en" className={inter.className}>
+      <body className="min-h-screen bg-gray-50" suppressHydrationWarning={true}>
+        <ClientOnlyRoute fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div></div>}>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ClientOnlyRoute>
       </body>
     </html>
   );

@@ -22,7 +22,8 @@ export default function UserDashboard() {
     setMounted(true);
     console.log('Dashboard: Component mounted');
     
-    if (typeof window !== 'undefined') {
+    // Use requestAnimationFrame to ensure DOM is ready
+    const initializeDashboard = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const oauthSuccess = urlParams.get('oauth') === 'success';
       
@@ -31,6 +32,10 @@ export default function UserDashboard() {
         setIsOAuthCallback(true);
         window.history.replaceState({}, '', '/user/dashboard');
       }
+    };
+
+    if (typeof window !== 'undefined') {
+      requestAnimationFrame(initializeDashboard);
     }
   }, []);
 

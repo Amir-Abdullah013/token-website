@@ -44,8 +44,8 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     setMounted(true);
     
-    // Only run auth check on client side
-    if (typeof window !== 'undefined') {
+    // Only run auth check on client side after component mounts
+    const initializeAuth = () => {
       // Check if we're on OAuth callback page
       const isOAuthCallback = window.location.pathname === '/auth/callback';
       
@@ -78,6 +78,11 @@ export const AuthProvider = ({ children }) => {
       }
       
       checkAuth();
+    };
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    if (typeof window !== 'undefined') {
+      requestAnimationFrame(initializeAuth);
     } else {
       setLoading(false);
     }
