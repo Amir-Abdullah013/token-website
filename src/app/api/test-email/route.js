@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { testEmailConfig } from '../../../lib/email-service-simple.js';
 
 export async function GET() {
   try {
+    // Dynamic import to avoid build-time issues
+    const { testEmailConfig } = await import('../../../lib/email-service-simple.js');
     const result = await testEmailConfig();
     
     if (result.success) {

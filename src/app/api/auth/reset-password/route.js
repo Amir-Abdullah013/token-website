@@ -1,7 +1,4 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { databaseHelpers } from '../../../../lib/database.js';
-import { verifyOTP, isOTPExpired, isValidOTP } from '../../../../lib/otp-utils-simple.js';
 
 export async function POST(request) {
   try {
@@ -39,6 +36,11 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    // Dynamic imports to avoid build-time issues
+    const bcrypt = (await import('bcryptjs')).default;
+    const { databaseHelpers } = await import('../../../../lib/database.js');
+    const { verifyOTP, isOTPExpired, isValidOTP } = await import('../../../../lib/otp-utils-simple.js');
 
     // Check if user exists
     const user = await databaseHelpers.user.getUserByEmail(email);

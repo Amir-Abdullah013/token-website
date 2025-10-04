@@ -1,7 +1,4 @@
 import { NextResponse } from 'next/server';
-import { databaseHelpers } from '../../../../lib/database.js';
-import { generateOTP, hashOTP, getOTPExpiry } from '../../../../lib/otp-utils-simple.js';
-import { sendOTPEmail } from '../../../../lib/email-service-simple.js';
 
 export async function POST(request) {
   try {
@@ -23,6 +20,11 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    // Dynamic imports to avoid build-time issues
+    const { databaseHelpers } = await import('../../../../lib/database.js');
+    const { generateOTP, hashOTP, getOTPExpiry } = await import('../../../../lib/otp-utils-simple.js');
+    const { sendOTPEmail } = await import('../../../../lib/email-service-simple.js');
 
     // Check if user exists
     const user = await databaseHelpers.user.getUserByEmail(email);
