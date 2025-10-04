@@ -18,6 +18,44 @@ export default function OAuthDiagnostic() {
         if (data.success) {
           setOauthUrls(data.config);
           setEnvironment(data.config.environment);
+          
+          // Generate recommendations based on server config
+          const recs = [];
+          const env = data.config.environment;
+          
+          if (env.isVercel) {
+            recs.push({
+              type: 'success',
+              title: 'Vercel Environment Detected',
+              message: `Your app is running on Vercel with URL: ${data.config.baseUrl}`,
+              action: 'Use this URL in Google Cloud Console'
+            });
+          } else {
+            recs.push({
+              type: 'warning',
+              title: 'Local Development',
+              message: 'Running in development mode',
+              action: 'Use localhost URLs for testing'
+            });
+          }
+
+          if (!env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+            recs.push({
+              type: 'error',
+              title: 'Missing Google Client ID',
+              message: 'NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set',
+              action: 'Add your Google Client ID to environment variables'
+            });
+          } else {
+            recs.push({
+              type: 'success',
+              title: 'Google Client ID Found',
+              message: 'OAuth client configuration is present',
+              action: 'Verify redirect URI matches exactly'
+            });
+          }
+
+          setRecommendations(recs);
         } else {
           throw new Error(data.error || 'Failed to load OAuth config');
         }
@@ -68,58 +106,47 @@ export default function OAuthDiagnostic() {
           alternativeCallback3: `${baseUrl}/auth/callback`
         };
         setOauthUrls(urls);
+        
+        // Generate recommendations for fallback
+        const recs = [];
+        
+        if (env.VERCEL_URL) {
+          recs.push({
+            type: 'success',
+            title: 'Vercel Environment Detected',
+            message: `Your app is running on Vercel with URL: ${baseUrl}`,
+            action: 'Use this URL in Google Cloud Console'
+          });
+        } else {
+          recs.push({
+            type: 'warning',
+            title: 'Local Development',
+            message: 'Running in development mode',
+            action: 'Use localhost URLs for testing'
+          });
+        }
+
+        if (!env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+          recs.push({
+            type: 'error',
+            title: 'Missing Google Client ID',
+            message: 'NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set',
+            action: 'Add your Google Client ID to environment variables'
+          });
+        } else {
+          recs.push({
+            type: 'success',
+            title: 'Google Client ID Found',
+            message: 'OAuth client configuration is present',
+            action: 'Verify redirect URI matches exactly'
+          });
+        }
+
+        setRecommendations(recs);
       }
     };
 
     loadOAuthConfig();
-
-    // Generate recommendations based on environment
-    const recs = [];
-    
-    if (env.VERCEL_URL) {
-      recs.push({
-        type: 'success',
-        title: 'Vercel Environment Detected',
-        message: `Your app is running on Vercel with URL: ${baseUrl}`,
-        action: 'Use this URL in Google Cloud Console'
-      });
-    } else {
-      recs.push({
-        type: 'warning',
-        title: 'Local Development',
-        message: 'Running in development mode',
-        action: 'Use localhost URLs for testing'
-      });
-    }
-
-    if (!env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-      recs.push({
-        type: 'error',
-        title: 'Missing Google Client ID',
-        message: 'NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set',
-        action: 'Add your Google Client ID to environment variables'
-      });
-    } else {
-      recs.push({
-        type: 'success',
-        title: 'Google Client ID Found',
-        message: 'OAuth client configuration is present',
-        action: 'Verify redirect URI matches exactly'
-      });
-    }
-
-    setRecommendations(recs);
-
-    // Run diagnostics
-    const diag = {
-      environment: env.NODE_ENV,
-      isVercel: !!env.VERCEL_URL,
-      hasClientId: !!env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-      baseUrl: baseUrl,
-      redirectUri: urls.oauthCallback,
-      status: 'Ready for testing'
-    };
-    setDiagnostics(diag);
 
   }, []);
 
