@@ -63,9 +63,12 @@ export default function OAuthSuccess() {
 
         setStatus('OAuth successful! Redirecting to dashboard...');
 
+        // Clean up URL and redirect to dashboard
+        window.history.replaceState({}, '', '/user/dashboard');
+        
         // Redirect to dashboard after a short delay
         setTimeout(() => {
-          router.push('/user/dashboard');
+          router.replace('/user/dashboard');
         }, 1000);
 
       } catch (error) {

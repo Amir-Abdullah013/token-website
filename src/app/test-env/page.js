@@ -64,3 +64,4 @@ DATABASE_URL=postgresql://postgres:password@db.your-project.supabase.co:5432/pos
 
 
 
+
