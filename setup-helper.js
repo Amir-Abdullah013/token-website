@@ -27,7 +27,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 DATABASE_URL=postgresql://postgres:password@db.your-project.supabase.co:5432/postgres
 
 # Google OAuth Configuration
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id`;
+GOOGLE_CLIENT_ID=your-google-client-id`;
 
   try {
     fs.writeFileSync(envPath, envTemplate);
@@ -37,7 +37,7 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id`;
     console.log('   - DATABASE_URL: Replace with your actual Supabase project URL');
     console.log('   - NEXT_PUBLIC_SUPABASE_ANON_KEY: Replace with your actual Supabase anon key');
     console.log('   - DATABASE_URL: Replace with your actual database connection string');
-    console.log('   - NEXT_PUBLIC_GOOGLE_CLIENT_ID: Your Google OAuth Client ID');
+    console.log('   - GOOGLE_CLIENT_ID: Your Google OAuth Client ID');
     console.log('');
     console.log('📖 For detailed instructions, see: SUPABASE_SETUP.md');
   } catch (error) {

@@ -43,7 +43,7 @@ export function getConfigWithFallbacks() {
     
     oauth: {
       google: {
-        clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || fallbackConfig.oauth.google.clientId,
+        clientId: process.env.GOOGLE_CLIENT_ID || fallbackConfig.oauth.google.clientId,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET || fallbackConfig.oauth.google.clientSecret,
       },
       github: {

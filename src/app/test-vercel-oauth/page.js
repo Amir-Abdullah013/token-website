@@ -13,7 +13,7 @@ export default function TestVercelOAuth() {
       NODE_ENV: process.env.NODE_ENV,
       VERCEL_URL: process.env.VERCEL_URL,
       NEXT_PUBLIC_NEXTAUTH_URL: process.env.NEXT_PUBLIC_NEXTAUTH_URL,
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
       currentUrl: typeof window !== 'undefined' ? window.location.origin : 'N/A'
     };
     setEnvironment(env);
@@ -29,7 +29,7 @@ export default function TestVercelOAuth() {
       googleOAuthUrl: `${baseUrl}/api/auth/oauth/google`,
       signinUrl: `${baseUrl}/auth/signin`,
       dashboardUrl: `${baseUrl}/user/dashboard`,
-      hasClientId: !!env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+      hasClientId: !!env.GOOGLE_CLIENT_ID
     };
     setOAuthConfig(config);
   }, []);

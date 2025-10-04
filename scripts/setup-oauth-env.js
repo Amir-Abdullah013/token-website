@@ -12,7 +12,7 @@ const envExample = `# Database Configuration
 DATABASE_URL=postgresql://username:password@localhost:5432/database_name
 
 # Google OAuth Configuration
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # GitHub OAuth Configuration (optional)

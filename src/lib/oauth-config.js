@@ -34,7 +34,7 @@ export function getGoogleOAuthConfig() {
   const config = getOAuthConfig();
   
   return {
-    clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     redirectUri: config.callbackUrl,
     scope: 'openid email profile',
@@ -52,8 +52,8 @@ export function validateOAuthConfig() {
   const warnings = [];
   
   // Check Google OAuth
-  if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-    errors.push('NEXT_PUBLIC_GOOGLE_CLIENT_ID is required');
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    errors.push('GOOGLE_CLIENT_ID is required');
   }
   
   if (!process.env.GOOGLE_CLIENT_SECRET) {

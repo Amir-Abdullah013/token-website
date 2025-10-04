@@ -15,7 +15,7 @@ export const validateConfig = () => {
   
   // Check Google OAuth variables (only clientId is needed for client-side)
   if (!config.oauth.google.clientId) {
-    warnings.push('NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set - Google OAuth will be disabled');
+    warnings.push('GOOGLE_CLIENT_ID is not set - Google OAuth will be disabled');
   }
   
   // Note: GOOGLE_CLIENT_SECRET is not needed for client-side OAuth

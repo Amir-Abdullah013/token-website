@@ -132,8 +132,8 @@ export default function TestOAuthSimple() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Google Client ID:</span>
-                  <span className={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? 'text-green-600' : 'text-red-600'}>
-                    {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing'}
+                  <span className={process.env.GOOGLE_CLIENT_ID ? 'text-green-600' : 'text-red-600'}>
+                    {process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing'}
                   </span>
                 </div>
                 <div className="flex justify-between">
