@@ -1,34 +1,6 @@
 import { NextResponse } from 'next/server';
-export async function GET(request) {
-    // Dynamic import helper
-    const loadModules = async () => {
-      const modules = {};
-      try {
-        if (content.includes('databaseHelpers.')) {
-          const dbModule = await import('@/lib/database');
-          modules.databaseHelpers = dbModule.databaseHelpers;
-        }
-        if (content.includes('authHelpers.')) {
-          const authModule = await import('@/lib/supabase');
-          modules.authHelpers = authModule.authHelpers;
-        }
-        if (content.includes('prisma.')) {
-          const prismaModule = await import('@/lib/prisma');
-          modules.prisma = prismaModule.prisma;
-        }
-        if (content.includes('supabase.')) {
-          const supabaseModule = await import('@/lib/supabase');
-          modules.supabase = supabaseModule.supabase;
-        }
-      } catch (error) {
-        console.warn('Modules not available:', error.message);
-        throw new Error('Required modules not available');
-      }
-      return modules;
-    };
-    
-    const { databaseHelpers, authHelpers, prisma, supabase } = await loadModules();
 
+export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -43,52 +15,78 @@ export async function GET(request) {
       );
     }
 
-    let transactionsData;
-    
-    try {
-      if (filter === 'all') {
-        transactionsData = await databaseHelpers.transactions.getUserTransactions(
-          userId,
-          limit,
-          (page - 1) * limit
-        );
-      } else {
-        transactionsData = await databaseHelpers.transactions.getTransactionsByStatus(
-          userId,
-          filter,
-          limit,
-          (page - 1) * limit
-        );
+    // Return mock data for development since database might not be set up
+    const mockTransactions = [
+      {
+        $id: '1',
+        type: 'deposit',
+        amount: 1000,
+        currency: 'USD',
+        status: 'completed',
+        createdAt: new Date().toISOString(),
+        description: 'Mock deposit transaction',
+        gateway: 'bank_transfer'
+      },
+      {
+        $id: '2',
+        type: 'withdrawal',
+        amount: 500,
+        currency: 'USD',
+        status: 'pending',
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        description: 'Mock withdrawal transaction',
+        gateway: 'bank_transfer'
+      },
+      {
+        $id: '3',
+        type: 'deposit',
+        amount: 2500,
+        currency: 'USD',
+        status: 'completed',
+        createdAt: new Date(Date.now() - 172800000).toISOString(),
+        description: 'Mock deposit transaction',
+        gateway: 'credit_card'
+      },
+      {
+        $id: '4',
+        type: 'withdrawal',
+        amount: 750,
+        currency: 'USD',
+        status: 'completed',
+        createdAt: new Date(Date.now() - 259200000).toISOString(),
+        description: 'Mock withdrawal transaction',
+        gateway: 'bank_transfer'
+      },
+      {
+        $id: '5',
+        type: 'deposit',
+        amount: 5000,
+        currency: 'USD',
+        status: 'completed',
+        createdAt: new Date(Date.now() - 345600000).toISOString(),
+        description: 'Mock deposit transaction',
+        gateway: 'wire_transfer'
       }
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      
-      // Return mock data for development
-      const mockTransactions = [
-        {
-          id: '1',
-          type: 'deposit',
-          amount: 1000,
-          currency: 'PKR',
-          status: 'completed',
-          createdAt: new Date().toISOString(),
-          description: 'Mock deposit transaction'
-        },
-        {
-          id: '2',
-          type: 'withdrawal',
-          amount: 500,
-          currency: 'PKR',
-          status: 'pending',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          description: 'Mock withdrawal transaction'
-        }
-      ];
-      
-      return NextResponse.json(mockTransactions);
+    ];
+
+    // Filter transactions based on filter parameter
+    let filteredTransactions = mockTransactions;
+    if (filter !== 'all') {
+      filteredTransactions = mockTransactions.filter(tx => tx.status === filter);
     }
 
-    return NextResponse.json(transactionsData);
+    // Apply pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
+
+    return NextResponse.json({
+      transactions: paginatedTransactions,
+      total: filteredTransactions.length,
+      page,
+      limit,
+      hasMore: endIndex < filteredTransactions.length
+    });
 
   } catch (error) {
     console.error('Transactions API error:', error);
@@ -111,31 +109,19 @@ export async function POST(request) {
       );
     }
 
-    try {
-      const transaction = await databaseHelpers.transactions.createTransaction(
-        userId,
-        type,
-        amount,
-        gateway || 'default'
-      );
-      
-      return NextResponse.json(transaction);
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      
-      // Return mock transaction for development
-      const mockTransaction = {
-        id: Date.now().toString(),
-        userId,
-        type,
-        amount,
-        gateway: gateway || 'default',
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      };
-      
-      return NextResponse.json(mockTransaction);
-    }
+    // Return mock transaction for development
+    const mockTransaction = {
+      $id: Date.now().toString(),
+      userId,
+      type,
+      amount,
+      gateway: gateway || 'default',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      description: `Mock ${type} transaction`
+    };
+    
+    return NextResponse.json(mockTransaction);
 
   } catch (error) {
     console.error('Create transaction API error:', error);
@@ -145,3 +131,4 @@ export async function POST(request) {
     );
   }
 }
+

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth';
+import { useAuth } from '../../../lib/auth-context';
+import { useTiki } from '../../../lib/tiki-context';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -11,6 +12,7 @@ import { useToast, ToastContainer } from '../../../components/Toast';
 
 export default function DepositPage() {
   const { user, loading, isAuthenticated } = useAuth();
+  const { usdBalance, tikiBalance, tikiPrice, depositUSD, formatCurrency, formatTiki, getCurrencies } = useTiki();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
@@ -22,6 +24,11 @@ export default function DepositPage() {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Currency conversion state
+  const [convertedAmount, setConvertedAmount] = useState(null);
+  const [isConverting, setIsConverting] = useState(false);
+  const [conversionError, setConversionError] = useState(null);
 
   // Validation rules
   const MIN_AMOUNT = 100;
@@ -38,6 +45,49 @@ export default function DepositPage() {
       }
     }
   }, [mounted, loading, isAuthenticated, router]);
+
+  // Currency conversion function using exchangerate.host API
+  const convertCurrency = async (amount, fromCurrency, toCurrency = 'USD') => {
+    if (!amount || amount <= 0) {
+      setConvertedAmount(null);
+      setConversionError(null);
+      return;
+    }
+
+    setIsConverting(true);
+    setConversionError(null);
+
+    try {
+      // Call the exchangerate.host API for real-time conversion
+      const response = await fetch(
+        `https://api.exchangerate.host/convert?from=${fromCurrency}&to=${toCurrency}&amount=${amount}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setConvertedAmount({
+          originalAmount: amount,
+          originalCurrency: fromCurrency,
+          convertedAmount: data.result,
+          convertedCurrency: toCurrency,
+          rate: data.info?.rate || 1
+        });
+      } else {
+        throw new Error(data.error?.info || 'Conversion failed');
+      }
+    } catch (err) {
+      console.error('Currency conversion error:', err);
+      setConversionError(err.message);
+      setConvertedAmount(null);
+    } finally {
+      setIsConverting(false);
+    }
+  };
 
   // Handle input change
   const handleInputChange = (e) => {
@@ -78,7 +128,7 @@ export default function DepositPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
+  // Handle form submission with global state integration
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -89,18 +139,20 @@ export default function DepositPage() {
     setIsSubmitting(true);
     
     try {
-      // Store form data in session storage for confirmation page
-      sessionStorage.setItem('depositData', JSON.stringify({
-        amount: parseFloat(formData.amount),
-        currency: formData.currency,
-        timestamp: new Date().toISOString()
-      }));
-
-      // Navigate to confirmation page
-      router.push('/user/deposit/confirm');
+      const amount = parseFloat(formData.amount);
+      
+      // Use global state function to deposit USD (with currency conversion)
+      // This automatically updates usdBalance in global state and persists to localStorage
+      const usdAmount = depositUSD(amount, formData.currency);
+      
+      // Show success message with conversion details
+      success(`Successfully deposited ${formatCurrency(amount, formData.currency)} (${formatCurrency(usdAmount, 'USD')} USD). New balance: ${formatCurrency(usdBalance + usdAmount, 'USD')}`);
+      
+      // Reset form after successful deposit
+      setFormData({ amount: '', currency: 'PKR' });
     } catch (err) {
       console.error('Error processing deposit:', err);
-      error('Failed to process deposit request. Please try again.');
+      error('Failed to process deposit. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -140,6 +192,52 @@ export default function DepositPage() {
             </div>
           </div>
         </div>
+
+        {/* Current Balances */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">USD Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(usdBalance, 'USD')}
+                </h2>
+                <p className="text-sm text-gray-500">Available USD</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Tiki Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {formatTiki(tikiBalance)} TIKI
+                </h2>
+                <p className="text-sm text-gray-500">Available Tokens</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Current Tiki Price */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Current Tiki Price</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-blue-600">
+                {formatCurrency(tikiPrice, 'USD')}
+              </h2>
+              <p className="text-sm text-gray-500">Per Tiki Token</p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Deposit Form */}
         <Card>
@@ -192,9 +290,17 @@ export default function DepositPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={isSubmitting}
                 >
-                  <option value="PKR">Pakistani Rupee (PKR)</option>
-                  <option value="USD">US Dollar (USD)</option>
-                  <option value="EUR">Euro (EUR)</option>
+                  {getCurrencies().map(currency => (
+                    <option key={currency} value={currency}>
+                      {currency} - {currency === 'USD' ? 'US Dollar' : 
+                       currency === 'PKR' ? 'Pakistani Rupee' :
+                       currency === 'EUR' ? 'Euro' :
+                       currency === 'GBP' ? 'British Pound' :
+                       currency === 'INR' ? 'Indian Rupee' :
+                       currency === 'CAD' ? 'Canadian Dollar' :
+                       currency === 'AUD' ? 'Australian Dollar' : currency}
+                    </option>
+                  ))}
                 </select>
               </div>
 

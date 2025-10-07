@@ -194,74 +194,74 @@ const WalletOverview = ({ className = '', onDeposit, onWithdraw }) => {
     <div className={`space-y-4 sm:space-y-6 ${className}`}>
       {/* Main Wallet Card */}
       <Card className="hover:shadow-lg transition-all duration-300">
-        <CardHeader className="p-4 sm:p-6">
+        <CardHeader className="p-4 lg:p-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg sm:text-xl md:text-2xl">Wallet Overview</CardTitle>
+            <CardTitle className="text-lg lg:text-xl">Wallet Overview</CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleRefresh}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 hidden sm:flex"
             >
               <span className="mr-2">🔄</span>
               Refresh
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6">
+        <CardContent className="p-4 lg:p-6">
           <div className="space-y-4 sm:space-y-6">
             {/* Total Balance */}
             <div className="text-center">
-              <p className="text-sm sm:text-base text-gray-600 mb-2">Total Balance</p>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-2">
+              <p className="text-sm lg:text-base text-gray-600 mb-2">Total Balance</p>
+              <h2 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-2">
                 {formattedBalance}
               </h2>
-              <p className="text-sm sm:text-base text-gray-500">
+              <p className="text-xs lg:text-sm text-gray-500">
                 Last updated {lastUpdatedText}
               </p>
             </div>
 
             {/* Quick Stats */}
             {stats && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-green-50 p-4 rounded-lg hover:shadow-md transition-shadow">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
+                <div className="bg-green-50 p-3 lg:p-4 rounded-lg hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-green-800">Total Deposits</p>
-                      <p className="text-lg font-bold text-green-900">
+                      <p className="text-xs lg:text-sm font-medium text-green-800">Total Deposits</p>
+                      <p className="text-sm lg:text-lg font-bold text-green-900">
                         {formatCurrency(stats.totalDeposits, currency)}
                       </p>
                     </div>
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-green-600">📈</span>
+                    <div className="w-8 h-8 lg:w-10 lg:h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <span className="text-green-600 text-sm lg:text-base">📈</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-red-50 p-4 rounded-lg hover:shadow-md transition-shadow">
+                <div className="bg-red-50 p-3 lg:p-4 rounded-lg hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-red-800">Total Withdrawals</p>
-                      <p className="text-lg font-bold text-red-900">
+                      <p className="text-xs lg:text-sm font-medium text-red-800">Total Withdrawals</p>
+                      <p className="text-sm lg:text-lg font-bold text-red-900">
                         {formatCurrency(stats.totalWithdrawals, currency)}
                       </p>
                     </div>
-                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                      <span className="text-red-600">📉</span>
+                    <div className="w-8 h-8 lg:w-10 lg:h-10 bg-red-100 rounded-full flex items-center justify-center">
+                      <span className="text-red-600 text-sm lg:text-base">📉</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg hover:shadow-md transition-shadow">
+                <div className="bg-blue-50 p-3 lg:p-4 rounded-lg hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-blue-800">Net Tokens</p>
-                      <p className="text-lg font-bold text-blue-900">
+                      <p className="text-xs lg:text-sm font-medium text-blue-800">Net Tokens</p>
+                      <p className="text-sm lg:text-lg font-bold text-blue-900">
                         {formatCurrency(stats.totalAmount, currency)}
                       </p>
                     </div>
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600">🪙</span>
+                    <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 text-sm lg:text-base">🪙</span>
                     </div>
                   </div>
                 </div>
@@ -269,21 +269,21 @@ const WalletOverview = ({ className = '', onDeposit, onWithdraw }) => {
             )}
 
             {/* Quick Action Buttons */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 lg:gap-4">
               <Button
                 onClick={handleDeposit}
-                className="flex items-center justify-center p-4 h-auto bg-green-600 hover:bg-green-700 text-white font-medium"
+                className="flex items-center justify-center p-3 lg:p-4 h-auto bg-green-600 hover:bg-green-700 text-white font-medium"
               >
-                <span className="text-xl mr-2">💰</span>
-                <span>Deposit</span>
+                <span className="text-lg lg:text-xl mr-2">💰</span>
+                <span className="text-sm lg:text-base">Deposit</span>
               </Button>
               
               <Button
                 onClick={handleWithdraw}
-                className="flex items-center justify-center p-4 h-auto bg-red-600 hover:bg-red-700 text-white font-medium"
+                className="flex items-center justify-center p-3 lg:p-4 h-auto bg-red-600 hover:bg-red-700 text-white font-medium"
               >
-                <span className="text-xl mr-2">💸</span>
-                <span>Withdraw</span>
+                <span className="text-lg lg:text-xl mr-2">💸</span>
+                <span className="text-sm lg:text-base">Withdraw</span>
               </Button>
             </div>
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../lib/auth-context';
-import { authHelpers } from '@/lib/supabase';;
+import { authHelpers } from '../../../lib/supabase';
 import Layout from '../../../components/Layout';
 import ProfileCard from '../../../components/ProfileCard';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
@@ -17,31 +17,40 @@ export default function UserProfile() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [userData, setUserData] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
+  const [mounted, setMounted] = useState(false);
   
   // Helper variables
-  const isUser = user?.role === 'user';
-  const isAdmin = user?.role === 'admin';
+  const isUser = user?.role === 'user' || user?.role === 'USER';
+  const isAdmin = user?.role === 'admin' || user?.role === 'ADMIN';
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!isAuthenticated) {
-        router.push('/auth/signin');
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !authLoading) {
+      if (!isAuthenticated || !user) {
+        router.push('/auth/signin?redirect=/user/profile');
         return;
       }
       
-      if (!isUser) {
+      if (isAdmin) {
         router.push('/admin/profile');
         return;
       }
     }
-  }, [authLoading, isAuthenticated, isUser, router]);
+  }, [mounted, authLoading, isAuthenticated, user, isAdmin, router]);
 
   useEffect(() => {
     if (user) {
       // Merge user data with preferences for phone number
       const userWithPhone = {
         ...user,
-        phone: user.prefs?.phone || ''
+        phone: user.phone || user.prefs?.phone || '',
+        emailVerification: user.emailVerification || user.email_verified || false,
+        $id: user.$id || user.id,
+        $createdAt: user.$createdAt || user.created_at,
+        $updatedAt: user.$updatedAt || user.updated_at
       };
       setUserData(userWithPhone);
     }
@@ -59,19 +68,24 @@ export default function UserProfile() {
     setProfileLoading(true);
     try {
       // Update profile using the improved function
-      await authHelpers.updateProfile(formData.name, formData.phone);
+      const updatedUser = await authHelpers.updateProfile(formData.name, formData.phone);
       
-      // Refresh user data
-      const updatedUser = await authHelpers.getCurrentUser();
-      const userWithPhone = {
-        ...updatedUser,
-        phone: updatedUser.prefs?.phone || ''
-      };
-      setUserData(userWithPhone);
+      if (updatedUser) {
+        // Update local user data
+        const userWithPhone = {
+          ...updatedUser,
+          phone: updatedUser.phone || updatedUser.prefs?.phone || '',
+          emailVerification: updatedUser.emailVerification || updatedUser.email_verified || false,
+          $id: updatedUser.$id || updatedUser.id,
+          $createdAt: updatedUser.$createdAt || updatedUser.created_at,
+          $updatedAt: updatedUser.$updatedAt || updatedUser.updated_at
+        };
+        setUserData(userWithPhone);
+      }
       
     } catch (error) {
       console.error('Profile update error:', error);
-      throw error;
+      throw new Error(error.message || 'Failed to update profile. Please try again.');
     } finally {
       setProfileLoading(false);
     }
@@ -84,7 +98,8 @@ export default function UserProfile() {
     router.push(url.pathname + url.search);
   };
 
-  if (authLoading || profileLoading) {
+  // Show loading state while checking authentication
+  if (!mounted || authLoading || profileLoading) {
     return (
       <Layout showSidebar={true}>
         <div className="min-h-screen flex items-center justify-center">
@@ -94,8 +109,32 @@ export default function UserProfile() {
     );
   }
 
-  if (!isAuthenticated || !isUser) {
-    return null;
+  // Show loading state if not authenticated
+  if (!isAuthenticated || !user || !isUser) {
+    return (
+      <Layout showSidebar={true}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Redirecting to sign in...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show loading state if user data is not loaded
+  if (!userData) {
+    return (
+      <Layout showSidebar={true}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading profile...</p>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   return (

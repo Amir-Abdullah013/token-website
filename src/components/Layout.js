@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import MobileNavigation from './MobileNavigation';
+import TikiStatusBar from './TikiStatusBar';
 import { useAuth } from '../lib/auth-context';
 
 const Layout = ({ children, showSidebar = false }) => {
@@ -34,6 +36,9 @@ const Layout = ({ children, showSidebar = false }) => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Navbar */}
       <Navbar user={user} onSignOut={handleSignOut} />
+      
+      {/* Tiki Status Bar - Shows current balances and price */}
+      {user && <TikiStatusBar />}
 
       <div className="flex flex-1">
         {/* Sidebar (desktop fixed width, mobile toggled) */}
@@ -48,28 +53,16 @@ const Layout = ({ children, showSidebar = false }) => {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pb-16 lg:pb-0">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
             {children}
           </div>
         </main>
       </div>
 
-      {/* Mobile sidebar toggle */}
+      {/* Mobile Navigation */}
       {showSidebar && user && (
-        <button
-          onClick={toggleSidebar}
-          className="lg:hidden fixed bottom-4 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-30"
-        >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+        <MobileNavigation user={user} />
       )}
     </div>
   );

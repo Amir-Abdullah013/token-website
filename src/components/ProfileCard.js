@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Card, { CardContent, CardHeader, CardTitle } from './Card';
 import Button from './Button';
 import Input from './Input';
@@ -24,6 +24,17 @@ const ProfileCard = ({
     phone: user?.phone || '',
     email: user?.email || ''
   });
+
+  // Update form data when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user?.name || '',
+        phone: user?.phone || '',
+        email: user?.email || ''
+      });
+    }
+  }, [user]);
 
   // Password change state
   const [showPasswordForm, setShowPasswordForm] = useState(false);

@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import ClientOnlyRoute from '../components/ClientOnlyRoute';
 import { AuthProvider } from '../lib/auth-context';
+import { TikiProvider } from '../lib/tiki-context';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,7 +18,9 @@ export default function RootLayout({ children }) {
       <body className="min-h-screen bg-gray-50" suppressHydrationWarning={true}>
         <ClientOnlyRoute fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div></div>}>
           <AuthProvider>
-            {children}
+            <TikiProvider>
+              {children}
+            </TikiProvider>
           </AuthProvider>
         </ClientOnlyRoute>
       </body>

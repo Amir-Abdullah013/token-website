@@ -2,36 +2,38 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { notificationHelpers } from '@/lib/database';
-import { authHelpers } from '@/lib/supabase';;
+import { useAuth } from '@/lib/auth-context';
 import { Button, Card, Loader, Toast } from '@/components';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function UserNotificationsPage() {
   const router = useRouter();
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [markingAsRead, setMarkingAsRead] = useState(null);
   const [toast, setToast] = useState(null);
-  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    loadUserAndNotifications();
-  }, []);
+    if (!authLoading && isAuthenticated && user) {
+      loadNotifications();
+    } else if (!authLoading && !isAuthenticated) {
+      router.push('/auth/signin');
+    }
+  }, [authLoading, isAuthenticated, user]);
 
-  const loadUserAndNotifications = async () => {
+  const loadNotifications = async () => {
     try {
       setLoading(true);
-      const currentUser = await authHelpers.getCurrentUser();
       
-      if (!currentUser) {
-        router.push('/auth/signin');
-        return;
+      const response = await fetch(`/api/notifications?userId=${user.id}&limit=25&offset=0`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch notifications');
       }
-
-      setUser(currentUser);
-      const userNotifications = await databaseHelpers.notifications.getUserNotifications(currentUser.id);
-      setNotifications(userNotifications);
+      
+      const data = await response.json();
+      setNotifications(data.notifications || []);
     } catch (error) {
       console.error('Error loading notifications:', error);
       setToast({
@@ -46,13 +48,23 @@ export default function UserNotificationsPage() {
   const handleMarkAsRead = async (notificationId) => {
     try {
       setMarkingAsRead(notificationId);
-      await databaseHelpers.notifications.markAsRead(notificationId);
+      
+      const response = await fetch(`/api/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to mark notification as read');
+      }
       
       // Update local state
       setNotifications(prev => 
         prev.map(notification => 
-          notification.$id === notificationId 
-            ? { ...notification, status: 'read' }
+          notification.id === notificationId 
+            ? { ...notification, status: 'READ' }
             : notification
         )
       );
@@ -75,11 +87,22 @@ export default function UserNotificationsPage() {
   const handleMarkAllAsRead = async () => {
     try {
       setLoading(true);
-      await databaseHelpers.notifications.markAllAsRead(user.id);
+      
+      const response = await fetch('/api/notifications/read-all', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to mark all notifications as read');
+      }
       
       // Update local state
       setNotifications(prev => 
-        prev.map(notification => ({ ...notification, status: 'read' }))
+        prev.map(notification => ({ ...notification, status: 'READ' }))
       );
       
       setToast({
@@ -280,6 +303,8 @@ export default function UserNotificationsPage() {
     </div>
   );
 }
+
+
 
 
 

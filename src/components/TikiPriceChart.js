@@ -24,8 +24,8 @@ const TIME_FILTERS = [
   { label: '30D', value: '30d', hours: 720 }
 ];
 
-// Generate dummy price data
-const generateDummyData = (timeFilter) => {
+// Generate Tiki price data based on current price
+const generateTikiData = (timeFilter, currentPrice) => {
   const now = new Date();
   const data = [];
   const points = 50; // Number of data points
@@ -52,30 +52,33 @@ const generateDummyData = (timeFilter) => {
       break;
     case '30d':
       startTime = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); // 90 days ago
-      interval = 90 * 24 * 60 * 1000; // 30 day intervals
+      interval = 90 * 24 * 60 * 60 * 1000; // 30 day intervals
       break;
     default:
       startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       interval = 7 * 24 * 60 * 1000;
   }
   
-  let basePrice = 100; // Starting price
+  // Start with a price slightly lower than current for historical data
+  let basePrice = currentPrice * 0.8;
   
   for (let i = 0; i < points; i++) {
     const timestamp = new Date(startTime.getTime() + (i * interval));
     
-    // Generate realistic price movement
-    const volatility = 0.02; // 2% volatility
+    // Generate realistic price movement with smaller volatility for Tiki
+    const volatility = 0.01; // 1% volatility for Tiki
     const change = (Math.random() - 0.5) * volatility;
     basePrice = basePrice * (1 + change);
     
-    // Ensure price doesn't go below 50 or above 200
-    basePrice = Math.max(50, Math.min(200, basePrice));
+    // Ensure price stays within reasonable bounds (0.5x to 2x current price)
+    const minPrice = currentPrice * 0.5;
+    const maxPrice = currentPrice * 2;
+    basePrice = Math.max(minPrice, Math.min(maxPrice, basePrice));
     
     data.push({
       timestamp: timestamp.toISOString(),
-      price: parseFloat(basePrice.toFixed(2)),
-      volume: Math.floor(Math.random() * 1000000) + 100000,
+      price: parseFloat(basePrice.toFixed(4)), // More precision for Tiki
+      volume: Math.floor(Math.random() * 10000000) + 1000000, // Higher volume for crypto
       time: timestamp.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
         minute: '2-digit',
@@ -88,11 +91,16 @@ const generateDummyData = (timeFilter) => {
     });
   }
   
+  // Ensure the last point is close to current price
+  if (data.length > 0) {
+    data[data.length - 1].price = currentPrice;
+  }
+  
   return data;
 };
 
-// Custom tooltip component
-const CustomTooltip = ({ active, payload, label }) => {
+// Custom tooltip component for Tiki
+const TikiTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -101,10 +109,10 @@ const CustomTooltip = ({ active, payload, label }) => {
           {data.date} {data.time}
         </p>
         <p className="text-lg font-semibold text-gray-900">
-          ₨{data.price.toFixed(2)}
+          ${data.price.toFixed(4)}
         </p>
         <p className="text-xs text-gray-500">
-          Volume: {data.volume.toLocaleString()}
+          Volume: {data.volume.toLocaleString()} TIKI
         </p>
       </div>
     );
@@ -119,20 +127,21 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-const PriceChart = ({ className = '' }) => {
+const TikiPriceChart = ({ className = '' }) => {
+  const { tikiPrice, formatCurrency } = useTiki();
   const [selectedFilter, setSelectedFilter] = useState('1d');
   const [chartData, setChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPrice, setCurrentPrice] = useState(0);
+  const [currentPrice, setCurrentPrice] = useState(tikiPrice);
   const [priceChange, setPriceChange] = useState(0);
 
-  // Generate data when filter changes
+  // Generate data when filter changes or Tiki price changes
   useEffect(() => {
     setIsLoading(true);
     
     // Simulate API delay
     setTimeout(() => {
-      const data = generateDummyData(selectedFilter);
+      const data = generateTikiData(selectedFilter, tikiPrice);
       setChartData(data);
       
       if (data.length > 0) {
@@ -144,16 +153,11 @@ const PriceChart = ({ className = '' }) => {
       
       setIsLoading(false);
     }, 500);
-  }, [selectedFilter]);
+  }, [selectedFilter, tikiPrice]);
 
   // Handle filter change
   const handleFilterChange = (filter) => {
     setSelectedFilter(filter);
-  };
-
-  // Format price for display
-  const formatPrice = (price) => {
-    return `₨${price.toFixed(2)}`;
   };
 
   // Get price change color
@@ -171,7 +175,7 @@ const PriceChart = ({ className = '' }) => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-           
+            <CardTitle className="text-lg font-semibold">Tiki Price Chart</CardTitle>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">Time Range:</span>
               <div className="flex space-x-1">
@@ -199,16 +203,16 @@ const PriceChart = ({ className = '' }) => {
           <div className="mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Current Price</p>
+                <p className="text-sm text-gray-600">Current Tiki Price</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatPrice(currentPrice)}
+                  {formatCurrency(currentPrice, 'USD')}
                 </p>
               </div>
               <div className="text-right">
                 <div className={`flex items-center text-sm ${getPriceChangeColor()}`}>
                   <span className="mr-1">{getPriceChangeIcon()}</span>
                   <span>
-                    {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)} 
+                    {priceChange >= 0 ? '+' : ''}{formatCurrency(priceChange, 'USD')} 
                     ({((priceChange / (currentPrice - priceChange)) * 100).toFixed(2)}%)
                   </span>
                 </div>
@@ -243,9 +247,9 @@ const PriceChart = ({ className = '' }) => {
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(value) => `₨${value}`}
+                    tickFormatter={(value) => `$${value.toFixed(4)}`}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<TikiTooltip />} />
                   <Line
                     type="monotone"
                     dataKey="price"
@@ -270,7 +274,7 @@ const PriceChart = ({ className = '' }) => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                <span>Price</span>
+                <span>Tiki Price</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-green-500 rounded-full mr-2" style={{ opacity: 0.5 }}></div>
@@ -287,16 +291,5 @@ const PriceChart = ({ className = '' }) => {
   );
 };
 
-export default PriceChart;
-
-
-
-
-
-
-
-
-
-
-
+export default TikiPriceChart;
 

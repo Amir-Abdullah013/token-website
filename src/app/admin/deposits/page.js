@@ -115,9 +115,9 @@ const TransactionRow = ({ transaction, onApprove, onReject, isProcessing }) => {
 
 // Loading skeleton component
 const LoadingSkeleton = () => (
-  <div className="animate-pulse">
+  <>
     {[...Array(5)].map((_, i) => (
-      <tr key={i} className="border-b border-gray-200">
+      <tr key={i} className="border-b border-gray-200 animate-pulse">
         <td className="px-4 py-3">
           <div className="h-4 bg-gray-200 rounded w-32"></div>
         </td>
@@ -138,7 +138,7 @@ const LoadingSkeleton = () => (
         </td>
       </tr>
     ))}
-  </div>
+  </>
 );
 
 export default function AdminDepositsPage() {

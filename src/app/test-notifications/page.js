@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { notificationHelpers } from '@/lib/database';
-import { authHelpers } from '@/lib/supabase';;
+import { databaseHelpers } from '@/lib/database';
+import { authHelpers } from '@/lib/supabase';
 import { Button, Card, Toast } from '@/components';
 
 export default function TestNotificationsPage() {
@@ -182,6 +182,8 @@ export default function TestNotificationsPage() {
     </div>
   );
 }
+
+
 
 
 

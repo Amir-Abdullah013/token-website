@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { notificationHelpers } from '@/lib/database';
-import { authHelpers } from '@/lib/supabase';;
+import { databaseHelpers } from '@/lib/database';
+import { authHelpers } from '@/lib/supabase';
 import { Button, Card, Loader, Toast } from '@/components';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -296,6 +296,8 @@ export default function AdminNotificationsPage() {
     </div>
   );
 }
+
+
 
 
 
