@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminHelpers } from '@/lib/database';
+// Removed direct database import - using API calls instead
 import { authHelpers } from '@/lib/supabase';;
 import { Button, Card, Input, Loader, Toast } from '@/components';
 import { formatDistanceToNow } from 'date-fns';
@@ -371,6 +371,8 @@ export default function AdminLogsPage() {
     </div>
   );
 }
+
+
 
 
 

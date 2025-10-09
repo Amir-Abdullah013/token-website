@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth-context';
 import { useTiki } from '../../../lib/tiki-context';
+import { usePriceUpdates } from '../../../hooks/usePriceUpdates';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -13,10 +14,13 @@ import { ToastContainer, useToast } from '../../../components/Toast';
 
 export default function TradePage() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { usdBalance, tikiBalance, tikiPrice, setUsdBalance, setTikiBalance, setTikiPrice, formatCurrency, formatTiki } = useTiki();
+  const { usdBalance, tikiBalance, tikiPrice, setUsdBalance, setTikiBalance, setTikiPrice, formatCurrency, formatTiki, buyTiki, sellTiki } = useTiki();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const { toasts, removeToast } = useToast();
+  
+  // Enable real-time price updates every 5 seconds
+  usePriceUpdates(5000);
 
   // Tiki trading state - only for Tiki tokens
   const [tradeType, setTradeType] = useState('buy');
@@ -126,7 +130,7 @@ export default function TradePage() {
     }
   }, [marketData]);
 
-  // Handle trade execution with custom trading logic
+  // Handle trade execution with API-based price calculation
   const handleTrade = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       alert('Please enter a valid amount');
@@ -150,24 +154,17 @@ export default function TradePage() {
           return;
         }
         
-        // Calculate tokens to buy: tokens = amountUSD / tikiPrice
-        const tokens = amountValue / tikiPrice;
+        // Use the new API-based buy function
+        const result = await buyTiki(amountValue);
         
-        // Update balances using global state setters (automatically persists to localStorage)
-        // usdBalance -= amountUSD; tikiBalance += tokens
-        setUsdBalance(prev => prev - amountValue);
-        setTikiBalance(prev => prev + tokens);
-        
-        // Update price using global state setter (automatically persists to localStorage)
-        // tikiPrice = tikiPrice + (amountUSD / 1000000)
-        const priceIncrease = amountValue / 1000000;
-        setTikiPrice(prev => {
-          const newPrice = prev + priceIncrease;
-          // Apply price limits: if (tikiPrice > 1) tikiPrice = 1
-          return newPrice > 1 ? 1 : newPrice;
-        });
-        
-        alert(`Successfully bought ${formatTiki(tokens)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`);
+        if (result.success) {
+          alert(`Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`);
+          if (result.newPrice !== result.oldPrice) {
+            alert(`Price updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`);
+          }
+        } else {
+          alert(`Buy failed: ${result.error}`);
+        }
         
       } else {
         // SELLING TIKI TOKENS LOGIC
@@ -177,24 +174,17 @@ export default function TradePage() {
           return;
         }
         
-        // Calculate USD to receive: usdReceived = tokens * tikiPrice
-        const usdReceived = amountValue * tikiPrice;
+        // Use the new API-based sell function
+        const result = await sellTiki(amountValue);
         
-        // Update balances using global state setters (automatically persists to localStorage)
-        // usdBalance += usdReceived; tikiBalance -= tokens
-        setUsdBalance(prev => prev + usdReceived);
-        setTikiBalance(prev => prev - amountValue);
-        
-        // Update price using global state setter (automatically persists to localStorage)
-        // tikiPrice = tikiPrice - (usdReceived / 1000000)
-        const priceDecrease = usdReceived / 1000000;
-        setTikiPrice(prev => {
-          const newPrice = prev - priceDecrease;
-          // Apply price limits: if (tikiPrice < 0.0001) tikiPrice = 0.0001
-          return newPrice < 0.0001 ? 0.0001 : newPrice;
-        });
-        
-        alert(`Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(usdReceived, 'USD')}!`);
+        if (result.success) {
+          alert(`Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`);
+          if (result.newPrice !== result.oldPrice) {
+            alert(`Price updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`);
+          }
+        } else {
+          alert(`Sell failed: ${result.error}`);
+        }
       }
       
       // Reset form after successful trade

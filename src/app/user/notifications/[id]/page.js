@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { databaseHelpers } from '@/lib/database';
+// Removed direct database import - using API calls instead
 import { authHelpers } from '@/lib/supabase';
 import { Button, Card, Loader, Toast } from '@/components';
 import { formatDistanceToNow } from 'date-fns';
@@ -31,8 +31,15 @@ export default function NotificationDetailPage() {
       }
 
       setUser(currentUser);
-      const notificationData = await databaseHelpers.notifications.getNotification(params.id);
-      setNotification(notificationData);
+      
+      // Fetch notification via API
+      const response = await fetch(`/api/notifications/${params.id}`);
+      if (response.ok) {
+        const notificationData = await response.json();
+        setNotification(notificationData.notification);
+      } else {
+        throw new Error('Failed to load notification');
+      }
     } catch (error) {
       console.error('Error loading notification:', error);
       setToast({
@@ -47,7 +54,14 @@ export default function NotificationDetailPage() {
   const handleMarkAsRead = async () => {
     try {
       setMarkingAsRead(true);
-      await databaseHelpers.notifications.markAsRead(notification.$id);
+      
+      const response = await fetch(`/api/notifications/${notification.id}/read`, {
+        method: 'PATCH'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to mark as read');
+      }
       
       // Update local state
       setNotification(prev => ({ ...prev, status: 'read' }));

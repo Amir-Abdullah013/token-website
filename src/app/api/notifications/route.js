@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { databaseHelpers } from '../../../lib/database';
 
 export async function GET(request) {
   try {
@@ -14,125 +15,80 @@ export async function GET(request) {
       );
     }
 
-    // In development mode, return mock data
-    if (process.env.NODE_ENV === 'development') {
-      const mockNotifications = [
+    console.log('📬 Fetching notifications for user:', userId);
+
+    // Get user notifications using database helpers with fallback
+    let notifications = [];
+    
+    try {
+      notifications = await databaseHelpers.notification.getUserNotifications(userId, limit);
+      console.log('✅ Notifications fetched from database:', notifications.length);
+    } catch (dbError) {
+      console.error('Database error, using fallback data:', dbError);
+      
+      // Fallback mock data when database fails
+      notifications = [
         {
           id: 'notif-1',
           userId: userId,
-          title: 'Welcome to TokenApp!',
-          message: 'Your account has been successfully created.',
+          title: 'Welcome to Tiki Token!',
+          message: 'Your account has been successfully created. Start trading Tiki tokens today!',
           type: 'INFO',
           status: 'UNREAD',
-          createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
-          updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString()
+          isGlobal: false,
+          createdBy: null,
+          createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+          updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+          creator_name: 'System',
+          creator_email: null
         },
         {
           id: 'notif-2',
           userId: userId,
           title: 'Deposit Successful',
-          message: 'Your deposit of $500 has been processed.',
+          message: 'Your deposit of $500 has been processed successfully.',
           type: 'SUCCESS',
           status: 'UNREAD',
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-          updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
+          isGlobal: false,
+          createdBy: null,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+          updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+          creator_name: 'System',
+          creator_email: null
         },
         {
           id: 'notif-3',
           userId: null,
-          title: 'System Maintenance',
-          message: 'Scheduled maintenance will occur tonight at 2 AM.',
+          title: 'System Maintenance Notice',
+          message: 'Scheduled maintenance will occur tonight from 2-4 AM UTC. Some features may be temporarily unavailable.',
           type: 'WARNING',
-          status: 'READ',
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-          updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString()
-        }
-      ];
-
-      return NextResponse.json({ 
-        notifications: mockNotifications.slice(offset, offset + limit),
-        total: mockNotifications.length
-      });
-    }
-
-    // Try to load Prisma dynamically
-    let prisma;
-    try {
-      const prismaModule = await import('../../../lib/prisma.js');
-      prisma = prismaModule.prisma;
-    } catch (error) {
-      console.warn('Prisma not available:', error.message);
-      // Return mock data if database is not available
-      const mockNotifications = [
-        {
-          id: 'fallback-notif-1',
-          userId: userId,
-          title: 'System Status',
-          message: 'All systems are operational.',
-          type: 'info',
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
-      
-      return NextResponse.json({
-        notifications: mockNotifications,
-        total: mockNotifications.length,
-        limit,
-        offset
-      });
-    }
-
-    // Production mode - use actual database
-    try {
-      const notifications = await prisma.notification.findMany({
-        where: {
-          OR: [
-            { userId },
-            { userId: null }
-          ]
-        },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        skip: offset
-      });
-
-      const total = await prisma.notification.count({
-        where: {
-          OR: [
-            { userId },
-            { userId: null }
-          ]
-        }
-      });
-
-      return NextResponse.json({ 
-        notifications,
-        total
-      });
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      
-      // Fallback to mock data
-      const mockNotifications = [
-        {
-          id: 'fallback-notif-1',
-          userId: userId,
-          title: 'System Status',
-          message: 'All systems are operational.',
-          type: 'INFO',
           status: 'UNREAD',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          isGlobal: true,
+          createdBy: 'admin1',
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+          updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+          creator_name: 'Admin User',
+          creator_email: 'admin@example.com'
         }
       ];
-
-      return NextResponse.json({ 
-        notifications: mockNotifications,
-        total: 1
-      });
     }
+
+    // Apply pagination
+    const paginatedNotifications = notifications.slice(offset, offset + limit);
+
+    console.log('✅ User notifications response:', {
+      total: notifications.length,
+      returned: paginatedNotifications.length,
+      hasGlobal: paginatedNotifications.some(n => n.isGlobal)
+    });
+
+    return NextResponse.json({ 
+      notifications: paginatedNotifications,
+      total: notifications.length,
+      limit,
+      offset
+    });
+
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return NextResponse.json(

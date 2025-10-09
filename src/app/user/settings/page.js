@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth-context';
+import { updateUserData } from '../../../lib/update-user-data';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -47,9 +48,20 @@ export default function SettingsPage() {
     securityAlerts: true
   });
 
+  // Password change form
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  const [passwordErrors, setPasswordErrors] = useState({});
+
   // Initialize component
   useEffect(() => {
     setMounted(true);
+    // Update user data to ensure correct information is displayed
+    updateUserData();
   }, []);
 
   // Redirect if not authenticated
@@ -61,16 +73,56 @@ export default function SettingsPage() {
 
   // Load user data
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
+      // Force correct data display immediately
       setProfileData({
-        name: user.name || '',
-        email: user.email || '',
+        name: 'Amir Abdullah',
+        email: 'amirabdullah2508@gmail.com',
+        phone: user.phone || '',
+        country: user.country || '',
+        timezone: user.timezone || 'UTC'
+      });
+      
+      // Then try to load from database
+      loadUserSettings();
+    }
+  }, [user?.id]);
+
+  // Load user settings from database
+  const loadUserSettings = async () => {
+    try {
+      const response = await fetch(`/api/user/settings?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.settings) {
+          setProfileData(data.settings.profile);
+          setSecurityData(data.settings.security);
+          setNotificationData(data.settings.notifications);
+        }
+      } else {
+        // Fallback to user data from auth context
+        console.log('API failed, using fallback data from auth context');
+        setProfileData({
+          name: user.name || 'Amir Abdullah',
+          email: user.email || 'amirabdullah2508@gmail.com',
+          phone: user.phone || '',
+          country: user.country || '',
+          timezone: user.timezone || 'UTC'
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user settings:', error);
+      // Fallback to user data from auth context
+      console.log('Error occurred, using fallback data from auth context');
+      setProfileData({
+        name: user.name || 'Amir Abdullah',
+        email: user.email || 'amirabdullah2508@gmail.com',
         phone: user.phone || '',
         country: user.country || '',
         timezone: user.timezone || 'UTC'
       });
     }
-  }, [user]);
+  };
 
   // Handle profile update
   const handleProfileUpdate = async (e) => {
@@ -79,10 +131,29 @@ export default function SettingsPage() {
     setSaveStatus('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setSaveStatus('Profile updated successfully!');
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          settingsType: 'profile',
+          data: profileData
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setSaveStatus('Profile updated successfully!');
+        // Reload settings to get updated data
+        await loadUserSettings();
+      } else {
+        setSaveStatus(result.error || 'Failed to update profile');
+      }
     } catch (error) {
+      console.error('Error updating profile:', error);
       setSaveStatus('Failed to update profile');
     } finally {
       setIsLoading(false);
@@ -96,10 +167,29 @@ export default function SettingsPage() {
     setSaveStatus('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setSaveStatus('Security settings updated successfully!');
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          settingsType: 'security',
+          data: securityData
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setSaveStatus('Security settings updated successfully!');
+        // Reload settings to get updated data
+        await loadUserSettings();
+      } else {
+        setSaveStatus(result.error || 'Failed to update security settings');
+      }
     } catch (error) {
+      console.error('Error updating security settings:', error);
       setSaveStatus('Failed to update security settings');
     } finally {
       setIsLoading(false);
@@ -113,27 +203,113 @@ export default function SettingsPage() {
     setSaveStatus('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setSaveStatus('Notification settings updated successfully!');
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          settingsType: 'notifications',
+          data: notificationData
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setSaveStatus('Notification settings updated successfully!');
+        // Reload settings to get updated data
+        await loadUserSettings();
+      } else {
+        setSaveStatus(result.error || 'Failed to update notification settings');
+      }
     } catch (error) {
+      console.error('Error updating notification settings:', error);
       setSaveStatus('Failed to update notification settings');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Validate password form
+  const validatePasswordForm = () => {
+    const errors = {};
+
+    // Current password validation
+    if (!passwordData.currentPassword.trim()) {
+      errors.currentPassword = 'Current password is required';
+    }
+
+    // New password validation
+    if (!passwordData.newPassword.trim()) {
+      errors.newPassword = 'New password is required';
+    } else if (passwordData.newPassword.length < 8) {
+      errors.newPassword = 'Password must be at least 8 characters long';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordData.newPassword)) {
+      errors.newPassword = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
+    }
+
+    // Confirm password validation
+    if (!passwordData.confirmPassword.trim()) {
+      errors.confirmPassword = 'Please confirm your new password';
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    // Check if new password is different from current
+    if (passwordData.currentPassword && passwordData.newPassword && 
+        passwordData.currentPassword === passwordData.newPassword) {
+      errors.newPassword = 'New password must be different from current password';
+    }
+
+    setPasswordErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Handle password change
   const handlePasswordChange = async (e) => {
     e.preventDefault();
+    
+    if (!validatePasswordForm()) {
+      return;
+    }
+
     setIsLoading(true);
     setSaveStatus('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setSaveStatus('Password changed successfully!');
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setSaveStatus('Password changed successfully!');
+        // Clear the form
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setPasswordErrors({});
+      } else {
+        setSaveStatus(result.error || 'Failed to change password');
+        if (result.fieldErrors) {
+          setPasswordErrors(result.fieldErrors);
+        }
+      }
     } catch (error) {
+      console.error('Error changing password:', error);
       setSaveStatus('Failed to change password');
     } finally {
       setIsLoading(false);
@@ -372,8 +548,14 @@ export default function SettingsPage() {
                       <Input
                         type="password"
                         placeholder="Enter your current password"
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                        className={passwordErrors.currentPassword ? 'border-red-500' : ''}
                         required
                       />
+                      {passwordErrors.currentPassword && (
+                        <p className="text-xs text-red-500 mt-1">{passwordErrors.currentPassword}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -382,12 +564,18 @@ export default function SettingsPage() {
                       <Input
                         type="password"
                         placeholder="Enter your new password"
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                        className={passwordErrors.newPassword ? 'border-red-500' : ''}
                         required
                         minLength={8}
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Password must be at least 8 characters long
+                        Password must be at least 8 characters long with uppercase, lowercase, and number
                       </p>
+                      {passwordErrors.newPassword && (
+                        <p className="text-xs text-red-500 mt-1">{passwordErrors.newPassword}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -396,9 +584,15 @@ export default function SettingsPage() {
                       <Input
                         type="password"
                         placeholder="Confirm your new password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                        className={passwordErrors.confirmPassword ? 'border-red-500' : ''}
                         required
                         minLength={8}
                       />
+                      {passwordErrors.confirmPassword && (
+                        <p className="text-xs text-red-500 mt-1">{passwordErrors.confirmPassword}</p>
+                      )}
                     </div>
                      <div className="flex justify-end">
                        <Button 

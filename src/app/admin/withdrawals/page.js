@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth-context';
-import { adminHelpers } from '@/lib/database';;
+// Removed direct database import - using API calls instead;
 import Layout from '../../../components/Layout';
 import AdminRoute from '../../../components/AdminRoute';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';

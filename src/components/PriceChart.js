@@ -25,56 +25,86 @@ const TIME_FILTERS = [
 ];
 
 // Generate dummy price data
-const generateDummyData = (timeFilter) => {
+// Fetch real price data from API
+const fetchPriceData = async (timeFilter) => {
+  try {
+    console.log('📊 Fetching real price data for timeFilter:', timeFilter);
+    
+    const response = await fetch(`/api/price-chart?timeFilter=${timeFilter}&limit=50`);
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ Real price data fetched:', {
+        success: result.success,
+        dataPoints: result.dataPoints,
+        currentPrice: result.currentPrice,
+        priceChange: result.priceChange,
+        fallback: result.fallback
+      });
+      return result;
+    } else {
+      console.error('❌ Failed to fetch price data:', response.status);
+      throw new Error('Failed to fetch price data');
+    }
+  } catch (error) {
+    console.error('❌ Error fetching price data:', error);
+    throw error;
+  }
+};
+
+// Fallback data generator for when API fails
+const generateFallbackData = (timeFilter) => {
   const now = new Date();
   const data = [];
-  const points = 50; // Number of data points
+  const currentPrice = 0.0035; // Default TIKI price
+  let basePrice = currentPrice * 0.8;
   
+  let points;
   let startTime;
   let interval;
   
   switch (timeFilter) {
     case '1min':
-      startTime = new Date(now.getTime() - 60 * 60 * 1000); // 1 hour ago
-      interval = 60 * 1000; // 1 minute intervals
+      startTime = new Date(now.getTime() - 60 * 60 * 1000);
+      interval = 60 * 1000;
+      points = 60;
       break;
     case '1h':
-      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 day ago
-      interval = 24 * 60 * 1000; // 1 hour intervals
+      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      interval = 24 * 60 * 1000;
+      points = 24;
       break;
     case '1d':
-      startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
-      interval = 7 * 24 * 60 * 1000; // 1 day intervals
+      startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      interval = 7 * 24 * 60 * 1000;
+      points = 7;
       break;
     case '7d':
-      startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
-      interval = 30 * 24 * 60 * 1000; // 7 day intervals
+      startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      interval = 30 * 24 * 60 * 1000;
+      points = 30;
       break;
     case '30d':
-      startTime = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); // 90 days ago
-      interval = 90 * 24 * 60 * 1000; // 30 day intervals
+      startTime = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      interval = 90 * 24 * 60 * 1000;
+      points = 90;
       break;
     default:
       startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       interval = 7 * 24 * 60 * 1000;
+      points = 7;
   }
-  
-  let basePrice = 100; // Starting price
   
   for (let i = 0; i < points; i++) {
     const timestamp = new Date(startTime.getTime() + (i * interval));
-    
-    // Generate realistic price movement
-    const volatility = 0.02; // 2% volatility
+    const volatility = 0.05;
     const change = (Math.random() - 0.5) * volatility;
     basePrice = basePrice * (1 + change);
-    
-    // Ensure price doesn't go below 50 or above 200
-    basePrice = Math.max(50, Math.min(200, basePrice));
+    basePrice = Math.max(currentPrice * 0.1, Math.min(currentPrice * 2.0, basePrice));
     
     data.push({
       timestamp: timestamp.toISOString(),
-      price: parseFloat(basePrice.toFixed(2)),
+      price: parseFloat(basePrice.toFixed(6)),
       volume: Math.floor(Math.random() * 1000000) + 100000,
       time: timestamp.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
@@ -88,7 +118,27 @@ const generateDummyData = (timeFilter) => {
     });
   }
   
-  return data;
+  // Add current price
+  data.push({
+    timestamp: now.toISOString(),
+    price: currentPrice,
+    volume: Math.floor(Math.random() * 1000000) + 100000,
+    time: now.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    }),
+    date: now.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  });
+  
+  return {
+    data,
+    currentPrice,
+    priceChange: data.length > 1 ? currentPrice - data[data.length - 2].price : 0
+  };
 };
 
 // Custom tooltip component
@@ -101,7 +151,7 @@ const CustomTooltip = ({ active, payload, label }) => {
           {data.date} {data.time}
         </p>
         <p className="text-lg font-semibold text-gray-900">
-          ₨{data.price.toFixed(2)}
+          ${data.price.toFixed(6)}
         </p>
         <p className="text-xs text-gray-500">
           Volume: {data.volume.toLocaleString()}
@@ -126,24 +176,47 @@ const PriceChart = ({ className = '' }) => {
   const [currentPrice, setCurrentPrice] = useState(0);
   const [priceChange, setPriceChange] = useState(0);
 
-  // Generate data when filter changes
+  // Fetch real data when filter changes
   useEffect(() => {
-    setIsLoading(true);
-    
-    // Simulate API delay
-    setTimeout(() => {
-      const data = generateDummyData(selectedFilter);
-      setChartData(data);
+    const loadPriceData = async () => {
+      setIsLoading(true);
       
-      if (data.length > 0) {
-        const latest = data[data.length - 1];
-        const previous = data[data.length - 2];
-        setCurrentPrice(latest.price);
-        setPriceChange(latest.price - previous.price);
+      try {
+        console.log('🔄 Loading price data for filter:', selectedFilter);
+        const result = await fetchPriceData(selectedFilter);
+        
+        if (result.success) {
+          setChartData(result.data);
+          setCurrentPrice(result.currentPrice);
+          setPriceChange(result.priceChange);
+          
+          console.log('✅ Price data loaded successfully:', {
+            dataPoints: result.dataPoints,
+            currentPrice: result.currentPrice,
+            priceChange: result.priceChange,
+            fallback: result.fallback
+          });
+        } else {
+          console.error('❌ Failed to load price data');
+          // Fallback to empty data
+          setChartData([]);
+          setCurrentPrice(0);
+          setPriceChange(0);
+        }
+      } catch (error) {
+        console.error('❌ Error loading price data:', error);
+        // Use fallback data when API fails
+        console.log('🔄 Using fallback data for timeFilter:', selectedFilter);
+        const fallbackResult = generateFallbackData(selectedFilter);
+        setChartData(fallbackResult.data);
+        setCurrentPrice(fallbackResult.currentPrice);
+        setPriceChange(fallbackResult.priceChange);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
-    }, 500);
+    };
+
+    loadPriceData();
   }, [selectedFilter]);
 
   // Handle filter change
@@ -153,7 +226,7 @@ const PriceChart = ({ className = '' }) => {
 
   // Format price for display
   const formatPrice = (price) => {
-    return `₨${price.toFixed(2)}`;
+    return `$${price.toFixed(6)}`;
   };
 
   // Get price change color
@@ -243,7 +316,7 @@ const PriceChart = ({ className = '' }) => {
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(value) => `₨${value}`}
+                    tickFormatter={(value) => `$${value.toFixed(6)}`}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Line

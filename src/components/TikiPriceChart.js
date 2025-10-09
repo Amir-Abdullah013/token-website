@@ -293,3 +293,8 @@ const TikiPriceChart = ({ className = '' }) => {
 
 export default TikiPriceChart;
 
+
+
+
+
+

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { notificationHelpers } from '@/lib/database';
+// Removed direct database import - using API calls instead
 import { authHelpers } from '@/lib/supabase';;
 import { Button, Card, Input, Loader, Toast } from '@/components';
 
@@ -350,6 +350,8 @@ export default function CreateNotificationPage() {
     </div>
   );
 }
+
+
 
 
 

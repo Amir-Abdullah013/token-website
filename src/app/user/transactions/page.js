@@ -385,8 +385,8 @@ export default function TransactionsPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredTransactions.map((transaction) => (
-                        <TransactionRow key={transaction.$id} transaction={transaction} />
+                      filteredTransactions.map((transaction, index) => (
+                        <TransactionRow key={transaction.id || transaction.$id || `transaction-${index}`} transaction={transaction} />
                       ))
                     )}
                   </tbody>

@@ -220,53 +220,11 @@ export default function UserProfile() {
                       </span>
                     </div>
                     
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Last Login
-                      </label>
-                      <p className="text-sm text-gray-900">
-                        {userData?.$updatedAt ? new Date(userData.$updatedAt).toLocaleString() : 'Unknown'}
-                      </p>
-                    </div>
+                  
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Email Verification</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Email Status</p>
-                        <p className="text-xs text-gray-500">
-                          {userData?.emailVerification ? 'Verified' : 'Not verified'}
-                        </p>
-                      </div>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        userData?.emailVerification ? 
-                          'bg-green-100 text-green-800' : 
-                          'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {userData?.emailVerification ? 'Verified' : 'Pending'}
-                      </span>
-                    </div>
-                    
-                    <div className="pt-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        fullWidth
-                        onClick={() => router.push('/auth/verify-email')}
-                      >
-                        Verify Email
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         )}

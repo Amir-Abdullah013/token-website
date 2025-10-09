@@ -2,11 +2,18 @@
 
 import Card, { CardContent } from './Card';
 
-const QuickStats = ({ className = '' }) => {
+const QuickStats = ({ 
+  className = '', 
+  portfolioValue = 0,
+  totalDeposits = 0,
+  totalWithdrawals = 0,
+  activeTrades = 0,
+  formatCurrency = (amount) => `$${amount.toFixed(2)}`
+}) => {
   const stats = [
     {
       title: 'Portfolio Value',
-      value: '$12,450.75',
+      value: formatCurrency(portfolioValue),
       change: '+5.2%',
       changeType: 'positive',
       icon: '📈',
@@ -14,7 +21,7 @@ const QuickStats = ({ className = '' }) => {
     },
     {
       title: 'Total Deposits',
-      value: '$8,500.00',
+      value: formatCurrency(totalDeposits),
       change: '+12.3%',
       changeType: 'positive',
       icon: '💰',
@@ -22,7 +29,7 @@ const QuickStats = ({ className = '' }) => {
     },
     {
       title: 'Total Withdrawals',
-      value: '$2,100.00',
+      value: formatCurrency(totalWithdrawals),
       change: '-3.1%',
       changeType: 'negative',
       icon: '💸',
@@ -30,7 +37,7 @@ const QuickStats = ({ className = '' }) => {
     },
     {
       title: 'Active Trades',
-      value: '7',
+      value: activeTrades.toString(),
       change: '+2',
       changeType: 'positive',
       icon: '🔄',

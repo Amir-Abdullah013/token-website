@@ -90,23 +90,35 @@ export default function SignIn() {
         // Store user session
         localStorage.setItem('userSession', JSON.stringify(data.user));
         
+        // Clear any cached data
+        localStorage.removeItem('signupEmail');
+        
         // Redirect to dashboard
         router.push('/user/dashboard');
       } else {
-        // Handle specific error cases
+        // Handle specific error cases with detailed debugging
+        console.error('Signin failed:', data);
+        
+        let errorMessage = data.error || 'Failed to sign in';
+        
+        // Add debug information if available
+        if (data.debug) {
+          errorMessage += `\n\nDebug Info:\n- Email: ${data.debug.email}\n- Database Used: ${data.debug.usedDatabase}\n- Timestamp: ${data.debug.timestamp}`;
+        }
+        
         if (data.errorCode === 'USER_NOT_FOUND') {
           setErrors({ 
-            general: data.error,
+            general: errorMessage,
             showSignupLink: true,
             suggestion: data.suggestion
           });
         } else if (data.errorCode === 'INVALID_PASSWORD') {
           setErrors({ 
-            general: data.error,
+            general: errorMessage,
             showForgotPassword: true
           });
         } else {
-          setErrors({ general: data.error || 'Failed to sign in' });
+          setErrors({ general: errorMessage });
         }
       }
     } catch (error) {

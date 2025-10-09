@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './auth-context';
 
 const TikiContext = createContext();
 
@@ -13,59 +14,61 @@ export const useTiki = () => {
 };
 
 export const TikiProvider = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
+  
   // Initial state values
   const [usdBalance, setUsdBalance] = useState(0);
   const [tikiBalance, setTikiBalance] = useState(0);
   const [tikiPrice, setTikiPrice] = useState(0.0035);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load data from localStorage on mount
+  // Load user-specific data from API
   useEffect(() => {
-    const loadData = () => {
-      try {
-        const savedUsdBalance = localStorage.getItem('tiki_usdBalance');
-        const savedTikiBalance = localStorage.getItem('tiki_tikiBalance');
-        const savedTikiPrice = localStorage.getItem('tiki_tikiPrice');
+    const loadUserData = async () => {
+      if (!isAuthenticated || !user?.id) {
+        setIsLoading(false);
+        return;
+      }
 
-        if (savedUsdBalance !== null) {
-          setUsdBalance(parseFloat(savedUsdBalance));
+      try {
+        setIsLoading(true);
+        
+        // Load user's wallet data from API
+        const response = await fetch(`/api/wallet/balance?userId=${user.id}`);
+        let data = null;
+        
+        if (response.ok) {
+          data = await response.json();
+          setUsdBalance(data.usdBalance || 0);
+          setTikiBalance(data.tikiBalance || 0);
+          setTikiPrice(data.tikiPrice || 0.0035);
+        } else {
+          // Set default values if API fails
+          setUsdBalance(0);
+          setTikiBalance(0);
+          setTikiPrice(0.0035);
         }
-        if (savedTikiBalance !== null) {
-          setTikiBalance(parseFloat(savedTikiBalance));
-        }
-        if (savedTikiPrice !== null) {
-          setTikiPrice(parseFloat(savedTikiPrice));
-        }
+        
+        console.log('✅ User data loaded:', {
+          userId: user.id,
+          usdBalance: data?.usdBalance || 0,
+          tikiBalance: data?.tikiBalance || 0,
+          tikiPrice: data?.tikiPrice || 0.0035
+        });
+        
       } catch (error) {
-        console.error('Error loading Tiki data from localStorage:', error);
+        console.error('Error loading user data:', error);
+        // Set default values on error
+        setUsdBalance(0);
+        setTikiBalance(0);
+        setTikiPrice(0.0035);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadData();
-  }, []);
-
-  // Save data to localStorage whenever values change
-  useEffect(() => {
-    if (!isLoading) {
-      try {
-        // Persist all trading data to localStorage for cross-page consistency
-        localStorage.setItem('tiki_usdBalance', usdBalance.toString());
-        localStorage.setItem('tiki_tikiBalance', tikiBalance.toString());
-        localStorage.setItem('tiki_tikiPrice', tikiPrice.toString());
-        localStorage.setItem('tiki_lastUpdated', new Date().toISOString());
-        
-        console.log('Tiki data saved to localStorage:', {
-          usdBalance,
-          tikiBalance,
-          tikiPrice
-        });
-      } catch (error) {
-        console.error('Error saving Tiki data to localStorage:', error);
-      }
-    }
-  }, [usdBalance, tikiBalance, tikiPrice, isLoading]);
+    loadUserData();
+  }, [isAuthenticated, user?.id]);
 
   // Currency conversion rates (simplified for demo)
   const currencyRates = {
@@ -100,56 +103,201 @@ export const TikiProvider = ({ children }) => {
     }).format(amount);
   };
 
+  // Update database via API
+  const updateDatabaseBalances = async (newUsdBalance, newTikiBalance) => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await fetch('/api/wallet/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          usdBalance: newUsdBalance,
+          tikiBalance: newTikiBalance
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('✅ Database balances updated:', {
+          userId: user.id,
+          usdBalance: newUsdBalance,
+          tikiBalance: newTikiBalance
+        });
+      }
+    } catch (error) {
+      console.error('Error updating database balances:', error);
+    }
+  };
+
   // Trading functions
-  const depositUSD = (amount, currency = 'USD') => {
+  const depositUSD = async (amount, currency = 'USD') => {
+    if (!user?.id) return 0;
+    
     const usdAmount = convertToUSD(amount, currency);
-    setUsdBalance(prev => prev + usdAmount);
+    const newBalance = usdBalance + usdAmount;
+    
+    setUsdBalance(newBalance);
+    await updateDatabaseBalances(newBalance, tikiBalance);
+    
     return usdAmount;
   };
 
-  const withdrawUSD = (amount) => {
-    if (amount <= usdBalance) {
-      setUsdBalance(prev => prev - amount);
-      return true;
-    }
-    return false;
+  const withdrawUSD = async (amount) => {
+    if (!user?.id || amount > usdBalance) return false;
+    
+    const newBalance = usdBalance - amount;
+    setUsdBalance(newBalance);
+    await updateDatabaseBalances(newBalance, tikiBalance);
+    
+    return true;
   };
 
-  const buyTiki = (usdAmount) => {
-    if (usdAmount <= usdBalance) {
+  const buyTiki = async (usdAmount) => {
+    if (!user?.id || usdAmount > usdBalance) {
+      return { success: false, error: 'Insufficient USD balance' };
+    }
+
+    try {
+      // Call the buy API to get real-time price calculation
+      const response = await fetch('/api/tiki/buy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          usdAmount: usdAmount
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update balances based on API response
+        const newUsdBalance = usdBalance - usdAmount;
+        const newTikiBalance = tikiBalance + data.transaction.tokensReceived;
+        
+        setUsdBalance(newUsdBalance);
+        setTikiBalance(newTikiBalance);
+        
+        // Update database
+        await updateDatabaseBalances(newUsdBalance, newTikiBalance);
+        
+        // Update price with the new calculated price
+        setTikiPrice(data.priceUpdate.newPrice);
+        
+        return { 
+          success: true, 
+          tokensBought: data.transaction.tokensReceived,
+          newPrice: data.priceUpdate.newPrice,
+          oldPrice: data.priceUpdate.oldPrice
+        };
+      } else {
+        return { success: false, error: data.error || 'Buy failed' };
+      }
+    } catch (error) {
+      console.error('Buy API error:', error);
+      // Fallback to local calculation
       const tokensToBuy = usdAmount / tikiPrice;
       const priceIncrease = usdAmount / 1000000;
       
-      // Update balances
-      setUsdBalance(prev => prev - usdAmount);
-      setTikiBalance(prev => prev + tokensToBuy);
+      const newUsdBalance = usdBalance - usdAmount;
+      const newTikiBalance = tikiBalance + tokensToBuy;
       
-      // Update price (with limits)
-      setTikiPrice(prev => Math.min(1, prev + priceIncrease));
+      setUsdBalance(newUsdBalance);
+      setTikiBalance(newTikiBalance);
+      setTikiPrice(Math.min(1, tikiPrice + priceIncrease));
+      
+      // Update database
+      await updateDatabaseBalances(newUsdBalance, newTikiBalance);
       
       return { success: true, tokensBought: tokensToBuy };
     }
-    return { success: false, error: 'Insufficient USD balance' };
   };
 
-  const sellTiki = (tokenAmount) => {
-    if (tokenAmount <= tikiBalance) {
+  const sellTiki = async (tokenAmount) => {
+    if (!user?.id || tokenAmount > tikiBalance) {
+      return { success: false, error: 'Insufficient Tiki balance' };
+    }
+
+    try {
+      // Call the sell API to get real-time price calculation
+      const response = await fetch('/api/tiki/sell', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          tokenAmount: tokenAmount
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update balances based on API response
+        const newTikiBalance = tikiBalance - tokenAmount;
+        const newUsdBalance = usdBalance + data.transaction.amount;
+        
+        setTikiBalance(newTikiBalance);
+        setUsdBalance(newUsdBalance);
+        
+        // Update database
+        await updateDatabaseBalances(newUsdBalance, newTikiBalance);
+        
+        // Update price with the new calculated price
+        setTikiPrice(data.priceUpdate.newPrice);
+        
+        return { 
+          success: true, 
+          usdReceived: data.transaction.amount,
+          newPrice: data.priceUpdate.newPrice,
+          oldPrice: data.priceUpdate.oldPrice
+        };
+      } else {
+        return { success: false, error: data.error || 'Sell failed' };
+      }
+    } catch (error) {
+      console.error('Sell API error:', error);
+      // Fallback to local calculation
       const usdReceived = tokenAmount * tikiPrice;
       const priceDecrease = usdReceived / 1000000;
       
-      // Update balances
-      setUsdBalance(prev => prev + usdReceived);
-      setTikiBalance(prev => prev - tokenAmount);
+      const newTikiBalance = tikiBalance - tokenAmount;
+      const newUsdBalance = usdBalance + usdReceived;
       
-      // Update price (with limits)
-      setTikiPrice(prev => Math.max(0.0001, prev - priceDecrease));
+      setTikiBalance(newTikiBalance);
+      setUsdBalance(newUsdBalance);
+      setTikiPrice(Math.max(0.0001, tikiPrice - priceDecrease));
+      
+      // Update database
+      await updateDatabaseBalances(newUsdBalance, newTikiBalance);
       
       return { success: true, usdReceived };
     }
-    return { success: false, error: 'Insufficient Tiki balance' };
   };
 
   const getCurrencies = () => Object.keys(currencyRates);
+
+  // Fetch current price from API
+  const fetchCurrentPrice = async () => {
+    try {
+      const response = await fetch('/api/tiki/price');
+      const data = await response.json();
+      
+      if (data.success) {
+        setTikiPrice(data.price);
+        return data.price;
+      }
+    } catch (error) {
+      console.error('Error fetching current price:', error);
+    }
+    return tikiPrice; // Return current price if fetch fails
+  };
 
   const value = {
     // State values
@@ -174,6 +322,7 @@ export const TikiProvider = ({ children }) => {
     formatCurrency,
     formatTiki,
     getCurrencies,
+    fetchCurrentPrice,
     currencyRates
   };
 

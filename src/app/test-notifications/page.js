@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { databaseHelpers } from '@/lib/database';
 import { authHelpers } from '@/lib/supabase';
 import { Button, Card, Toast } from '@/components';
 
@@ -22,7 +21,21 @@ export default function TestNotificationsPage() {
         return;
       }
 
-      await databaseHelpers.notifications.createNotification(title, message, type, user.id);
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          message,
+          type
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create notification');
+      }
       
       setToast({
         type: 'success',
@@ -42,7 +55,21 @@ export default function TestNotificationsPage() {
   const createGlobalNotification = async (type, title, message) => {
     try {
       setLoading(true);
-      await databaseHelpers.notifications.createNotification(title, message, type);
+      const response = await fetch('/api/admin/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          message,
+          type
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create global notification');
+      }
       
       setToast({
         type: 'success',

@@ -199,9 +199,9 @@ export default function UserNotificationsPage() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {notifications.map((notification) => (
+            {notifications.map((notification, index) => (
               <Card
-                key={notification.$id}
+                key={notification.id || notification.$id || `notification-${index}`}
                 className={`cursor-pointer transition-all duration-200 hover:shadow-md ${getNotificationColor(notification.type, notification.status)} ${
                   notification.status === 'unread' ? 'ring-2 ring-blue-200' : ''
                 }`}

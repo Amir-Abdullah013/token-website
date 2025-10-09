@@ -202,11 +202,11 @@ export default function NotificationBell() {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-200">
-                  {notifications.map((notification) => (
+                  {notifications.map((notification, index) => (
                     <div
-                      key={notification.$id}
+                      key={notification.id || notification.$id || `notification-${index}`}
                       className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${getNotificationColor(notification.type, notification.status)}`}
-                      onClick={() => handleViewNotification(notification.$id)}
+                      onClick={() => handleViewNotification(notification.id || notification.$id)}
                     >
                       <div className="flex items-start space-x-3">
                         <div className="text-lg">

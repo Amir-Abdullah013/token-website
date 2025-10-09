@@ -1,13 +1,14 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Card, { CardContent } from './Card';
 
 const AdminStats = ({ className = '' }) => {
-  const stats = [
+  const [stats, setStats] = useState([
     {
       title: 'Total Users',
-      value: '1,234',
-      change: '+12.5%',
+      value: '0',
+      change: '+0%',
       changeType: 'positive',
       icon: '👥',
       description: 'vs last month',
@@ -15,8 +16,8 @@ const AdminStats = ({ className = '' }) => {
     },
     {
       title: 'Active Wallets',
-      value: '987',
-      change: '+8.3%',
+      value: '0',
+      change: '+0%',
       changeType: 'positive',
       icon: '💼',
       description: 'active accounts',
@@ -24,8 +25,8 @@ const AdminStats = ({ className = '' }) => {
     },
     {
       title: 'Total Deposits',
-      value: '$2.4M',
-      change: '+15.2%',
+      value: '$0',
+      change: '+0%',
       changeType: 'positive',
       icon: '💰',
       description: 'this month',
@@ -33,8 +34,8 @@ const AdminStats = ({ className = '' }) => {
     },
     {
       title: 'Total Withdrawals',
-      value: '$1.8M',
-      change: '+7.1%',
+      value: '$0',
+      change: '+0%',
       changeType: 'positive',
       icon: '💸',
       description: 'this month',
@@ -42,23 +43,95 @@ const AdminStats = ({ className = '' }) => {
     },
     {
       title: 'Pending Transactions',
-      value: '23',
-      change: '-5',
-      changeType: 'negative',
+      value: '0',
+      change: '0',
+      changeType: 'neutral',
       icon: '⏳',
       description: 'awaiting approval',
       color: 'bg-yellow-500'
     },
     {
       title: 'System Health',
-      value: '99.8%',
-      change: '+0.2%',
+      value: '100%',
+      change: '+0%',
       changeType: 'positive',
       icon: '⚡',
       description: 'uptime',
       color: 'bg-purple-500'
     }
-  ];
+  ]);
+
+  // Fetch admin stats
+  useEffect(() => {
+    const fetchAdminStats = async () => {
+      try {
+        const response = await fetch('/api/admin/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setStats([
+            {
+              title: 'Total Users',
+              value: data.totalUsers?.toString() || '0',
+              change: '+0%',
+              changeType: 'positive',
+              icon: '👥',
+              description: 'vs last month',
+              color: 'bg-blue-500'
+            },
+            {
+              title: 'Active Wallets',
+              value: data.activeWallets?.toString() || '0',
+              change: '+0%',
+              changeType: 'positive',
+              icon: '💼',
+              description: 'active accounts',
+              color: 'bg-green-500'
+            },
+            {
+              title: 'Total Deposits',
+              value: `$${(data.totalDeposits || 0).toLocaleString()}`,
+              change: '+0%',
+              changeType: 'positive',
+              icon: '💰',
+              description: 'this month',
+              color: 'bg-emerald-500'
+            },
+            {
+              title: 'Total Withdrawals',
+              value: `$${(data.totalWithdrawals || 0).toLocaleString()}`,
+              change: '+0%',
+              changeType: 'positive',
+              icon: '💸',
+              description: 'this month',
+              color: 'bg-red-500'
+            },
+            {
+              title: 'Pending Transactions',
+              value: data.pendingTransactions?.toString() || '0',
+              change: '0',
+              changeType: 'neutral',
+              icon: '⏳',
+              description: 'awaiting approval',
+              color: 'bg-yellow-500'
+            },
+            {
+              title: 'System Health',
+              value: '100%',
+              change: '+0%',
+              changeType: 'positive',
+              icon: '⚡',
+              description: 'uptime',
+              color: 'bg-purple-500'
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching admin stats:', error);
+      }
+    };
+
+    fetchAdminStats();
+  }, []);
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${className}`}>

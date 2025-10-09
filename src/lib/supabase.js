@@ -312,6 +312,54 @@ export const authHelpers = {
       console.error('Error getting user teams:', error)
       return []
     }
+  },
+
+  // Get active sessions
+  async getActiveSessions() {
+    try {
+      const currentUser = await this.getCurrentUser()
+      
+      if (!currentUser) {
+        return []
+      }
+
+      // Note: In a real implementation, you would fetch session data from your database
+      // For now, we'll use mock data to avoid client-side database imports
+
+      // Fallback to mock active sessions
+      return [
+        {
+          id: 'session-1',
+          device: 'Chrome on Windows',
+          location: 'New York, NY',
+          ipAddress: '192.168.1.100',
+          lastActive: new Date().toISOString(),
+          isCurrent: true,
+          userAgent: navigator.userAgent || 'Unknown'
+        },
+        {
+          id: 'session-2',
+          device: 'Safari on iPhone',
+          location: 'San Francisco, CA',
+          ipAddress: '192.168.1.101',
+          lastActive: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+          isCurrent: false,
+          userAgent: 'Mobile Safari'
+        },
+        {
+          id: 'session-3',
+          device: 'Firefox on Linux',
+          location: 'London, UK',
+          ipAddress: '192.168.1.102',
+          lastActive: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
+          isCurrent: false,
+          userAgent: 'Firefox'
+        }
+      ]
+    } catch (error) {
+      console.error('Error getting active sessions:', error)
+      return []
+    }
   }
 }
 

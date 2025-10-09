@@ -16,8 +16,8 @@ const ProtectedRoute = ({
   const [mounted, setMounted] = useState(false);
   
   // Helper variables
-  const isAdmin = user?.role === 'admin';
-  const isUser = user?.role === 'user';
+  const isAdmin = user?.role === 'admin' || user?.role === 'ADMIN';
+  const isUser = user?.role === 'user' || user?.role === 'USER';
   const configValid = true; // Assume config is always valid for now
 
   useEffect(() => {

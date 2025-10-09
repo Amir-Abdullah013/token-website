@@ -17,6 +17,7 @@ const ProfileCard = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -35,6 +36,27 @@ const ProfileCard = ({
       });
     }
   }, [user]);
+
+  // Fetch user profile data with creation date
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        try {
+          const response = await fetch(`/api/user/profile?userId=${user.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              setUserProfile(data.user);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user?.id]);
 
   // Password change state
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -249,29 +271,22 @@ const ProfileCard = ({
                 <p className="text-gray-900">{user?.phone || 'Not provided'}</p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Account Status
-                </label>
-                <div className="flex items-center">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    user?.emailVerification ? 
-                      'bg-green-100 text-green-800' : 
-                      'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {user?.emailVerification ? 'Verified' : 'Unverified'}
-                  </span>
-                </div>
-              </div>
+             
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Member Since
                 </label>
                 <p className="text-gray-900">
-                  {user?.$createdAt ? new Date(user.$createdAt).toLocaleDateString() : 'Unknown'}
+                  {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() :
+                   user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 
+                   user?.$createdAt ? new Date(user.$createdAt).toLocaleDateString() : 
+                   'Loading...'}
                 </p>
               </div>
+
+             
+            
             </div>
           )}
         </CardContent>

@@ -8,7 +8,21 @@ let roleCache = new Map(); // Cache for user roles
 // Server-side session management
 export async function getServerSession() {
   try {
-    // For development/testing purposes, return a cached mock user
+    // Check for actual user session first (OAuth or regular auth)
+    const cookieStore = await cookies();
+    const userSession = cookieStore.get('userSession');
+    
+    if (userSession) {
+      try {
+        const userData = JSON.parse(userSession.value);
+        console.log('Found user session:', userData);
+        return userData;
+      } catch (error) {
+        console.error('Error parsing user session:', error);
+      }
+    }
+    
+    // For development/testing purposes, return a cached mock user only if no real session
     if (process.env.NODE_ENV === 'development') {
       if (!mockUserCache) {
         console.log('Development mode: using mock user');
@@ -50,51 +64,45 @@ export async function getServerSession() {
   }
 }
 
-// Get user role from session
+// Get user role from session - SIMPLIFIED VERSION
 export async function getUserRole(user) {
-  if (!user) return null;
+  if (!user) return 'USER';
 
   // Check cache first
-  const cacheKey = user.id || 'mock-user';
+  const cacheKey = user.id || user.email || 'mock-user';
   if (roleCache.has(cacheKey)) {
     return roleCache.get(cacheKey);
   }
 
   try {
-    // In development mode, return cached role for mock user
-    if (process.env.NODE_ENV === 'development' && user.id === 'mock-user-id') {
-      const role = 'user';
+    // ALWAYS check database first - this is the source of truth
+    const { databaseHelpers } = await import('./database.js');
+    const dbUser = await databaseHelpers.user.getUserByEmail(user.email);
+    
+    if (dbUser && dbUser.role) {
+      const role = dbUser.role.toUpperCase(); // Ensure uppercase
       roleCache.set(cacheKey, role);
+      console.log(`✅ Database role found: ${user.email} -> ${role}`);
       return role;
     }
-
-    // Skip API calls in development mode
-    if (process.env.NODE_ENV === 'development') {
-      const role = 'user';
-      roleCache.set(cacheKey, role);
-      return role;
-    }
-
-    // Check user metadata for role
-    if (user.user_metadata && user.user_metadata.role) {
-      roleCache.set(cacheKey, user.user_metadata.role);
-      return user.user_metadata.role;
+    
+    // If no database user found, don't create one automatically
+    // This prevents creating users for OAuth sessions that shouldn't exist
+    if (!dbUser) {
+      console.log(`⚠️ No database user found for ${user.email}, using default USER role`);
+      roleCache.set(cacheKey, 'USER');
+      return 'USER';
     }
     
-    // Check app_metadata for role
-    if (user.app_metadata && user.app_metadata.role) {
-      roleCache.set(cacheKey, user.app_metadata.role);
-      return user.app_metadata.role;
-    }
+    // Fallback to USER if everything fails
+    roleCache.set(cacheKey, 'USER');
+    return 'USER';
     
-    const role = 'user';
-    roleCache.set(cacheKey, role);
-    return role;
   } catch (error) {
-    console.error('Error getting user role in session:', error);
-    const role = 'user';
-    roleCache.set(cacheKey, role);
-    return role;
+    console.error('❌ Error getting user role:', error);
+    // On error, default to USER role
+    roleCache.set(cacheKey, 'USER');
+    return 'USER';
   }
 }
 

@@ -32,16 +32,20 @@ export async function POST(request) {
     // Dynamic import to avoid build-time issues
     const bcrypt = (await import('bcryptjs')).default;
     
-    // Try to use database, fallback to localStorage simulation if database fails
+    // Try to use database - this should always work now
     let user;
     try {
+      console.log('🔍 Starting user creation process for:', email);
+      
       // Import database helpers dynamically to avoid import errors
       const { databaseHelpers } = await import('../../../../lib/database.js');
       
       // Check if user already exists
+      console.log('🔍 Checking if user already exists...');
       const existingUser = await databaseHelpers.user.getUserByEmail(email);
       
       if (existingUser) {
+        console.log('❌ User already exists:', email);
         return NextResponse.json(
           { success: false, error: 'User with this email already exists' },
           { status: 409 }
@@ -49,10 +53,12 @@ export async function POST(request) {
       }
 
       // Hash password
+      console.log('🔐 Hashing password...');
       const saltRounds = 12;
       const hashedPassword = await bcrypt.hash(password, saltRounds);
 
       // Create user in database
+      console.log('👤 Creating user in database...');
       const userData = {
         email,
         password: hashedPassword,
@@ -62,47 +68,30 @@ export async function POST(request) {
       };
 
       user = await databaseHelpers.user.createUser(userData);
+      console.log('✅ User created successfully:', user.email);
 
       // Create wallet for the user
+      console.log('💰 Creating wallet for user...');
       try {
         await databaseHelpers.wallet.createWallet(user.id);
+        console.log('✅ Wallet created successfully for user:', user.id);
       } catch (walletError) {
-        console.error('Error creating wallet for user:', walletError);
+        console.error('❌ Error creating wallet for user:', walletError);
         // Don't fail the signup if wallet creation fails
       }
 
     } catch (dbError) {
-      console.error('Database error, using fallback storage:', dbError);
+      console.error('❌ Database error during signup:', dbError);
       
-      // Fallback: Use localStorage simulation for development
-      const users = JSON.parse(process.env.NODE_ENV === 'development' ? '[]' : '[]');
-      
-      // Check if user already exists in fallback
-      const existingUser = users.find(u => u.email === email);
-      if (existingUser) {
-        return NextResponse.json(
-          { success: false, error: 'User with this email already exists' },
-          { status: 409 }
-        );
-      }
-
-      // Hash password
-      const saltRounds = 12;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-      // Create user in fallback storage
-      user = {
-        id: Date.now().toString(),
-        email,
-        password: hashedPassword,
-        name,
-        emailVerified: true, // Auto-verify in development
-        role: 'USER',
-        createdAt: new Date().toISOString()
-      };
-
-      // In development, we'll just simulate success
-      console.log('Fallback user creation:', user);
+      // Return error instead of fallback
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Failed to create account. Database connection error.',
+          details: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+        },
+        { status: 500 }
+      );
     }
 
     // Return user data (without password)

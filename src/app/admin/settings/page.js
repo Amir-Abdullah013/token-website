@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { systemSettingsHelpers, adminHelpers } from '@/lib/database';
+// Removed direct database import - using API calls instead
 import { authHelpers } from '@/lib/supabase';;
 import { Button, Card, Input, Loader, Toast } from '@/components';
 
@@ -557,6 +557,8 @@ export default function AdminSystemSettingsPage() {
     </div>
   );
 }
+
+
 
 
 

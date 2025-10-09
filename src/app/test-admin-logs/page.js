@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminHelpers } from '@/lib/database';
+// Removed direct database import - using API calls instead
 import { authHelpers } from '@/lib/supabase';;
 import { Button, Card, Loader, Toast } from '@/components';
 
@@ -280,6 +280,11 @@ export default function TestAdminLogsPage() {
     </div>
   );
 }
+
+
+
+
+
 
 
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth-context';
 import { useTiki } from '../../../lib/tiki-context';
+import { usePriceUpdates } from '../../../hooks/usePriceUpdates';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -13,21 +14,86 @@ import { ToastContainer, useToast } from '../../../components/Toast';
 
 export default function UserDashboard() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { usdBalance, tikiBalance, tikiPrice, formatCurrency, formatTiki } = useTiki();
+  const { usdBalance, tikiBalance, tikiPrice, formatCurrency, formatTiki, buyTiki, sellTiki } = useTiki();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isOAuthCallback, setIsOAuthCallback] = useState(false);
   const { toasts, removeToast } = useToast();
+  
+  // Enable real-time price updates every 5 seconds
+  usePriceUpdates(5000);
+
+  // Fetch dashboard stats when component mounts
+  useEffect(() => {
+    if (user?.id) {
+      fetchDashboardStats();
+      fetchQuickStats();
+    }
+  }, [user?.id]);
 
   // Tiki trading state - only for Tiki tokens
   const [tradeType, setTradeType] = useState('buy');
   const [tradeAmount, setTradeAmount] = useState('');
   const [isTrading, setIsTrading] = useState(false);
 
+  // Dashboard stats state
+  const [dashboardStats, setDashboardStats] = useState({
+    totalDeposits: 0,
+    totalWithdrawals: 0,
+    transactionCount: 0
+  });
+
+  // Quick stats state
+  const [quickStats, setQuickStats] = useState({
+    totalTrades: 0,
+    totalProfit: 0,
+    activeOrders: 0,
+    successRate: 0
+  });
+
   // Calculate total value using Tiki price
   const totalValue = parseFloat(tradeAmount) * tikiPrice || 0;
 
-  // Handle Tiki trade execution with global state integration
+  // Fetch dashboard stats
+  const fetchDashboardStats = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await fetch(`/api/wallet/overview?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDashboardStats({
+          totalDeposits: data.statistics?.totalDeposits || 0,
+          totalWithdrawals: data.statistics?.totalWithdrawals || 0,
+          transactionCount: data.statistics?.transactionCount || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    }
+  };
+
+  // Fetch quick stats
+  const fetchQuickStats = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await fetch(`/api/user/quick-stats?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setQuickStats({
+          totalTrades: data.totalTrades || 0,
+          totalProfit: data.totalProfit || 0,
+          activeOrders: data.activeOrders || 0,
+          successRate: data.successRate || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching quick stats:', error);
+    }
+  };
+
+  // Handle Tiki trade execution with API-based price calculation
   const handleTrade = async () => {
     if (!tradeAmount || parseFloat(tradeAmount) <= 0) return;
 
@@ -43,21 +109,17 @@ export default function UserDashboard() {
           return;
         }
         
-        // Calculate tokens to buy: tokens = amountUSD / tikiPrice
-        const tokens = amountValue / tikiPrice;
+        // Use the new API-based buy function
+        const result = await buyTiki(amountValue);
         
-        // Update balances using global state setters
-        setUsdBalance(prev => prev - amountValue);
-        setTikiBalance(prev => prev + tokens);
-        
-        // Update price: tikiPrice = tikiPrice + (amountUSD / 1000000)
-        const priceIncrease = amountValue / 1000000;
-        setTikiPrice(prev => {
-          const newPrice = prev + priceIncrease;
-          return newPrice > 1 ? 1 : newPrice;
-        });
-        
-        alert(`Successfully bought ${formatTiki(tokens)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`);
+        if (result.success) {
+          alert(`Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`);
+          if (result.newPrice !== result.oldPrice) {
+            alert(`Price updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`);
+          }
+        } else {
+          alert(`Buy failed: ${result.error}`);
+        }
         
       } else {
         // SELLING TIKI TOKENS LOGIC
@@ -67,21 +129,17 @@ export default function UserDashboard() {
           return;
         }
         
-        // Calculate USD to receive: usdReceived = tokens * tikiPrice
-        const usdReceived = amountValue * tikiPrice;
+        // Use the new API-based sell function
+        const result = await sellTiki(amountValue);
         
-        // Update balances using global state setters
-        setUsdBalance(prev => prev + usdReceived);
-        setTikiBalance(prev => prev - amountValue);
-        
-        // Update price: tikiPrice = tikiPrice - (usdReceived / 1000000)
-        const priceDecrease = usdReceived / 1000000;
-        setTikiPrice(prev => {
-          const newPrice = prev - priceDecrease;
-          return newPrice < 0.0001 ? 0.0001 : newPrice;
-        });
-        
-        alert(`Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(usdReceived, 'USD')}!`);
+        if (result.success) {
+          alert(`Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`);
+          if (result.newPrice !== result.oldPrice) {
+            alert(`Price updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`);
+          }
+        } else {
+          alert(`Sell failed: ${result.error}`);
+        }
       }
       
       // Reset form after successful trade
@@ -134,7 +192,7 @@ export default function UserDashboard() {
           timestamp: Date.now()
         };
 
-        // Store user session data
+        // Store user session data (role will be determined by server-side session handling)
         const userSessionData = {
           $id: userId,
           id: userId,
@@ -142,13 +200,16 @@ export default function UserDashboard() {
           name: userName,
           picture: userPicture,
           provider: provider,
-          role: 'USER',
           emailVerified: true
         };
 
-        // Store in localStorage
+        // Store in localStorage (for client-side access)
         localStorage.setItem('oauthSession', JSON.stringify(oauthData));
         localStorage.setItem('userSession', JSON.stringify(userSessionData));
+        
+        // Also store in cookies for server-side access
+        document.cookie = `userSession=${JSON.stringify(userSessionData)}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `oauthSession=${JSON.stringify(oauthData)}; path=/; max-age=86400; SameSite=Lax`;
 
         console.log('Dashboard: OAuth session data stored', userSessionData);
         setIsOAuthCallback(true);
@@ -286,7 +347,7 @@ export default function UserDashboard() {
                     </svg>
                   </div>
                   <p className="text-xs font-medium text-gray-600 mb-1">Total Balance</p>
-                  <p className="text-sm font-bold text-gray-900">$12,345.67</p>
+                  <p className="text-sm font-bold text-gray-900">{formatCurrency(usdBalance, 'USD')}</p>
                 </div>
 
                 <div className="bg-yellow-50 p-3 rounded-lg text-center">
@@ -296,7 +357,7 @@ export default function UserDashboard() {
                     </svg>
                   </div>
                   <p className="text-xs font-medium text-gray-600 mb-1">Total Coins</p>
-                  <p className="text-sm font-bold text-gray-900">1,234.56</p>
+                  <p className="text-sm font-bold text-gray-900">{formatTiki(tikiBalance)} TIKI</p>
                 </div>
 
                 <div className="bg-green-50 p-3 rounded-lg text-center">
@@ -306,7 +367,7 @@ export default function UserDashboard() {
                     </svg>
                   </div>
                   <p className="text-xs font-medium text-gray-600 mb-1">Deposit Amount</p>
-                  <p className="text-sm font-bold text-gray-900">$5,678.90</p>
+                  <p className="text-sm font-bold text-gray-900">{formatCurrency(dashboardStats.totalDeposits, 'USD')}</p>
                 </div>
 
                 <div className="bg-red-50 p-3 rounded-lg text-center">
@@ -316,7 +377,7 @@ export default function UserDashboard() {
                     </svg>
                   </div>
                   <p className="text-xs font-medium text-gray-600 mb-1">Withdraw Amount</p>
-                  <p className="text-sm font-bold text-gray-900">$1,234.56</p>
+                  <p className="text-sm font-bold text-gray-900">{formatCurrency(dashboardStats.totalWithdrawals, 'USD')}</p>
                 </div>
               </div>
             </div>
@@ -423,7 +484,7 @@ export default function UserDashboard() {
                     </div>
                     <div>
                         <p className="text-xs lg:text-sm font-medium text-gray-500 mb-1">Total Balance</p>
-                        <p className="text-lg lg:text-2xl font-bold text-gray-900">$12,345.67</p>
+                        <p className="text-lg lg:text-2xl font-bold text-gray-900">{formatCurrency(usdBalance, 'USD')}</p>
                     </div>
                   </div>
                 </div>
@@ -441,7 +502,7 @@ export default function UserDashboard() {
                     </div>
                     <div>
                         <p className="text-xs lg:text-sm font-medium text-gray-500 mb-1">Total Coins</p>
-                        <p className="text-lg lg:text-2xl font-bold text-gray-900">1,234.56</p>
+                        <p className="text-lg lg:text-2xl font-bold text-gray-900">{formatTiki(tikiBalance)} TIKI</p>
                     </div>
                   </div>
                 </div>
@@ -459,7 +520,7 @@ export default function UserDashboard() {
                     </div>
                     <div>
                         <p className="text-xs lg:text-sm font-medium text-gray-500 mb-1">Deposit Amount</p>
-                        <p className="text-lg lg:text-2xl font-bold text-gray-900">$5,678.90</p>
+                        <p className="text-lg lg:text-2xl font-bold text-gray-900">{formatCurrency(dashboardStats.totalDeposits, 'USD')}</p>
                     </div>
                   </div>
                 </div>
@@ -477,7 +538,7 @@ export default function UserDashboard() {
                     </div>
                     <div>
                         <p className="text-xs lg:text-sm font-medium text-gray-500 mb-1">Withdraw Amount</p>
-                        <p className="text-lg lg:text-2xl font-bold text-gray-900">$1,234.56</p>
+                        <p className="text-lg lg:text-2xl font-bold text-gray-900">{formatCurrency(dashboardStats.totalWithdrawals, 'USD')}</p>
                     </div>
                   </div>
                 </div>
@@ -779,19 +840,19 @@ export default function UserDashboard() {
               <CardContent className="p-4 lg:p-6">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
                   <div className="text-center p-3 lg:p-4 bg-blue-50 rounded-lg hover:shadow-md transition-shadow">
-                    <div className="text-xl lg:text-2xl xl:text-3xl font-bold text-blue-600 mb-1 lg:mb-2">156</div>
+                    <div className="text-xl lg:text-2xl xl:text-3xl font-bold text-blue-600 mb-1 lg:mb-2">{quickStats.totalTrades}</div>
                     <div className="text-xs lg:text-sm text-gray-600">Total Trades</div>
                   </div>
                   <div className="text-center p-3 lg:p-4 bg-green-50 rounded-lg hover:shadow-md transition-shadow">
-                    <div className="text-xl lg:text-2xl xl:text-3xl font-bold text-green-600 mb-1 lg:mb-2">$45.2K</div>
+                    <div className="text-xl lg:text-2xl xl:text-3xl font-bold text-green-600 mb-1 lg:mb-2">{formatCurrency(quickStats.totalProfit, 'USD')}</div>
                     <div className="text-xs lg:text-sm text-gray-600">Total Profit</div>
                   </div>
                   <div className="text-center p-3 lg:p-4 bg-purple-50 rounded-lg hover:shadow-md transition-shadow">
-                    <div className="text-xl lg:text-2xl xl:text-3xl font-bold text-purple-600 mb-1 lg:mb-2">8</div>
+                    <div className="text-xl lg:text-2xl xl:text-3xl font-bold text-purple-600 mb-1 lg:mb-2">{quickStats.activeOrders}</div>
                     <div className="text-xs lg:text-sm text-gray-600">Active Orders</div>
                   </div>
                   <div className="text-center p-3 lg:p-4 bg-orange-50 rounded-lg hover:shadow-md transition-shadow">
-                    <div className="text-xl lg:text-2xl xl:text-3xl font-bold text-orange-600 mb-1 lg:mb-2">92%</div>
+                    <div className="text-xl lg:text-2xl xl:text-3xl font-bold text-orange-600 mb-1 lg:mb-2">{quickStats.successRate}%</div>
                     <div className="text-xs lg:text-sm text-gray-600">Success Rate</div>
                   </div>
                 </div>

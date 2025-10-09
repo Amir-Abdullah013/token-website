@@ -1,1302 +1,581 @@
-import { prisma } from './prisma.js'
+import { Pool } from 'pg';
+import { randomUUID } from 'crypto';
 
-// Database helper functions
+// Database connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: false, // Disable SSL for Supabase compatibility
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+// Test database connection
+const testConnection = async () => {
+  try {
+    const client = await pool.connect();
+    await client.query('SELECT NOW()');
+    client.release();
+    console.log('✅ Database connection successful');
+    return true;
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    return false;
+  }
+};
+
+// Initialize connection
+testConnection();
+
 export const databaseHelpers = {
+  // Export pool for direct queries
+  pool,
+  
+  // User operations
+  user: {
+    async getUserByEmail(email) {
+      try {
+        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('Error getting user by email:', error);
+        throw error;
+      }
+    },
+
+    async getUserById(id) {
+      try {
+        const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('Error getting user by id:', error);
+        throw error;
+      }
+    },
+
+    async createUser(userData) {
+      try {
+        const { email, password, name, emailVerified = false, role = 'USER' } = userData;
+        const id = randomUUID();
+        
+        const result = await pool.query(`
+          INSERT INTO users (id, email, password, name, "emailVerified", role, "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+          RETURNING *
+        `, [id, email, password, name, emailVerified, role]);
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error creating user:', error);
+        throw error;
+      }
+    },
+
+    async updateUser(userId, updateData) {
+      try {
+        const fields = [];
+        const values = [];
+        let paramCount = 1;
+
+        for (const [key, value] of Object.entries(updateData)) {
+          if (value !== undefined) {
+            fields.push(`"${key}" = $${paramCount}`);
+            values.push(value);
+            paramCount++;
+          }
+        }
+
+        if (fields.length === 0) {
+          throw new Error('No fields to update');
+        }
+
+        fields.push(`"updatedAt" = NOW()`);
+        values.push(userId);
+
+        const query = `
+          UPDATE users 
+          SET ${fields.join(', ')} 
+          WHERE id = $${paramCount}
+          RETURNING *
+        `;
+
+        const result = await pool.query(query, values);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating user:', error);
+        throw error;
+      }
+    },
+
+    async getAllUsers() {
+      try {
+        const result = await pool.query('SELECT * FROM users ORDER BY "createdAt" DESC');
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting all users:', error);
+        throw error;
+      }
+    },
+
+    async updateLastLogin(userId) {
+      try {
+        const result = await pool.query(`
+          UPDATE users 
+          SET "lastLogin" = NOW(), "updatedAt" = NOW() 
+          WHERE id = $1 
+          RETURNING *
+        `, [userId]);
+        
+        console.log('✅ Last login updated for user:', userId);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating last login:', error);
+        throw error;
+      }
+    },
+
+    async deleteUser(userId) {
+      try {
+        const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [userId]);
+        console.log('✅ User deleted:', userId);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        throw error;
+      }
+    },
+
+    async updateUserStatus(userId, status) {
+      try {
+        const result = await pool.query(`
+          UPDATE users 
+          SET status = $1, "updatedAt" = NOW()
+          WHERE id = $2
+          RETURNING *
+        `, [status, userId]);
+        
+        console.log('✅ User status updated:', userId, 'to', status);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating user status:', error);
+        throw error;
+      }
+    }
+  },
+
+  // Token stats operations
+  tokenStats: {
+    async getTokenStats() {
+      try {
+        const result = await pool.query('SELECT * FROM "TokenStats" ORDER BY "createdAt" DESC LIMIT 1');
+        return result.rows[0] || {
+          totalTokens: 100000000,
+          totalInvestment: 350000,
+          currentPrice: 0.0035,
+          lastUpdated: new Date(),
+          createdAt: new Date()
+        };
+      } catch (error) {
+        console.error('Error getting token stats:', error);
+        return {
+          totalTokens: 100000000,
+          totalInvestment: 350000,
+          currentPrice: 0.0035,
+          lastUpdated: new Date(),
+          createdAt: new Date()
+        };
+      }
+    },
+
+    async getCurrentPrice() {
+      try {
+        const stats = await this.getTokenStats();
+        return stats.currentPrice;
+      } catch (error) {
+        console.error('Error getting current price:', error);
+        return 0.0035;
+      }
+    },
+
+    async updateTokenStats(investmentChange) {
+      try {
+        const result = await pool.query(`
+          UPDATE "TokenStats" 
+          SET "totalInvestment" = "totalInvestment" + $1,
+              "currentPrice" = ("totalInvestment" + $1) / "totalTokens",
+              "lastUpdated" = NOW()
+          RETURNING *
+        `, [investmentChange]);
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating token stats:', error);
+        throw error;
+      }
+    }
+  },
+
   // Wallet operations
   wallet: {
-    // Get user's wallet
     async getUserWallet(userId) {
       try {
-        const wallet = await prisma.wallet.findUnique({
-          where: { userId }
-        })
-        return wallet
+        const result = await pool.query('SELECT * FROM wallets WHERE "userId" = $1', [userId]);
+        return result.rows[0] || null;
       } catch (error) {
-        console.error('Error getting user wallet:', error)
-        throw error
+        console.error('Error getting user wallet:', error);
+        return null;
       }
     },
 
-    // Create user wallet
-    async createWallet(userId, currency = 'PKR') {
+    async createWallet(userId, currency = 'USD') {
       try {
-        const wallet = await prisma.wallet.create({
-          data: {
-            userId,
-            balance: 0,
-            currency
-          }
-        })
-        return wallet
+        const result = await pool.query(`
+          INSERT INTO wallets ("userId", balance, "tikiBalance", currency, "lastUpdated", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())
+          RETURNING *
+        `, [userId, 0, 0, currency]);
+        
+        return result.rows[0];
       } catch (error) {
-        console.error('Error creating wallet:', error)
-        throw error
+        console.error('Error creating wallet:', error);
+        throw error;
       }
     },
 
-    // Update wallet balance
-    async updateBalance(walletId, newBalance) {
+    async updateWallet(userId, balance, tikiBalance) {
       try {
-        const wallet = await prisma.wallet.update({
-          where: { id: walletId },
-          data: {
-            balance: newBalance,
-            lastUpdated: new Date()
-          }
-        })
-        return wallet
+        const result = await pool.query(`
+          UPDATE wallets 
+          SET balance = $1, "tikiBalance" = $2, "lastUpdated" = NOW(), "updatedAt" = NOW()
+          WHERE "userId" = $3
+          RETURNING *
+        `, [balance, tikiBalance, userId]);
+        
+        return result.rows[0];
       } catch (error) {
-        console.error('Error updating wallet balance:', error)
-        throw error
+        console.error('Error updating wallet:', error);
+        throw error;
       }
     },
 
-    // Add funds to wallet
-    async addFunds(walletId, amount) {
+    async updateBothBalances(userId, usdBalance, tikiBalance) {
       try {
-        const wallet = await prisma.wallet.findUnique({
-          where: { id: walletId }
-        })
+        const result = await pool.query(`
+          UPDATE wallets 
+          SET balance = $1, "tikiBalance" = $2, "lastUpdated" = NOW(), "updatedAt" = NOW()
+          WHERE "userId" = $3
+          RETURNING *
+        `, [usdBalance, tikiBalance, userId]);
         
-        if (!wallet) {
-          throw new Error('Wallet not found')
-        }
-        
-        const newBalance = wallet.balance + amount
-        return await this.updateBalance(walletId, newBalance)
+        console.log('✅ Wallet balances updated:', { userId, usdBalance, tikiBalance });
+        return result.rows[0];
       } catch (error) {
-        console.error('Error adding funds to wallet:', error)
-        throw error
+        console.error('Error updating both balances:', error);
+        throw error;
       }
     },
 
-    // Deduct funds from wallet
-    async deductFunds(walletId, amount) {
+    async getTikiBalance(userId) {
       try {
-        const wallet = await prisma.wallet.findUnique({
-          where: { id: walletId }
-        })
-        
-        if (!wallet) {
-          throw new Error('Wallet not found')
-        }
-        
-        if (wallet.balance < amount) {
-          throw new Error('Insufficient funds')
-        }
-        
-        const newBalance = wallet.balance - amount
-        return await this.updateBalance(walletId, newBalance)
+        const result = await pool.query('SELECT "tikiBalance" FROM wallets WHERE "userId" = $1', [userId]);
+        return result.rows[0]?.tikiBalance || 0;
       } catch (error) {
-        console.error('Error deducting funds from wallet:', error)
-        throw error
+        console.error('Error getting TIKI balance:', error);
+        return 0;
+      }
+    },
+
+    async updateTikiBalance(userId, tikiBalance) {
+      try {
+        const result = await pool.query(`
+          UPDATE wallets 
+          SET "tikiBalance" = $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
+          WHERE "userId" = $2
+          RETURNING *
+        `, [tikiBalance, userId]);
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating TIKI balance:', error);
+        throw error;
       }
     }
   },
 
   // Transaction operations
-  transactions: {
-    // Get user's transactions
-    async getUserTransactions(userId, limit = 25, offset = 0) {
+  transaction: {
+    async createTransaction(transactionData) {
       try {
-        const transactions = await prisma.transaction.findMany({
-          where: { userId },
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset
-        })
-        return transactions
+        const { userId, type, amount, currency = 'USD', status = 'PENDING', description } = transactionData;
+        const id = randomUUID();
+        
+        const result = await pool.query(`
+          INSERT INTO transactions (id, "userId", type, amount, currency, status, description, "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+          RETURNING *
+        `, [id, userId, type, amount, currency, status, description]);
+        
+        return result.rows[0];
       } catch (error) {
-        console.error('Error getting user transactions:', error)
-        throw error
+        console.error('Error creating transaction:', error);
+        throw error;
       }
     },
 
-    // Get transactions by status
-    async getTransactionsByStatus(userId, status, limit = 25, offset = 0) {
+    async getUserTransactions(userId, limit = 10) {
       try {
-        const transactions = await prisma.transaction.findMany({
-          where: { 
-            userId,
-            status: status.toUpperCase()
-          },
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset
-        })
-        return transactions
+        const result = await pool.query(`
+          SELECT * FROM transactions 
+          WHERE "userId" = $1 
+          ORDER BY "createdAt" DESC 
+          LIMIT $2
+        `, [userId, limit]);
+        
+        return result.rows;
       } catch (error) {
-        console.error('Error getting transactions by status:', error)
-        throw error
+        console.error('Error getting user transactions:', error);
+        return [];
       }
     },
 
-    // Create transaction
-    async createTransaction(userId, type, amount, gateway = null) {
-      try {
-        const transaction = await prisma.transaction.create({
-          data: {
-            userId,
-            type: type.toUpperCase(),
-            amount,
-            gateway
-          }
-        })
-        return transaction
-      } catch (error) {
-        console.error('Error creating transaction:', error)
-        throw error
-      }
-    },
-
-    // Update transaction status
-    async updateTransactionStatus(transactionId, status) {
-      try {
-        const transaction = await prisma.transaction.update({
-          where: { id: transactionId },
-          data: { status: status.toUpperCase() }
-        })
-        return transaction
-      } catch (error) {
-        console.error('Error updating transaction status:', error)
-        throw error
-      }
-    },
-
-    // Get transaction by ID
-    async getTransaction(transactionId) {
-      try {
-        const transaction = await prisma.transaction.findUnique({
-          where: { id: transactionId }
-        })
-        return transaction
-      } catch (error) {
-        console.error('Error getting transaction:', error)
-        throw error
-      }
-    },
-
-    // Get transaction statistics
     async getTransactionStats(userId) {
       try {
-        const [allTransactions, completedTransactions, pendingTransactions, failedTransactions] = await Promise.all([
-          prisma.transaction.findMany({ where: { userId } }),
-          prisma.transaction.findMany({ where: { userId, status: 'COMPLETED' } }),
-          prisma.transaction.findMany({ where: { userId, status: 'PENDING' } }),
-          prisma.transaction.findMany({ where: { userId, status: 'FAILED' } })
-        ])
-
-        const totalAmount = completedTransactions.reduce((sum, tx) => sum + tx.amount, 0)
-        const totalDeposits = completedTransactions
-          .filter(tx => tx.type === 'DEPOSIT')
-          .reduce((sum, tx) => sum + tx.amount, 0)
-        const totalWithdrawals = completedTransactions
-          .filter(tx => tx.type === 'WITHDRAW')
-          .reduce((sum, tx) => sum + tx.amount, 0)
-
-        return {
-          totalTransactions: allTransactions.length,
-          completedTransactions: completedTransactions.length,
-          pendingTransactions: pendingTransactions.length,
-          failedTransactions: failedTransactions.length,
-          totalAmount,
-          totalDeposits,
-          totalWithdrawals
-        }
+        const result = await pool.query(`
+          SELECT 
+            COUNT(*) as totalTransactions,
+            SUM(CASE WHEN type = 'DEPOSIT' THEN amount ELSE 0 END) as totalDeposits,
+            SUM(CASE WHEN type = 'WITHDRAWAL' THEN amount ELSE 0 END) as totalWithdrawals,
+            SUM(CASE WHEN type = 'BUY' THEN amount ELSE 0 END) as totalBuys,
+            SUM(CASE WHEN type = 'SELL' THEN amount ELSE 0 END) as totalSells
+          FROM transactions 
+          WHERE "userId" = $1
+        `, [userId]);
+        
+        return result.rows[0] || {
+          totalTransactions: 0,
+          totalDeposits: 0,
+          totalWithdrawals: 0,
+          totalBuys: 0,
+          totalSells: 0
+        };
       } catch (error) {
-        console.error('Error getting transaction statistics:', error)
-        throw error
+        console.error('Error getting transaction stats:', error);
+        return {
+          totalTransactions: 0,
+          totalDeposits: 0,
+          totalWithdrawals: 0,
+          totalBuys: 0,
+          totalSells: 0
+        };
+      }
+    },
+
+    async getUserTransactionStats(userId) {
+      try {
+        const result = await pool.query(`
+          SELECT 
+            COUNT(*) as totalTransactions,
+            SUM(CASE WHEN type = 'DEPOSIT' THEN amount ELSE 0 END) as totalDeposits,
+            SUM(CASE WHEN type = 'WITHDRAWAL' THEN amount ELSE 0 END) as totalWithdrawals,
+            SUM(CASE WHEN type = 'BUY' THEN amount ELSE 0 END) as totalBuys,
+            SUM(CASE WHEN type = 'SELL' THEN amount ELSE 0 END) as totalSells
+          FROM transactions 
+          WHERE "userId" = $1
+        `, [userId]);
+        
+        return result.rows[0] || {
+          totalTransactions: 0,
+          totalDeposits: 0,
+          totalWithdrawals: 0,
+          totalBuys: 0,
+          totalSells: 0
+        };
+      } catch (error) {
+        console.error('Error getting user transaction stats:', error);
+        return {
+          totalTransactions: 0,
+          totalDeposits: 0,
+          totalWithdrawals: 0,
+          totalBuys: 0,
+          totalSells: 0
+        };
+      }
+    },
+
+    async getAllTransactions() {
+      try {
+        const result = await pool.query('SELECT * FROM transactions ORDER BY "createdAt" DESC');
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting all transactions:', error);
+        throw error;
+      }
+    },
+
+    async updateTransactionStatus(transactionId, status) {
+      try {
+        const result = await pool.query(`
+          UPDATE transactions 
+          SET status = $1, "updatedAt" = NOW()
+          WHERE id = $2
+          RETURNING *
+        `, [status, transactionId]);
+        
+        console.log('✅ Transaction status updated:', transactionId, 'to', status);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating transaction status:', error);
+        throw error;
+      }
+    },
+
+    async getTransactionById(transactionId) {
+      try {
+        const result = await pool.query('SELECT * FROM transactions WHERE id = $1', [transactionId]);
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('Error getting transaction by ID:', error);
+        return null;
       }
     }
   },
 
   // Notification operations
-  notifications: {
-    // Get user notifications (user-specific + global)
-    async getUserNotifications(userId, limit = 25, offset = 0) {
+  notification: {
+    async createNotification(notificationData) {
       try {
-        const notifications = await prisma.notification.findMany({
-          where: {
-            OR: [
-              { userId },
-              { userId: null }
-            ]
-          },
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset
-        })
-        return notifications
+        const { userId, title, message, type, isGlobal = false, createdBy } = notificationData;
+        const id = randomUUID();
+        
+        const result = await pool.query(`
+          INSERT INTO notifications (id, "userId", title, message, type, "isGlobal", "createdBy", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+          RETURNING *
+        `, [id, userId, title, message, type, isGlobal, createdBy]);
+        
+        console.log('✅ Notification created:', id);
+        return result.rows[0];
       } catch (error) {
-        console.error('Error getting user notifications:', error)
-        throw error
+        console.error('Error creating notification:', error);
+        throw error;
       }
     },
 
-    // Get unread notifications count
-    async getUnreadCount(userId) {
+    async createGlobalNotification(notificationData) {
       try {
-        const count = await prisma.notification.count({
-          where: {
-            OR: [
-              { userId },
-              { userId: null }
-            ],
-            status: 'UNREAD'
-          }
-        })
-        return count
+        const { title, message, type, createdBy } = notificationData;
+        const id = randomUUID();
+        
+        const result = await pool.query(`
+          INSERT INTO notifications (id, "userId", title, message, type, "isGlobal", "createdBy", "createdAt", "updatedAt")
+          VALUES ($1, NULL, $2, $3, $4, true, $5, NOW(), NOW())
+          RETURNING *
+        `, [id, title, message, type, createdBy]);
+        
+        console.log('✅ Global notification created:', id);
+        return result.rows[0];
       } catch (error) {
-        console.error('Error getting unread count:', error)
-        throw error
+        console.error('Error creating global notification:', error);
+        throw error;
       }
     },
 
-    // Get notification by ID
-    async getNotification(notificationId) {
+    async getUserNotifications(userId, limit = 20) {
       try {
-        const notification = await prisma.notification.findUnique({
-          where: { id: notificationId }
-        })
-        return notification
+        const result = await pool.query(`
+          SELECT n.*, u.name as creator_name, u.email as creator_email
+          FROM notifications n
+          LEFT JOIN users u ON n."createdBy" = u.id
+          WHERE n."userId" = $1 OR n."isGlobal" = true
+          ORDER BY n."createdAt" DESC
+          LIMIT $2
+        `, [userId, limit]);
+        
+        return result.rows;
       } catch (error) {
-        console.error('Error getting notification:', error)
-        throw error
+        console.error('Error getting user notifications:', error);
+        return [];
       }
     },
 
-    // Mark notification as read
-    async markAsRead(notificationId) {
+    async getAllNotifications(limit = 50) {
       try {
-        const notification = await prisma.notification.update({
-          where: { id: notificationId },
-          data: { status: 'READ' }
-        })
-        return notification
+        const result = await pool.query(`
+          SELECT n.*, u.name as creator_name, u.email as creator_email
+          FROM notifications n
+          LEFT JOIN users u ON n."createdBy" = u.id
+          ORDER BY n."createdAt" DESC
+          LIMIT $1
+        `, [limit]);
+        
+        return result.rows;
       } catch (error) {
-        console.error('Error marking notification as read:', error)
-        throw error
+        console.error('Error getting all notifications:', error);
+        return [];
       }
     },
 
-    // Mark all user notifications as read
-    async markAllAsRead(userId) {
+    async updateNotificationStatus(notificationId, status) {
       try {
-        const result = await prisma.notification.updateMany({
-          where: {
-            userId,
-            status: 'UNREAD'
-          },
-          data: { status: 'READ' }
-        })
-        return { success: true, updated: result.count }
+        const result = await pool.query(`
+          UPDATE notifications 
+          SET status = $1, "updatedAt" = NOW()
+          WHERE id = $2
+          RETURNING *
+        `, [status, notificationId]);
+        
+        console.log('✅ Notification status updated:', notificationId, 'to', status);
+        return result.rows[0];
       } catch (error) {
-        console.error('Error marking all notifications as read:', error)
-        throw error
+        console.error('Error updating notification status:', error);
+        throw error;
       }
     },
 
-    // Create notification (admin only)
-    async createNotification(title, message, type, userId = null) {
-      try {
-        const notification = await prisma.notification.create({
-          data: {
-            userId,
-            title,
-            message,
-            type: type.toUpperCase()
-          }
-        })
-        return notification
-      } catch (error) {
-        console.error('Error creating notification:', error)
-        throw error
-      }
-    },
-
-    // Get all notifications (admin only)
-    async getAllNotifications(limit = 50, offset = 0) {
-      try {
-        const notifications = await prisma.notification.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset
-        })
-        return notifications
-      } catch (error) {
-        console.error('Error getting all notifications:', error)
-        throw error
-      }
-    },
-
-    // Delete notification (admin only)
     async deleteNotification(notificationId) {
       try {
-        await prisma.notification.delete({
-          where: { id: notificationId }
-        })
-        return { success: true }
+        const result = await pool.query('DELETE FROM notifications WHERE id = $1 RETURNING *', [notificationId]);
+        console.log('✅ Notification deleted:', notificationId);
+        return result.rows[0];
       } catch (error) {
-        console.error('Error deleting notification:', error)
-        throw error
-      }
-    }
-  },
-
-  // Support Ticket operations
-  supportTickets: {
-    // Get user's support tickets
-    async getUserTickets(userId, limit = 25, offset = 0) {
-      try {
-        const tickets = await prisma.supportTicket.findMany({
-          where: { userId },
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset
-        })
-        return tickets
-      } catch (error) {
-        console.error('Error getting user support tickets:', error)
-        throw error
-      }
-    },
-
-    // Get all support tickets (admin only)
-    async getAllTickets(limit = 50, offset = 0) {
-      try {
-        const tickets = await prisma.supportTicket.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset
-        })
-        return tickets
-      } catch (error) {
-        console.error('Error getting all support tickets:', error)
-        throw error
-      }
-    },
-
-    // Get support ticket by ID
-    async getTicket(ticketId) {
-      try {
-        const ticket = await prisma.supportTicket.findUnique({
-          where: { id: ticketId }
-        })
-        return ticket
-      } catch (error) {
-        console.error('Error getting support ticket:', error)
-        throw error
-      }
-    },
-
-    // Create new support ticket
-    async createTicket(userId, subject, initialMessage) {
-      try {
-        const ticket = await prisma.supportTicket.create({
-          data: {
-            userId,
-            subject,
-            messages: [
-              {
-                sender: 'user',
-                message: initialMessage,
-                createdAt: new Date().toISOString()
-              }
-            ]
-          }
-        })
-        return ticket
-      } catch (error) {
-        console.error('Error creating support ticket:', error)
-        throw error
-      }
-    },
-
-    // Add message to ticket
-    async addMessage(ticketId, sender, message) {
-      try {
-        // Get current ticket
-        const ticket = await this.getTicket(ticketId)
-        
-        // Add new message to messages array
-        const updatedMessages = [
-          ...ticket.messages,
-          {
-            sender,
-            message,
-            createdAt: new Date().toISOString()
-          }
-        ]
-
-        // Update ticket with new message
-        const updatedTicket = await prisma.supportTicket.update({
-          where: { id: ticketId },
-          data: { messages: updatedMessages }
-        })
-        
-        return updatedTicket
-      } catch (error) {
-        console.error('Error adding message to ticket:', error)
-        throw error
-      }
-    },
-
-    // Close support ticket
-    async closeTicket(ticketId) {
-      try {
-        const ticket = await prisma.supportTicket.update({
-          where: { id: ticketId },
-          data: { status: 'CLOSED' }
-        })
-        return ticket
-      } catch (error) {
-        console.error('Error closing support ticket:', error)
-        throw error
-      }
-    },
-
-    // Reopen support ticket
-    async reopenTicket(ticketId) {
-      try {
-        const ticket = await prisma.supportTicket.update({
-          where: { id: ticketId },
-          data: { status: 'OPEN' }
-        })
-        return ticket
-      } catch (error) {
-        console.error('Error reopening support ticket:', error)
-        throw error
-      }
-    },
-
-    // Get tickets by status
-    async getTicketsByStatus(status, limit = 50, offset = 0) {
-      try {
-        const tickets = await prisma.supportTicket.findMany({
-          where: { status: status.toUpperCase() },
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset
-        })
-        return tickets
-      } catch (error) {
-        console.error('Error getting tickets by status:', error)
-        throw error
-      }
-    },
-
-    // Get ticket statistics
-    async getTicketStats() {
-      try {
-        const [allTickets, openTickets, closedTickets] = await Promise.all([
-          prisma.supportTicket.findMany(),
-          prisma.supportTicket.findMany({ where: { status: 'OPEN' } }),
-          prisma.supportTicket.findMany({ where: { status: 'CLOSED' } })
-        ])
-
-        return {
-          total: allTickets.length,
-          open: openTickets.length,
-          closed: closedTickets.length
-        }
-      } catch (error) {
-        console.error('Error getting ticket statistics:', error)
-        throw error
-      }
-    }
-  },
-
-  // System Settings operations
-  systemSettings: {
-    // Get system settings
-    async getSystemSettings() {
-      try {
-        const settings = await prisma.systemSetting.findMany()
-        return settings
-      } catch (error) {
-        console.error('Error getting system settings:', error)
-        throw error
-      }
-    },
-
-    // Get specific setting by key
-    async getSetting(key) {
-      try {
-        const setting = await prisma.systemSetting.findUnique({
-          where: { key }
-        })
-        return setting
-      } catch (error) {
-        console.error('Error getting setting:', error)
-        throw error
-      }
-    },
-
-    // Update or create setting
-    async setSetting(key, value, description = '') {
-      try {
-        const setting = await prisma.systemSetting.upsert({
-          where: { key },
-          update: {
-            value: value.toString(),
-            description,
-            updatedAt: new Date()
-          },
-          create: {
-            key,
-            value: value.toString(),
-            description
-          }
-        })
-        return setting
-      } catch (error) {
-        console.error('Error setting system setting:', error)
-        throw error
-      }
-    },
-
-    // Get token price
-    async getTokenPrice() {
-      try {
-        const setting = await this.getSetting('token_price')
-        return setting ? parseFloat(setting.value) : 0
-      } catch (error) {
-        console.error('Error getting token price:', error)
-        return 0
-      }
-    },
-
-    // Set token price
-    async setTokenPrice(price) {
-      try {
-        if (price <= 0) {
-          throw new Error('Token price must be greater than 0')
-        }
-        return await this.setSetting('token_price', price, 'Current token price in USD')
-      } catch (error) {
-        console.error('Error setting token price:', error)
-        throw error
-      }
-    },
-
-    // Get payment gateways
-    async getPaymentGateways() {
-      try {
-        const setting = await this.getSetting('payment_gateways')
-        return setting ? JSON.parse(setting.value) : []
-      } catch (error) {
-        console.error('Error getting payment gateways:', error)
-        return []
-      }
-    },
-
-    // Set payment gateways
-    async setPaymentGateways(gateways) {
-      try {
-        return await this.setSetting('payment_gateways', JSON.stringify(gateways), 'Available payment gateways')
-      } catch (error) {
-        console.error('Error setting payment gateways:', error)
-        throw error
-      }
-    },
-
-    // Get token supply
-    async getTokenSupply() {
-      try {
-        const setting = await this.getSetting('token_supply')
-        return setting ? parseFloat(setting.value) : 0
-      } catch (error) {
-        console.error('Error getting token supply:', error)
-        return 0
-      }
-    },
-
-    // Set token supply
-    async setTokenSupply(supply) {
-      try {
-        if (supply <= 0) {
-          throw new Error('Token supply must be greater than 0')
-        }
-        return await this.setSetting('token_supply', supply, 'Total token supply')
-      } catch (error) {
-        console.error('Error setting token supply:', error)
-        throw error
-      }
-    },
-
-    // Get all system settings as key-value pairs
-    async getAllSettings() {
-      try {
-        const settings = await this.getSystemSettings()
-        const settingsMap = {}
-        
-        settings.forEach(setting => {
-          settingsMap[setting.key] = {
-            value: setting.value,
-            description: setting.description,
-            updatedAt: setting.updatedAt
-          }
-        })
-        
-        return settingsMap
-      } catch (error) {
-        console.error('Error getting all settings:', error)
-        throw error
-      }
-    },
-
-    // Initialize default settings
-    async initializeDefaultSettings() {
-      try {
-        const defaultSettings = [
-          { key: 'token_price', value: '1.00', description: 'Current token price in USD' },
-          { key: 'token_supply', value: '1000000', description: 'Total token supply' },
-          { key: 'payment_gateways', value: JSON.stringify([
-            { name: 'Stripe', active: true },
-            { name: 'PayPal', active: true },
-            { name: 'Bank Transfer', active: false }
-          ]), description: 'Available payment gateways' }
-        ]
-
-        for (const setting of defaultSettings) {
-          const existing = await this.getSetting(setting.key)
-          if (!existing) {
-            await prisma.systemSetting.create({
-              data: setting
-            })
-          }
-        }
-        
-        return true
-      } catch (error) {
-        console.error('Error initializing default settings:', error)
-        throw error
-      }
-    }
-  },
-
-  // Admin operations
-  admin: {
-    // Get all pending transactions
-    async getPendingTransactions(type = null) {
-      try {
-        const where = { status: 'PENDING' }
-        if (type) {
-          where.type = type.toUpperCase()
-        }
-        
-        const transactions = await prisma.transaction.findMany({
-          where,
-          orderBy: { createdAt: 'desc' }
-        })
-        return transactions
-      } catch (error) {
-        console.error('Error getting pending transactions:', error)
-        throw error
-      }
-    },
-
-    // Get user wallet
-    async getUserWallet(userId) {
-      try {
-        const wallet = await prisma.wallet.findUnique({
-          where: { userId }
-        })
-        return wallet
-      } catch (error) {
-        console.error('Error getting user wallet:', error)
-        throw error
-      }
-    },
-
-    // Update user wallet balance
-    async updateWalletBalance(walletId, newBalance) {
-      try {
-        const wallet = await prisma.wallet.update({
-          where: { id: walletId },
-          data: {
-            balance: newBalance,
-            lastUpdated: new Date()
-          }
-        })
-        return wallet
-      } catch (error) {
-        console.error('Error updating wallet balance:', error)
-        throw error
-      }
-    },
-
-    // Log admin action
-    async logAdminAction(adminId, action, targetType, targetId, details = null) {
-      try {
-        const log = await prisma.adminLog.create({
-          data: {
-            adminId,
-            action,
-            targetType,
-            targetId,
-            details: details || '',
-            ipAddress: '', // Will be filled by client
-            userAgent: '' // Will be filled by client
-          }
-        })
-        return log
-      } catch (error) {
-        console.error('Error logging admin action:', error)
-        throw error
-      }
-    },
-
-    // Get admin logs
-    async getAdminLogs(limit = 50, offset = 0) {
-      try {
-        const logs = await prisma.adminLog.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset
-        })
-        return logs
-      } catch (error) {
-        console.error('Error getting admin logs:', error)
-        throw error
-      }
-    },
-
-    // Search admin logs by action or adminId
-    async searchAdminLogs(searchTerm, limit = 50, offset = 0) {
-      try {
-        const logs = await prisma.adminLog.findMany({
-          where: {
-            OR: [
-              { action: { contains: searchTerm } },
-              { adminId: { contains: searchTerm } },
-              { details: { contains: searchTerm } }
-            ]
-          },
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset
-        })
-        return logs
-      } catch (error) {
-        console.error('Error searching admin logs:', error)
-        throw error
-      }
-    },
-
-    // Get admin logs by adminId
-    async getAdminLogsByAdmin(adminId, limit = 50, offset = 0) {
-      try {
-        const logs = await prisma.adminLog.findMany({
-          where: { adminId },
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset
-        })
-        return logs
-      } catch (error) {
-        console.error('Error getting admin logs by admin:', error)
-        throw error
-      }
-    },
-
-    // Get admin log statistics
-    async getAdminLogStats() {
-      try {
-        const [allLogs, recentLogs] = await Promise.all([
-          prisma.adminLog.findMany(),
-          prisma.adminLog.findMany({
-            where: {
-              createdAt: {
-                gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
-              }
-            }
-          })
-        ])
-
-        // Get unique admin count
-        const uniqueAdmins = new Set(allLogs.map(log => log.adminId)).size
-
-        return {
-          total: allLogs.length,
-          recent: recentLogs.length,
-          uniqueAdmins
-        }
-      } catch (error) {
-        console.error('Error getting admin log statistics:', error)
-        throw error
-      }
-    },
-
-    // Approve transaction
-    async approveTransaction(transactionId, adminId) {
-      try {
-        // Get transaction details
-        const transaction = await databaseHelpers.transactions.getTransaction(transactionId)
-        if (!transaction) {
-          throw new Error('Transaction not found')
-        }
-
-        if (transaction.status !== 'PENDING') {
-          throw new Error('Transaction is not pending')
-        }
-
-        // Get user's wallet
-        const wallet = await this.getUserWallet(transaction.userId)
-        if (!wallet) {
-          throw new Error('User wallet not found')
-        }
-
-        let newBalance = wallet.balance
-        
-        // Update balance based on transaction type
-        if (transaction.type === 'DEPOSIT') {
-          newBalance = wallet.balance + transaction.amount
-        } else if (transaction.type === 'WITHDRAW') {
-          if (wallet.balance < transaction.amount) {
-            throw new Error('Insufficient balance for withdrawal')
-          }
-          newBalance = wallet.balance - transaction.amount
-        }
-
-        // Update wallet balance
-        const updatedWallet = await this.updateWalletBalance(wallet.id, newBalance)
-
-        // Update transaction status
-        const updatedTransaction = await databaseHelpers.transactions.updateTransactionStatus(transactionId, 'COMPLETED')
-
-        // Log admin action
-        await this.logAdminAction(
-          adminId,
-          'approve_transaction',
-          'transaction',
-          transactionId,
-          `Approved ${transaction.type} of ${transaction.amount} for user ${transaction.userId}`
-        )
-
-        return {
-          transaction: updatedTransaction,
-          wallet: updatedWallet
-        }
-      } catch (error) {
-        console.error('Error approving transaction:', error)
-        throw error
-      }
-    },
-
-    // Reject transaction
-    async rejectTransaction(transactionId, adminId, reason = '') {
-      try {
-        // Get transaction details
-        const transaction = await databaseHelpers.transactions.getTransaction(transactionId)
-        if (!transaction) {
-          throw new Error('Transaction not found')
-        }
-
-        if (transaction.status !== 'PENDING') {
-          throw new Error('Transaction is not pending')
-        }
-
-        // Update transaction status
-        const updatedTransaction = await databaseHelpers.transactions.updateTransactionStatus(transactionId, 'FAILED')
-
-        // Log admin action
-        await this.logAdminAction(
-          adminId,
-          'reject_transaction',
-          'transaction',
-          transactionId,
-          `Rejected ${transaction.type} of ${transaction.amount} for user ${transaction.userId}. Reason: ${reason}`
-        )
-
-        return updatedTransaction
-      } catch (error) {
-        console.error('Error rejecting transaction:', error)
-        throw error
-      }
-    }
-  },
-
-  // Price operations
-  price: {
-    // Get price history
-    async getPriceHistory(symbol = 'TOKEN', timeFilter = '1d', limit = 50) {
-      try {
-        const now = new Date()
-        let startTime
-        
-        switch (timeFilter) {
-          case '1min':
-            startTime = new Date(now.getTime() - 60 * 60 * 1000) // 1 hour ago
-            break
-          case '1h':
-            startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000) // 1 day ago
-            break
-          case '1d':
-            startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) // 7 days ago
-            break
-          case '7d':
-            startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
-            break
-          case '30d':
-            startTime = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) // 90 days ago
-            break
-          default:
-            startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        }
-        
-        const prices = await prisma.price.findMany({
-          where: {
-            symbol,
-            timestamp: {
-              gte: startTime
-            }
-          },
-          orderBy: { timestamp: 'asc' },
-          take: limit
-        })
-        
-        return prices
-      } catch (error) {
-        console.error('Error getting price history:', error)
-        throw error
-      }
-    },
-
-    // Get current price
-    async getCurrentPrice(symbol = 'TOKEN') {
-      try {
-        const price = await prisma.price.findFirst({
-          where: { symbol },
-          orderBy: { timestamp: 'desc' }
-        })
-        
-        return price
-      } catch (error) {
-        console.error('Error getting current price:', error)
-        throw error
-      }
-    },
-
-    // Add price snapshot
-    async addPriceSnapshot(symbol, price, volume = null, marketCap = null, source = 'system') {
-      try {
-        const priceData = await prisma.price.create({
-          data: {
-            symbol,
-            price,
-            volume,
-            marketCap,
-            source
-          }
-        })
-        
-        return priceData
-      } catch (error) {
-        console.error('Error adding price snapshot:', error)
-        throw error
-      }
-    },
-
-    // Get price statistics
-    async getPriceStats(symbol = 'TOKEN', timeFilter = '1d') {
-      try {
-        const prices = await this.getPriceHistory(symbol, timeFilter, 100)
-        
-        if (prices.length === 0) {
-          return {
-            current: 0,
-            change: 0,
-            changePercent: 0,
-            high: 0,
-            low: 0,
-            volume: 0
-          }
-        }
-        
-        const current = prices[prices.length - 1].price
-        const previous = prices.length > 1 ? prices[prices.length - 2].price : current
-        const change = current - previous
-        const changePercent = previous > 0 ? (change / previous) * 100 : 0
-        
-        const priceValues = prices.map(p => p.price)
-        const high = Math.max(...priceValues)
-        const low = Math.min(...priceValues)
-        const volume = prices.reduce((sum, p) => sum + (p.volume || 0), 0)
-        
-        return {
-          current,
-          change,
-          changePercent,
-          high,
-          low,
-          volume
-        }
-      } catch (error) {
-        console.error('Error getting price statistics:', error)
-        throw error
-      }
-    }
-  },
-
-  // Combined operations
-  combined: {
-    // Process a transaction and update wallet
-    async processTransaction(userId, type, amount, gateway = null) {
-      try {
-        // Create transaction record
-        const transaction = await databaseHelpers.transactions.createTransaction(
-          userId,
-          type,
-          amount,
-          gateway
-        )
-
-        // Get user's wallet
-        let wallet = await databaseHelpers.wallet.getUserWallet(userId)
-        
-        // Create wallet if it doesn't exist
-        if (!wallet) {
-          wallet = await databaseHelpers.wallet.createWallet(userId)
-        }
-
-        // Process the transaction based on type
-        let updatedWallet
-        if (type === 'deposit' || type === 'buy') {
-          updatedWallet = await databaseHelpers.wallet.addFunds(wallet.id, amount)
-        } else if (type === 'withdraw' || type === 'sell') {
-          updatedWallet = await databaseHelpers.wallet.deductFunds(wallet.id, amount)
-        }
-
-        // Update transaction status to completed
-        const completedTransaction = await databaseHelpers.transactions.updateTransactionStatus(
-          transaction.id,
-          'COMPLETED'
-        )
-
-        return {
-          transaction: completedTransaction,
-          wallet: updatedWallet
-        }
-      } catch (error) {
-        console.error('Error processing transaction:', error)
-        
-        // Try to update transaction status to failed
-        try {
-          const transaction = await databaseHelpers.transactions.getTransaction(transaction.id)
-          await databaseHelpers.transactions.updateTransactionStatus(
-            transaction.id,
-            'FAILED'
-          )
-        } catch (updateError) {
-          console.error('Error updating transaction status to failed:', updateError)
-        }
-        
-        throw error
-      }
-    },
-
-    // Get user's complete financial overview
-    async getUserFinancialOverview(userId) {
-      try {
-        const [wallet, transactions, stats] = await Promise.all([
-          databaseHelpers.wallet.getUserWallet(userId),
-          databaseHelpers.transactions.getUserTransactions(userId, 10),
-          databaseHelpers.transactions.getTransactionStats(userId)
-        ])
-
-        return {
-          wallet: wallet || { balance: 0, currency: 'PKR' },
-          recentTransactions: transactions,
-          statistics: stats
-        }
-      } catch (error) {
-        console.error('Error getting user financial overview:', error)
-        throw error
-      }
-    }
-  },
-
-  // User operations
-  user: {
-    // Get user by email
-    async getUserByEmail(email) {
-      try {
-        const user = await prisma.user.findUnique({
-          where: { email }
-        })
-        return user
-      } catch (error) {
-        console.error('Error getting user by email:', error)
-        throw error
-      }
-    },
-
-    // Get user by ID
-    async getUserById(id) {
-      try {
-        const user = await prisma.user.findUnique({
-          where: { id }
-        })
-        return user
-      } catch (error) {
-        console.error('Error getting user by ID:', error)
-        throw error
-      }
-    },
-
-    // Create new user
-    async createUser(userData) {
-      try {
-        const user = await prisma.user.create({
-          data: userData
-        })
-        return user
-      } catch (error) {
-        console.error('Error creating user:', error)
-        throw error
-      }
-    },
-
-    // Update user
-    async updateUser(id, userData) {
-      try {
-        const user = await prisma.user.update({
-          where: { id },
-          data: userData
-        })
-        return user
-      } catch (error) {
-        console.error('Error updating user:', error)
-        throw error
-      }
-    },
-
-    // Verify user email
-    async verifyUserEmail(id) {
-      try {
-        const user = await prisma.user.update({
-          where: { id },
-          data: { emailVerified: true }
-        })
-        return user
-      } catch (error) {
-        console.error('Error verifying user email:', error)
-        throw error
-      }
-    },
-
-    // Update user password
-    async updatePassword(id, hashedPassword) {
-      try {
-        const user = await prisma.user.update({
-          where: { id },
-          data: { password: hashedPassword }
-        })
-        return user
-      } catch (error) {
-        console.error('Error updating user password:', error)
-        throw error
-      }
-    }
-  },
-
-  // Password Reset operations
-  passwordReset: {
-    // Create password reset record
-    async createPasswordReset(email, hashedOtp, expiry) {
-      try {
-        // First, invalidate any existing password resets for this email
-        await prisma.passwordReset.updateMany({
-          where: { email },
-          data: { used: true }
-        });
-
-        // Create new password reset record
-        const passwordReset = await prisma.passwordReset.create({
-          data: {
-            email,
-            hashedOtp,
-            expiry
-          }
-        });
-        return passwordReset;
-      } catch (error) {
-        console.error('Error creating password reset:', error);
+        console.error('Error deleting notification:', error);
         throw error;
       }
     },
 
-    // Get password reset by email
-    async getPasswordResetByEmail(email) {
+    async updateNotification(notificationId, updateData) {
       try {
-        const passwordReset = await prisma.passwordReset.findFirst({
-          where: {
-            email,
-            used: false,
-            expiry: {
-              gt: new Date()
-            }
-          },
-          orderBy: {
-            createdAt: 'desc'
-          }
-        });
-        return passwordReset;
+        const { title, message, type } = updateData;
+        const result = await pool.query(`
+          UPDATE notifications 
+          SET title = $1, message = $2, type = $3, "updatedAt" = NOW()
+          WHERE id = $4
+          RETURNING *
+        `, [title, message, type, notificationId]);
+        
+        console.log('✅ Notification updated:', notificationId);
+        return result.rows[0];
       } catch (error) {
-        console.error('Error getting password reset by email:', error);
+        console.error('Error updating notification:', error);
         throw error;
       }
     },
 
-    // Mark password reset as used
-    async markPasswordResetAsUsed(id) {
+    async getNotificationById(notificationId) {
       try {
-        const passwordReset = await prisma.passwordReset.update({
-          where: { id },
-          data: { used: true }
-        });
-        return passwordReset;
+        const result = await pool.query(`
+          SELECT n.*, u.name as creator_name, u.email as creator_email
+          FROM notifications n
+          LEFT JOIN users u ON n."createdBy" = u.id
+          WHERE n.id = $1
+        `, [notificationId]);
+        return result.rows[0] || null;
       } catch (error) {
-        console.error('Error marking password reset as used:', error);
-        throw error;
-      }
-    },
-
-    // Clean up expired password resets
-    async cleanupExpiredResets() {
-      try {
-        const result = await prisma.passwordReset.deleteMany({
-          where: {
-            OR: [
-              { expiry: { lt: new Date() } },
-              { used: true }
-            ]
-          }
-        });
-        return result;
-      } catch (error) {
-        console.error('Error cleaning up expired password resets:', error);
-        throw error;
-      }
-    },
-
-    // Get password reset by ID
-    async getPasswordResetById(id) {
-      try {
-        const passwordReset = await prisma.passwordReset.findUnique({
-          where: { id }
-        });
-        return passwordReset;
-      } catch (error) {
-        console.error('Error getting password reset by ID:', error);
-        throw error;
+        console.error('Error getting notification by ID:', error);
+        return null;
       }
     }
   }
-}
+};
 
-export default databaseHelpers
-
-
-
+export default databaseHelpers;

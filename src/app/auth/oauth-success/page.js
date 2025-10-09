@@ -34,7 +34,7 @@ export default function OAuthSuccess() {
           timestamp: Date.now()
         };
 
-        // Store user session data
+        // Store user session data (role will be determined by server-side session handling)
         const userSessionData = {
           $id: userId || 'default-id',
           id: userId || 'default-id',
@@ -42,13 +42,16 @@ export default function OAuthSuccess() {
           name: userName || 'User',
           picture: userPicture || '',
           provider: provider || 'google',
-          role: 'USER',
           emailVerified: true
         };
 
-        // Store in localStorage
+        // Store in localStorage (for client-side access)
         localStorage.setItem('oauthSession', JSON.stringify(oauthData));
         localStorage.setItem('userSession', JSON.stringify(userSessionData));
+        
+        // Also store in cookies for server-side access
+        document.cookie = `userSession=${JSON.stringify(userSessionData)}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `oauthSession=${JSON.stringify(oauthData)}; path=/; max-age=86400; SameSite=Lax`;
 
         console.log('OAuth Success: Session data stored', userSessionData);
 

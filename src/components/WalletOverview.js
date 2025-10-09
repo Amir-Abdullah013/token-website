@@ -52,7 +52,7 @@ const getCurrencySymbol = (currency) => {
 };
 
 // Format currency helper
-const formatCurrency = (amount, currency = 'PKR') => {
+const formatCurrency = (amount, currency = 'USD') => {
   const symbol = getCurrencySymbol(currency);
   return `${symbol}${parseFloat(amount).toLocaleString('en-US', { 
     minimumFractionDigits: 2, 
@@ -87,17 +87,24 @@ const WalletOverview = ({ className = '', onDeposit, onWithdraw }) => {
 
   // Fetch wallet data
   const fetchWalletData = async () => {
-    if (!user?.$id) return;
+    if (!user?.id) {
+      console.log('No user ID available:', user);
+      return;
+    }
+    
+    console.log('Fetching wallet data for user:', user.id);
     
     try {
       setLoading(true);
       setError(null);
       
       // Fetch wallet overview from API
-      const response = await fetch(`/api/wallet/overview?userId=${user.$id}`);
+      const response = await fetch(`/api/wallet/overview?userId=${user.id}`);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch wallet data');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(`Failed to fetch wallet data: ${errorMessage}`);
       }
       
       const data = await response.json();
@@ -115,7 +122,7 @@ const WalletOverview = ({ className = '', onDeposit, onWithdraw }) => {
 
   // Set up real-time updates
   useEffect(() => {
-    if (!user?.$id) return;
+    if (!user?.id) return;
 
     // Initial fetch
     fetchWalletData();
@@ -124,7 +131,7 @@ const WalletOverview = ({ className = '', onDeposit, onWithdraw }) => {
     const interval = setInterval(fetchWalletData, 30000);
 
     return () => clearInterval(interval);
-  }, [user?.$id]);
+  }, [user?.id]);
 
   // Handle deposit action
   const handleDeposit = () => {
@@ -186,7 +193,7 @@ const WalletOverview = ({ className = '', onDeposit, onWithdraw }) => {
   }
 
   const balance = walletData?.balance || 0;
-  const currency = walletData?.currency || 'PKR';
+  const currency = walletData?.currency || 'USD';
   const formattedBalance = formatCurrency(balance, currency);
   const lastUpdatedText = lastUpdated ? formatLastUpdated(lastUpdated) : 'Unknown';
 
