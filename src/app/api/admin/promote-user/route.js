@@ -1,10 +1,25 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { getServerSession, getUserRole } from '../../../../lib/session';
+import { databaseHelpers } from '../../../../lib/database';
 
 export async function POST(request) {
   try {
+    const session = await getServerSession();
+    if (!session?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const userRole = await getUserRole(session);
+    if (userRole !== 'ADMIN') {
+      return NextResponse.json(
+        { success: false, error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
     const { email } = await request.json();
     
     if (!email) {
@@ -16,10 +31,8 @@ export async function POST(request) {
 
     console.log(`🔧 Promoting user ${email} to admin...`);
     
-    // Find the user
-    const user = await prisma.user.findUnique({
-      where: { email: email }
-    });
+    // Find the user using database helper
+    const user = await databaseHelpers.user.getUserByEmail(email);
     
     if (!user) {
       return NextResponse.json(
@@ -35,10 +48,9 @@ export async function POST(request) {
       );
     }
     
-    // Update user role to ADMIN
-    const updatedUser = await prisma.user.update({
-      where: { email: email },
-      data: { role: 'ADMIN' }
+    // Update user role to ADMIN using database helper
+    const updatedUser = await databaseHelpers.user.updateUser(user.id, {
+      role: 'ADMIN'
     });
     
     console.log(`✅ Successfully promoted ${email} to admin!`);
@@ -60,8 +72,6 @@ export async function POST(request) {
       { success: false, error: 'Failed to promote user to admin' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
