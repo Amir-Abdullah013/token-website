@@ -12,10 +12,15 @@ const Sidebar = ({ user, isOpen, onClose }) => {
     setMounted(true);
   }, []);
   
+  // Determine if we're on an admin page
+  const isAdminPage = pathname.startsWith('/admin');
+  
   const userNavigation = [
     { name: 'Dashboard', href: '/user/dashboard', icon: '📊' },
     { name: 'Deposit', href: '/user/deposit', icon: '💰' },
     { name: 'Withdraw', href: '/user/withdraw', icon: '💸' },
+    { name: 'Send Tokens', href: '/user/send', icon: '📤' },
+    { name: 'Staking', href: '/user/staking', icon: '🏦' },
     { name: 'Buy/Sell', href: '/user/trade', icon: '🔄' },
     { name: 'Transactions', href: '/user/transactions', icon: '📋' },
     { name: 'Profile', href: '/user/profile', icon: '👤' },
@@ -27,10 +32,13 @@ const Sidebar = ({ user, isOpen, onClose }) => {
     { name: 'Wallets', href: '/admin/wallets', icon: '💼' },
     { name: 'Deposits', href: '/admin/deposits', icon: '💰' },
     { name: 'Withdrawals', href: '/admin/withdrawals', icon: '💸' },
+    { name: 'Transfers', href: '/admin/transfers', icon: '📤' },
+    { name: 'Stakings', href: '/admin/stakings', icon: '🏦' },
     { name: 'Transactions', href: '/admin/transactions', icon: '📋' },
   ];
   
-  const navigation = user?.role === 'admin' ? adminNavigation : userNavigation;
+  // Use admin navigation if we're on admin pages, otherwise use user navigation
+  const navigation = isAdminPage ? adminNavigation : userNavigation;
   
   const isActive = (href) => pathname === href;
   
@@ -58,7 +66,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
           {/* Header */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">
-              {user?.role === 'admin' ? 'Admin Panel' : 'Dashboard'}
+              {isAdminPage ? 'Admin Panel' : 'User Dashboard'}
             </h2>
             <button
               onClick={onClose}
@@ -79,7 +87,16 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                 </span>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
+                <div className="flex items-center space-x-2">
+                  <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    isAdminPage 
+                      ? 'bg-red-100 text-red-800' 
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {isAdminPage ? 'Admin' : 'User'}
+                  </span>
+                </div>
                 <p className="text-xs text-gray-500">{user?.email || 'user@example.com'}</p>
               </div>
             </div>
@@ -110,6 +127,49 @@ const Sidebar = ({ user, isOpen, onClose }) => {
               </Link>
             ))}
           </nav>
+          
+          {/* Admin Quick Switch */}
+          {user?.role === 'admin' && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Quick Switch</p>
+                <div className="flex space-x-2">
+                  <Link
+                    href="/user/dashboard"
+                    className={`flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      !isAdminPage
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                    onClick={() => {
+                      if (window.innerWidth < 1024) {
+                        onClose();
+                      }
+                    }}
+                  >
+                    <span className="mr-2">👤</span>
+                    User View
+                  </Link>
+                  <Link
+                    href="/admin/dashboard"
+                    className={`flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      isAdminPage
+                        ? 'bg-red-50 text-red-700'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                    onClick={() => {
+                      if (window.innerWidth < 1024) {
+                        onClose();
+                      }
+                    }}
+                  >
+                    <span className="mr-2">⚙️</span>
+                    Admin View
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Footer */}
           

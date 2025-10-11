@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
+import { useAdminAuth } from '../../../lib/admin-auth';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -10,7 +10,7 @@ import Input from '../../../components/Input';
 import { useToast, ToastContainer } from '../../../components/Toast';
 
 export default function AdminNotificationsPage() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { adminUser, isLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
@@ -317,7 +317,7 @@ export default function AdminNotificationsPage() {
     return filteredNotifications;
   };
 
-  if (!mounted || loading) {
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -341,28 +341,28 @@ export default function AdminNotificationsPage() {
 
   return (
     <Layout showSidebar={true}>
-      <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
-              <div>
+            <div>
                 <h1 className="text-3xl font-bold text-gray-900">Notification Management</h1>
                 <p className="text-gray-600">Create and manage notifications for all users</p>
-              </div>
+            </div>
               <div className="flex items-center space-x-4">
-                <Button
+              <Button
                   onClick={() => setShowCreateModal(true)}
                   className="bg-green-600 hover:bg-green-700"
-                >
+              >
                   Create Notification
-                </Button>
-                <Button
-                  onClick={() => router.push('/admin/dashboard')}
+              </Button>
+              <Button
+                onClick={() => router.push('/admin/dashboard')}
                   variant="outline"
-                >
-                  Back to Dashboard
-                </Button>
+              >
+                Back to Dashboard
+              </Button>
               </div>
             </div>
           </div>
@@ -384,10 +384,10 @@ export default function AdminNotificationsPage() {
                     <p className="text-sm font-medium text-gray-500">Total Notifications</p>
                     <p className="text-2xl font-bold text-gray-900">{totalNotifications}</p>
                   </div>
-                </div>
+            </div>
               </CardContent>
-            </Card>
-
+          </Card>
+          
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -400,10 +400,10 @@ export default function AdminNotificationsPage() {
                     <p className="text-sm font-medium text-gray-500">Global Notifications</p>
                     <p className="text-2xl font-bold text-gray-900">{globalNotifications}</p>
                   </div>
-                </div>
+            </div>
               </CardContent>
-            </Card>
-
+          </Card>
+          
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -416,10 +416,10 @@ export default function AdminNotificationsPage() {
                     <p className="text-sm font-medium text-gray-500">Unread</p>
                     <p className="text-2xl font-bold text-gray-900">{unreadNotifications}</p>
                   </div>
-                </div>
+            </div>
               </CardContent>
-            </Card>
-
+          </Card>
+          
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -432,10 +432,10 @@ export default function AdminNotificationsPage() {
                     <p className="text-sm font-medium text-gray-500">Read</p>
                     <p className="text-2xl font-bold text-gray-900">{readNotifications}</p>
                   </div>
-                </div>
+            </div>
               </CardContent>
-            </Card>
-          </div>
+          </Card>
+        </div>
 
           {/* Filters */}
           <Card className="mb-6">
@@ -472,13 +472,13 @@ export default function AdminNotificationsPage() {
                   </select>
                 </div>
                 <div className="flex items-end">
-                  <Button
+            <Button
                     onClick={loadNotifications}
                     disabled={loadingNotifications}
                     className="w-full"
-                  >
+            >
                     {loadingNotifications ? 'Loading...' : 'Refresh'}
-                  </Button>
+            </Button>
                 </div>
               </div>
             </CardContent>
@@ -494,7 +494,7 @@ export default function AdminNotificationsPage() {
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   <span className="ml-2 text-gray-600">Loading notifications...</span>
-                </div>
+                      </div>
               ) : (
                 <>
                   {getCurrentPageNotifications().length === 0 ? (
@@ -539,13 +539,13 @@ export default function AdminNotificationsPage() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(notification.type)}`}>
-                                  {notification.type}
-                                </span>
+                          {notification.type}
+                        </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(notification.status)}`}>
                                   {notification.status}
-                                </span>
+                          </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {notification.creator_name || 'System'}
@@ -647,7 +647,7 @@ export default function AdminNotificationsPage() {
                 </div>
                 <div>
                   <span className="font-medium">Created By:</span> {selectedNotification.creator_name || 'System'}
-                </div>
+                  </div>
                 <div>
                   <span className="font-medium">Created:</span> {formatDate(selectedNotification.createdAt)}
                 </div>
@@ -726,7 +726,7 @@ export default function AdminNotificationsPage() {
                 </Button>
               </div>
             </div>
-          </div>
+      </div>
         )}
 
         {/* Edit Notification Modal */}
@@ -829,7 +829,7 @@ export default function AdminNotificationsPage() {
 
         {/* Toast Container */}
         <ToastContainer toasts={toasts} removeToast={removeToast} />
-      </div>
+    </div>
     </Layout>
   );
 }

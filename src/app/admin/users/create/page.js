@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../../lib/auth-context';
+import { useAdminAuth } from '../../../../lib/admin-auth';
 import Layout from '../../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../../components/Card';
 import Button from '../../../../components/Button';
@@ -10,7 +10,7 @@ import Input from '../../../../components/Input';
 import { useToast, ToastContainer } from '../../../../components/Toast';
 
 export default function CreateUserPage() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { adminUser, isLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
@@ -124,7 +124,7 @@ export default function CreateUserPage() {
     }
   };
 
-  if (!mounted || loading) {
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

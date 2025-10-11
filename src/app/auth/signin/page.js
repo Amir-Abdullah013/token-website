@@ -93,8 +93,12 @@ export default function SignIn() {
         // Clear any cached data
         localStorage.removeItem('signupEmail');
         
-        // Redirect to dashboard
-        router.push('/user/dashboard');
+        // Role-based redirect
+        if (data.user.role === 'admin') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/user/dashboard');
+        }
       } else {
         // Handle specific error cases with detailed debugging
         console.error('Signin failed:', data);

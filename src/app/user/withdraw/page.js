@@ -12,34 +12,55 @@ import { useToast, ToastContainer } from '../../../components/Toast';
 
 export default function WithdrawPage() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { usdBalance, tikiBalance, tikiPrice, withdrawUSD, formatCurrency, formatTiki } = useTiki();
+  const { usdBalance, tikiBalance, tikiPrice, formatCurrency, formatTiki } = useTiki();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
   
-  // Form state - USD only for withdrawals
+  // Form state
   const [formData, setFormData] = useState({
     amount: '',
-    currency: 'USD'
+    binanceAddress: ''
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Withdrawal history state
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
+
   // Validation rules
-  const MIN_WITHDRAW_AMOUNT = 500;
-  const MAX_WITHDRAW_AMOUNT = 1000000;
+  const MIN_WITHDRAW_AMOUNT = 10;
+  const MAX_WITHDRAW_AMOUNT = 10000;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (mounted && !loading && !isAuthenticated) {
-      router.push('/auth/signin?redirect=/user/withdraw');
+    if (mounted && !loading) {
+      if (!isAuthenticated) {
+        router.push('/auth/signin');
+      } else {
+        loadWithdrawals();
+      }
     }
   }, [mounted, loading, isAuthenticated, router]);
 
-  // No need for wallet data initialization since we're using global Tiki state
+  const loadWithdrawals = async () => {
+    try {
+      setLoadingWithdrawals(true);
+      const response = await fetch('/api/withdraw');
+      if (response.ok) {
+        const data = await response.json();
+        setWithdrawals(data.withdrawals || []);
+      }
+    } catch (err) {
+      console.error('Error loading withdrawals:', err);
+    } finally {
+      setLoadingWithdrawals(false);
+    }
+  };
 
   // Handle input change
   const handleInputChange = (e) => {
@@ -70,20 +91,26 @@ export default function WithdrawPage() {
       if (isNaN(amount) || amount <= 0) {
         newErrors.amount = 'Please enter a valid amount';
       } else if (amount < MIN_WITHDRAW_AMOUNT) {
-        newErrors.amount = `Minimum withdrawal amount is ${MIN_WITHDRAW_AMOUNT} ${formData.currency}`;
+        newErrors.amount = `Minimum withdrawal amount is $${MIN_WITHDRAW_AMOUNT}`;
       } else if (amount > MAX_WITHDRAW_AMOUNT) {
-        newErrors.amount = `Maximum withdrawal amount is ${MAX_WITHDRAW_AMOUNT} ${formData.currency}`;
+        newErrors.amount = `Maximum withdrawal amount is $${MAX_WITHDRAW_AMOUNT}`;
       } else if (amount > usdBalance) {
-        // Check if withdrawal amount exceeds available USD balance from global state
-        newErrors.amount = `Insufficient balance. Available: ${formatCurrency(usdBalance, 'USD')}`;
+        newErrors.amount = 'Insufficient balance';
       }
+    }
+
+    // Binance address validation
+    if (!formData.binanceAddress) {
+      newErrors.binanceAddress = 'Binance address is required';
+    } else if (formData.binanceAddress.length < 20) {
+      newErrors.binanceAddress = 'Binance address must be at least 20 characters long';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission with global state integration
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -94,140 +121,172 @@ export default function WithdrawPage() {
     setIsSubmitting(true);
     
     try {
-      const withdrawAmount = parseFloat(formData.amount);
-      
-      // Step 1: Check if user has sufficient USD balance from global state
-      if (usdBalance >= withdrawAmount) {
-        // Step 2: Process the withdrawal using global state function
-        // This automatically updates usdBalance in global state and persists to localStorage
-        const withdrawalSuccess = withdrawUSD(withdrawAmount);
+      const response = await fetch('/api/withdraw', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: parseFloat(formData.amount),
+          binanceAddress: formData.binanceAddress
+        })
+      });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('Error parsing response JSON:', jsonError);
+        error('Server returned invalid response. Please try again.');
+        return;
+      }
+
+      if (response.ok) {
+        success('Withdrawal request submitted successfully. Waiting for admin confirmation.');
         
-        if (withdrawalSuccess) {
-          // Step 3: Show success message with updated balance
-          success(`Successfully withdrew ${formatCurrency(withdrawAmount, 'USD')}. New balance: ${formatCurrency(usdBalance - withdrawAmount, 'USD')}`);
-          
-          // Step 4: Reset form after successful withdrawal
-          setFormData({ amount: '', currency: 'USD' });
-        } else {
-          // Step 5: Handle withdrawal failure
-          error('Withdrawal failed. Please try again.');
-        }
+        // Reset form
+        setFormData({ amount: '', binanceAddress: '' });
+        
+        // Reload withdrawals to show the new request
+        loadWithdrawals();
       } else {
-        // Step 6: Show insufficient balance error with current balance
-        error(`Insufficient balance. Available: ${formatCurrency(usdBalance, 'USD')}, Requested: ${formatCurrency(withdrawAmount, 'USD')}`);
+        const errorMessage = data.details ? `${data.error}: ${data.details}` : data.error;
+        error(errorMessage || 'Failed to submit withdrawal request');
       }
     } catch (err) {
-      console.error('Error processing withdrawal:', err);
-      error('Failed to process withdrawal. Please try again.');
+      console.error('Error submitting withdrawal request:', err);
+      error('Failed to submit withdrawal request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Show loading state
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+      case 'COMPLETED': return 'bg-green-100 text-green-800';
+      case 'FAILED': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'PENDING': return 'Pending';
+      case 'COMPLETED': return 'Approved';
+      case 'FAILED': return 'Rejected';
+      default: return status;
+    }
+  };
+
   if (!mounted || loading) {
     return (
-      <Layout showSidebar={true}>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading withdrawal page...</p>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
         </div>
-      </Layout>
+      </div>
     );
   }
 
-  // Show loading state if not authenticated
-  if (!isAuthenticated || !user) {
-    return (
-      <Layout showSidebar={true}>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Redirecting to sign in...</p>
-          </div>
-        </div>
-      </Layout>
-    );
+  if (!isAuthenticated) {
+    return null;
   }
-
-  // Use global state values directly (no need for memoization since we're using Tiki context)
-  // These values are already optimized in the Tiki context
 
   return (
     <Layout showSidebar={true}>
-      <div className="min-h-screen bg-gray-50">
-        {/* Desktop Header */}
-        <div className="hidden lg:block bg-white shadow-sm border-b">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center py-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Withdraw Funds</h1>
-                <p className="text-gray-600 mt-2">Withdraw money from your wallet</p>
-              </div>
-              <Button 
-                variant="outline"
-                onClick={() => router.push('/user/dashboard')}
-                className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-md font-medium"
-              >
-                Back to Dashboard
-              </Button>
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => router.back()}
+              className="mr-4"
+            >
+              ← Back
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Withdraw Funds</h1>
+              <p className="text-gray-600 mt-1">Withdraw money to your Binance account</p>
             </div>
           </div>
         </div>
 
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b">
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">Withdraw Funds</h1>
-                <p className="text-xs text-gray-600">Withdraw money from your wallet</p>
+        {/* Current Balances */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">USD Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(usdBalance, 'USD')}
+                </h2>
+                <p className="text-sm text-gray-500">Available USD</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-blue-600">
-                    {user?.name?.charAt(0) || 'U'}
-                  </span>
-                </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Tiki Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {formatTiki(tikiBalance)} TIKI
+                </h2>
+                <p className="text-sm text-gray-500">Available Tokens</p>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Main Content */}
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* Current USD Balance Display */}
+        {/* Withdrawal Instructions */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-lg">Current USD Balance</CardTitle>
+            <CardTitle className="text-lg">📋 Withdrawal Instructions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-2">Available for Withdrawal</p>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                {formatCurrency(usdBalance, 'USD')}
-              </h2>
-              <p className="text-sm text-gray-500">
-                Real-time balance from global state
-              </p>
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-blue-900 mb-2">Step 1: Enter Withdrawal Details</h3>
+                <p className="text-blue-800 text-sm">
+                  Enter the amount you want to withdraw and your Binance wallet address.
+                </p>
+              </div>
+              
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-green-900 mb-2">Step 2: Submit Request</h3>
+                <p className="text-green-800 text-sm">
+                  Submit your withdrawal request. The amount will be deducted from your balance immediately.
+                </p>
+              </div>
+              
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-yellow-900 mb-2">Step 3: Admin Processing</h3>
+                <p className="text-yellow-800 text-sm">
+                  Our admin team will manually send the funds to your Binance account within 24 hours.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Withdrawal Form */}
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Withdrawal Amount</CardTitle>
+            <CardTitle>Submit Withdrawal Request</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Amount Input */}
               <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
-                  Amount to Withdraw
+                  Withdrawal Amount (USD) *
                 </label>
                 <div className="relative">
                   <Input
@@ -236,107 +295,71 @@ export default function WithdrawPage() {
                     type="number"
                     step="0.01"
                     min={MIN_WITHDRAW_AMOUNT}
-                    max={usdBalance}
+                    max={MAX_WITHDRAW_AMOUNT}
                     value={formData.amount}
                     onChange={handleInputChange}
-                    placeholder="Enter amount"
+                    placeholder="Enter amount in USD"
                     className={`pr-20 ${errors.amount ? 'border-red-500' : ''}`}
                     disabled={isSubmitting}
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <span className="text-gray-500 text-sm">{formData.currency}</span>
+                    <span className="text-gray-500 text-sm">USD</span>
                   </div>
                 </div>
                 {errors.amount && (
                   <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
                 )}
                 <p className="mt-1 text-sm text-gray-500">
-                  Minimum: {MIN_WITHDRAW_AMOUNT} {formData.currency} | Maximum: {formatCurrency(usdBalance, 'USD')}
+                  Minimum: ${MIN_WITHDRAW_AMOUNT} | Maximum: ${MAX_WITHDRAW_AMOUNT} | Available: {formatCurrency(usdBalance, 'USD')}
                 </p>
               </div>
 
-              {/* Currency Selection - USD Only for Withdrawals */}
+              {/* Binance Address Input */}
               <div>
-                <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
-                  Currency
+                <label htmlFor="binanceAddress" className="block text-sm font-medium text-gray-700 mb-2">
+                  Binance Wallet Address *
                 </label>
-                <select
-                  id="currency"
-                  name="currency"
-                  value={formData.currency}
+                <Input
+                  id="binanceAddress"
+                  name="binanceAddress"
+                  type="text"
+                  value={formData.binanceAddress}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your Binance wallet address"
+                  className={errors.binanceAddress ? 'border-red-500' : ''}
                   disabled={isSubmitting}
-                >
-                  <option value="USD">US Dollar (USD) - Only USD withdrawals allowed</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Withdrawals are only available in USD from your USD balance
+                />
+                {errors.binanceAddress && (
+                  <p className="mt-1 text-sm text-red-600">{errors.binanceAddress}</p>
+                )}
+                <p className="mt-1 text-sm text-gray-500">
+                  Enter your Binance wallet address where you want to receive the funds
                 </p>
               </div>
-
-              {/* Amount Preview */}
-              {formData.amount && !errors.amount && (
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-blue-800 mb-2">Withdrawal Summary</h3>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-blue-700">Amount:</span>
-                      <span className="font-medium text-blue-900">
-                        {parseFloat(formData.amount).toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })} {formData.currency}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-blue-700">Processing Fee:</span>
-                      <span className="font-medium text-blue-900">Free</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-blue-700">Remaining Balance:</span>
-                      <span className="font-medium text-blue-900">
-                        {formatCurrency(usdBalance - parseFloat(formData.amount), 'USD')}
-                      </span>
-                    </div>
-                    <div className="border-t border-blue-200 pt-1 mt-2">
-                      <div className="flex justify-between text-sm font-medium">
-                        <span className="text-blue-800">Total Withdrawal:</span>
-                        <span className="text-blue-900">
-                          {parseFloat(formData.amount).toLocaleString('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                          })} {formData.currency}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Submit Button */}
               <div className="flex space-x-4">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => router.push('/user/dashboard')}
-                  className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-md font-medium"
+                  onClick={() => router.back()}
+                  className="flex-1"
                   disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium"
-                  disabled={isSubmitting || !formData.amount || !!errors.amount}
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                  disabled={isSubmitting || !formData.amount || !formData.binanceAddress || !!errors.amount || !!errors.binanceAddress}
                 >
                   {isSubmitting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Processing...
+                      Submitting...
                     </>
                   ) : (
-                    'Continue to Confirmation'
+                    'Submit Withdrawal Request'
                   )}
                 </Button>
               </div>
@@ -344,10 +367,58 @@ export default function WithdrawPage() {
           </CardContent>
         </Card>
 
+        {/* Withdrawal History */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Withdrawal History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingWithdrawals ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-gray-600">Loading withdrawals...</p>
+              </div>
+            ) : withdrawals.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No withdrawal requests yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {withdrawals.map((withdrawal) => (
+                  <div key={withdrawal.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {formatCurrency(withdrawal.amount, 'USD')}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(withdrawal.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(withdrawal.status)}`}>
+                        {getStatusText(withdrawal.status)}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <p><strong>Binance Address:</strong> {withdrawal.binanceAddress}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Information Card */}
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle className="text-lg">Withdrawal Information</CardTitle>
+            <CardTitle className="text-lg">Important Information</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -357,34 +428,32 @@ export default function WithdrawPage() {
                 </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-gray-900">Processing Time</h3>
-                  <p className="text-sm text-gray-600">Withdrawals are typically processed within 1-2 business days.</p>
+                  <p className="text-sm text-gray-600">Withdrawals are typically processed within 24 hours after admin review.</p>
                 </div>
               </div>
               
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  <span className="text-2xl">🔒</span>
+                  <span className="text-2xl">💰</span>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-gray-900">Security</h3>
-                  <p className="text-sm text-gray-600">All withdrawal requests are reviewed for security purposes.</p>
+                  <h3 className="text-sm font-medium text-gray-900">Balance Deduction</h3>
+                  <p className="text-sm text-gray-600">The withdrawal amount is deducted immediately when you submit the request.</p>
                 </div>
               </div>
               
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  <span className="text-2xl">📧</span>
+                  <span className="text-2xl">🔄</span>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
-                  <p className="text-sm text-gray-600">You will receive email updates about your withdrawal status.</p>
+                  <h3 className="text-sm font-medium text-gray-900">Refunds</h3>
+                  <p className="text-sm text-gray-600">If your withdrawal is rejected, the amount will be automatically refunded to your balance.</p>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
-        
-        </div>
         
         {/* Toast Container */}
         <ToastContainer toasts={toasts} removeToast={removeToast} />
@@ -392,8 +461,3 @@ export default function WithdrawPage() {
     </Layout>
   );
 }
-
-
-
-
-

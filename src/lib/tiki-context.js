@@ -286,17 +286,54 @@ export const TikiProvider = ({ children }) => {
   // Fetch current price from API
   const fetchCurrentPrice = async () => {
     try {
-      const response = await fetch('/api/tiki/price');
+      const response = await fetch('/api/tiki/price', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
-      if (data.success) {
+      if (data.success && data.price) {
         setTikiPrice(data.price);
+        // Store in localStorage as backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('tikiPrice', data.price.toString());
+        }
         return data.price;
+      } else {
+        console.warn('Price API returned unsuccessful response:', data);
+        return getFallbackPrice();
       }
     } catch (error) {
       console.error('Error fetching current price:', error);
+      return getFallbackPrice();
     }
-    return tikiPrice; // Return current price if fetch fails
+  };
+
+  // Get fallback price from localStorage or default
+  const getFallbackPrice = () => {
+    if (typeof window !== 'undefined') {
+      const storedPrice = localStorage.getItem('tikiPrice');
+      if (storedPrice) {
+        const price = parseFloat(storedPrice);
+        if (!isNaN(price)) {
+          setTikiPrice(price);
+          return price;
+        }
+      }
+    }
+    // Default fallback price
+    const defaultPrice = 0.0035;
+    setTikiPrice(defaultPrice);
+    return defaultPrice;
   };
 
   const value = {

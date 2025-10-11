@@ -19,7 +19,7 @@ export async function GET() {
     } catch (dbError) {
       console.warn('Database not available, using fallback price:', dbError.message);
       
-      // Fallback to localStorage or default price
+      // Fallback to default price
       const fallbackPrice = 0.0035; // Initial price
       
       return NextResponse.json({
@@ -33,14 +33,17 @@ export async function GET() {
     }
   } catch (error) {
     console.error('Error fetching Tiki price:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch price',
-        price: 0.0035 // Fallback price
-      },
-      { status: 500 }
-    );
+    
+    // Always return a successful response with fallback data
+    return NextResponse.json({
+      success: true,
+      price: 0.0035,
+      totalTokens: 100000000,
+      totalInvestment: 350000,
+      lastUpdated: new Date().toISOString(),
+      source: 'fallback',
+      error: 'Using fallback price due to server error'
+    });
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
+import { useAdminAuth } from '../../../lib/admin-auth';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -10,7 +10,7 @@ import Input from '../../../components/Input';
 import { useToast, ToastContainer } from '../../../components/Toast';
 
 export default function AdminUsersPage() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { adminUser, isLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
@@ -122,7 +122,7 @@ export default function AdminUsersPage() {
   const handleEditUser = (user) => {
     setSelectedUser(user);
     // Navigate to edit page or open edit modal
-    router.push(`/admin/users/${user.id}/edit`);
+    router.push(`/admin/users/${adminUser.id}/edit`);
   };
 
   const handleDeleteUser = (user) => {
@@ -158,9 +158,9 @@ export default function AdminUsersPage() {
   const handleToggleUserStatus = async (user) => {
     try {
       setActionLoading(true);
-      const newStatus = user.status === 'active' ? 'inactive' : 'active';
+      const newStatus = adminUser.status === 'active' ? 'inactive' : 'active';
       
-      const response = await fetch(`/api/admin/users/${user.id}/status`, {
+      const response = await fetch(`/api/admin/users/${adminUser.id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -171,26 +171,26 @@ export default function AdminUsersPage() {
       if (response.ok) {
         const data = await response.json();
         console.log('✅ Status update successful:', data);
-        success(`User ${user.name} ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
+        success(`User ${adminUser.name} ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
         
         // Update the user in local state immediately for better UX
         setUsers(prevUsers => {
           const updatedUsers = prevUsers.map(u => 
-            u.id === user.id 
+            u.id === adminUser.id 
               ? { ...u, status: newStatus, updatedAt: new Date().toISOString() }
               : u
           );
-          console.log('🔄 Updated users state:', updatedUsers.find(u => u.id === user.id));
+          console.log('🔄 Updated users state:', updatedUsers.find(u => u.id === adminUser.id));
           return updatedUsers;
         });
         
         setFilteredUsers(prevFiltered => {
           const updatedFiltered = prevFiltered.map(u => 
-            u.id === user.id 
+            u.id === adminUser.id 
               ? { ...u, status: newStatus, updatedAt: new Date().toISOString() }
               : u
           );
-          console.log('🔄 Updated filtered users state:', updatedFiltered.find(u => u.id === user.id));
+          console.log('🔄 Updated filtered users state:', updatedFiltered.find(u => u.id === adminUser.id));
           return updatedFiltered;
         });
         
@@ -236,7 +236,7 @@ export default function AdminUsersPage() {
     }).format(amount);
   };
 
-  if (!mounted || loading) {
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -434,52 +434,52 @@ export default function AdminUsersPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {getCurrentPageUsers().map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
+                      <tr key={adminUser.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
                               <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                                 <span className="text-blue-600 font-medium">
-                                  {user.name.charAt(0).toUpperCase()}
+                                  {adminUser.name.charAt(0).toUpperCase()}
                                 </span>
                               </div>
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">
-                                {user.name}
+                                {adminUser.name}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {user.email}
+                                {adminUser.email}
                               </div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            user.role === 'ADMIN' 
+                            adminUser.role === 'ADMIN' 
                               ? 'bg-purple-100 text-purple-800' 
                               : 'bg-blue-100 text-blue-800'
                           }`}>
-                            {user.role}
+                            {adminUser.role}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            (user.status || 'active') === 'active' 
+                            (adminUser.status || 'active') === 'active' 
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-red-100 text-red-800'
                           }`}>
-                            {user.status || 'active'}
+                            {adminUser.status || 'active'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div>
-                            <div className="font-medium">{formatCurrency(user.walletBalance)}</div>
-                            <div className="text-gray-500">{formatTiki(user.tikiBalance)} TIKI</div>
+                            <div className="font-medium">{formatCurrency(adminUser.walletBalance)}</div>
+                            <div className="text-gray-500">{formatTiki(adminUser.tikiBalance)} TIKI</div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(user.lastLogin)}
+                          {formatDate(adminUser.lastLogin)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
@@ -502,9 +502,9 @@ export default function AdminUsersPage() {
                               variant="outline"
                               onClick={() => handleToggleUserStatus(user)}
                               disabled={actionLoading}
-                              className={(user.status || 'active') === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+                              className={(adminUser.status || 'active') === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
                             >
-                              {(user.status || 'active') === 'active' ? 'Deactivate' : 'Activate'}
+                              {(adminUser.status || 'active') === 'active' ? 'Deactivate' : 'Activate'}
                             </Button>
                             <Button
                               size="sm"

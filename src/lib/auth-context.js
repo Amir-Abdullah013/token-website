@@ -267,7 +267,13 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('userSession', JSON.stringify(userWithRole));
         setUser(userWithRole);
         console.log('Sign in successful, user session stored:', userWithRole);
-        return { success: true, user: userWithRole };
+        
+        // Return success with redirect information
+        return { 
+          success: true, 
+          user: userWithRole,
+          redirectTo: userWithRole.role === 'admin' ? '/admin/dashboard' : '/user/dashboard'
+        };
       } else {
         throw new Error(data.error || 'Sign in failed');
       }

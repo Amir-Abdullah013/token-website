@@ -8,12 +8,23 @@ export function usePriceUpdates(interval = 5000) {
   const intervalRef = useRef(null);
 
   useEffect(() => {
-    // Fetch price immediately
-    fetchCurrentPrice();
+    // Fetch price immediately with error handling
+    const fetchPrice = async () => {
+      try {
+        await fetchCurrentPrice();
+      } catch (error) {
+        console.warn('Failed to fetch initial price:', error);
+      }
+    };
+    fetchPrice();
 
     // Set up interval for periodic updates
-    intervalRef.current = setInterval(() => {
-      fetchCurrentPrice();
+    intervalRef.current = setInterval(async () => {
+      try {
+        await fetchCurrentPrice();
+      } catch (error) {
+        console.warn('Failed to fetch price update:', error);
+      }
     }, interval);
 
     // Cleanup interval on unmount

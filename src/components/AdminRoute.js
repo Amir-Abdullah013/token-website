@@ -1,97 +1,55 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../lib/auth-context';
-import { authHelpers } from '../lib/supabase';
+import { useAdminAuth } from '../lib/admin-auth';
+import Layout from './Layout';
 
 const AdminRoute = ({ children }) => {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { adminUser, isLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingRole, setCheckingRole] = useState(true);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    const checkAdminRole = async () => {
-      if (!mounted || loading) return;
-      
+    if (mounted && !isLoading) {
+      // If admin is not authenticated, redirect to admin login
       if (!isAuthenticated) {
-        router.push('/auth/signin');
+        router.push('/admin');
         return;
       }
 
-      try {
-        setCheckingRole(true);
-        
-        // Get user teams to check for admin role
-        const teams = await authHelpers.getUserTeams();
-        
-        // Check if user has admin role in any team
-        const hasAdminRole = teams.some(team => 
-          team.roles && team.roles.includes('admin')
-        );
-        
-        setIsAdmin(hasAdminRole);
-        
-        if (!hasAdminRole) {
-          router.push('/user/dashboard');
-        }
-      } catch (error) {
-        console.error('Error checking admin role:', error);
-        router.push('/user/dashboard');
-      } finally {
-        setCheckingRole(false);
+      // If admin is authenticated, allow access
+      if (isAuthenticated && adminUser) {
+        setIsChecking(false);
+        return;
       }
-    };
 
-    if (user?.$id) {
-      checkAdminRole();
+      // Default case - still checking
+      setIsChecking(true);
     }
-  }, [mounted, loading, isAuthenticated, user?.$id, router]);
+  }, [mounted, isLoading, isAuthenticated, adminUser, router]);
 
-  if (!mounted || loading || checkingRole) {
+  // Show loading while checking authentication
+  if (!mounted || isLoading || isChecking) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking admin access...</p>
+      <Layout showSidebar={false}>
+        <div className="flex justify-center items-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Verifying admin access...</p>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 text-6xl mb-4">🚫</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
-          <p className="text-gray-600 mb-4">You don't have admin privileges to access this page.</p>
-          <button
-            onClick={() => router.push('/user/dashboard')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Go to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return children;
+  // If we reach here, user is authenticated and is admin
+  return <>{children}</>;
 };
 
 export default AdminRoute;
-
-
-
-

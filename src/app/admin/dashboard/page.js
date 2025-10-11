@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
+import { useAdminAuth } from '../../../lib/admin-auth';
 import Layout from '../../../components/Layout';
+import AdminRoute from '../../../components/AdminRoute';
 import AdminStats from '../../../components/AdminStats';
 import Button from '../../../components/Button';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 
 export default function AdminDashboard() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { adminUser, isLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [dashboardData, setDashboardData] = useState({
@@ -20,7 +21,7 @@ export default function AdminDashboard() {
     pendingTransactions: 0,
     recentActivity: []
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -29,7 +30,7 @@ export default function AdminDashboard() {
   // Fetch real dashboard data
   const fetchDashboardData = async () => {
     try {
-      setIsLoading(true);
+      setIsDataLoading(true);
       
       // Fetch admin stats
       const statsResponse = await fetch('/api/admin/stats');
@@ -60,12 +61,12 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
-      setIsLoading(false);
+      setIsDataLoading(false);
     }
   };
 
   useEffect(() => {
-    if (mounted && !loading) {
+    if (mounted && !isLoading) {
       if (!isAuthenticated) {
         router.push('/auth/signin');
         return;
@@ -74,17 +75,17 @@ export default function AdminDashboard() {
       // Check if user is admin (you can implement this check)
       // For now, we'll assume the user is admin if they can access this page
       console.log('Admin Dashboard: User session found:', {
-        id: user?.id,
-        email: user?.email,
-        name: user?.name
+        id: adminUser?.id,
+        email: adminUser?.email,
+        name: adminUser?.name
       });
       
       // Fetch dashboard data
       fetchDashboardData();
     }
-  }, [mounted, loading, isAuthenticated, user, router]);
+  }, [mounted, isLoading, isAuthenticated, adminUser, router]);
 
-  if (!mounted || loading || isLoading) {
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -95,17 +96,16 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  // AdminRoute component handles authentication, so we don't need to check here
 
   return (
-    <Layout showSidebar={true}>
-      <div className="max-w-7xl mx-auto">
+    <AdminRoute>
+      <Layout showSidebar={true}>
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">Welcome back, {user.name}! Manage your application.</p>
+          <p className="text-gray-600 mt-2">Welcome back, {adminUser?.name || 'Admin'}! Manage your application.</p>
         </div>
 
         {/* Admin Stats */}
@@ -201,7 +201,10 @@ export default function AdminDashboard() {
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={() => router.push('/admin/withdrawals')}
+                    onClick={() => {
+                      console.log('Admin Dashboard: Navigating to withdrawals page');
+                      router.push('/admin/withdrawals');
+                    }}
                   >
                     Manage Withdrawals
                   </Button>
@@ -318,6 +321,7 @@ export default function AdminDashboard() {
         </div>
       </div>
     </Layout>
+    </AdminRoute>
   );
 }
 

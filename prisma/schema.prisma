@@ -49,6 +49,10 @@ model User {
   createdNotifications Notification[] @relation("NotificationCreator")
   supportTickets SupportTicket[]
   adminLogs      AdminLog[]
+  depositRequests DepositRequest[]
+  stakings       Staking[]
+  sentTransfers     Transfer[] @relation("SentTransfers")
+  receivedTransfers Transfer[] @relation("ReceivedTransfers")
 
   @@map("users")
 }
@@ -74,8 +78,12 @@ model Transaction {
   userId    String
   type      TransactionType
   amount    Float
+  currency  String            @default("USD")
   status    TransactionStatus @default(PENDING)
   gateway   String?
+  description String?         // Optional description
+  screenshot String?          // Path to uploaded screenshot
+  binanceAddress String?      // Binance address for manual deposits/withdrawals
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
@@ -159,6 +167,23 @@ model SystemSetting {
   @@map("system_settings")
 }
 
+model DepositRequest {
+  id              String            @id @default(cuid())
+  userId          String
+  amount          Float
+  screenshot      String            // Path to uploaded screenshot
+  binanceAddress String            // Binance address used for deposit
+  status          TransactionStatus @default(PENDING)
+  adminNotes      String?          // Admin notes for approval/rejection
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("deposit_requests")
+}
+
 model PasswordReset {
   id        String   @id @default(cuid())
   email     String
@@ -217,5 +242,58 @@ enum NotificationStatus {
 enum TicketStatus {
   OPEN
   CLOSED
+}
+
+model Staking {
+  id            String        @id @default(cuid())
+  userId        String
+  amountStaked  Float
+  durationDays  Int
+  rewardPercent Float
+  startDate     DateTime
+  endDate       DateTime
+  status        StakingStatus @default(ACTIVE)
+  claimed       Boolean       @default(false)
+  rewardAmount  Float?        // Calculated reward amount
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("staking")
+}
+
+enum StakingStatus {
+  ACTIVE
+  COMPLETED
+  CLAIMED
+  CANCELLED
+}
+
+model Transfer {
+  id              String        @id @default(cuid())
+  senderId        String
+  recipientId     String
+  senderEmail     String
+  recipientEmail  String
+  amount          Float
+  note            String?
+  status          TransferStatus @default(COMPLETED)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  sender    User @relation("SentTransfers", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User @relation("ReceivedTransfers", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@map("transfers")
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
 }
 

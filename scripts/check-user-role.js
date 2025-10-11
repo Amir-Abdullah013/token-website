@@ -1,51 +1,58 @@
-const { PrismaClient } = require('@prisma/client');
+const { Pool } = require('pg');
+require('dotenv').config();
 
-const prisma = new PrismaClient();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
 async function checkUserRole(email) {
   try {
-    console.log(`🔍 Checking role for user: ${email}`);
+    console.log('🔍 Checking user role for:', email);
     
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email: email }
-    });
-    
-    if (!user) {
-      console.log(`❌ User with email ${email} not found in database`);
-      return false;
+    const result = await pool.query(
+      'SELECT id, email, name, role FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      console.log('❌ User not found');
+      return;
     }
-    
-    console.log(`✅ User found:`);
-    console.log(`   ID: ${user.id}`);
-    console.log(`   Email: ${user.email}`);
-    console.log(`   Name: ${user.name}`);
-    console.log(`   Role: ${user.role}`);
-    console.log(`   Email Verified: ${user.emailVerified}`);
-    console.log(`   Created: ${user.createdAt}`);
-    
-    return true;
-    
+
+    const user = result.rows[0];
+    console.log('👤 User found:', {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      roleType: typeof user.role,
+      roleLength: user.role?.length
+    });
+
+    // Update role to admin if it's not already
+    if (user.role !== 'admin') {
+      console.log('🔄 Updating role to admin...');
+      await pool.query(
+        'UPDATE users SET role = $1 WHERE email = $2',
+        ['admin', email]
+      );
+      console.log('✅ Role updated to admin');
+    } else {
+      console.log('✅ User already has admin role');
+    }
+
   } catch (error) {
     console.error('❌ Error checking user role:', error);
-    return false;
   } finally {
-    await prisma.$disconnect();
+    await pool.end();
   }
 }
 
-// Get email from command line arguments
+// Get email from command line argument
 const email = process.argv[2];
-
 if (!email) {
   console.log('Usage: node scripts/check-user-role.js <email>');
-  console.log('Example: node scripts/check-user-role.js admin@example.com');
   process.exit(1);
 }
 
 checkUserRole(email);
-
-
-
-
-

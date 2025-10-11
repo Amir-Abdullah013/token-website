@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '../../../../../lib/auth-context';
+import { useAdminAuth } from '../../../../../lib/admin-auth';
 import Layout from '../../../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../../../components/Card';
 import Button from '../../../../../components/Button';
@@ -10,7 +10,7 @@ import Input from '../../../../../components/Input';
 import { useToast, ToastContainer } from '../../../../../components/Toast';
 
 export default function EditUserPage() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { adminUser, isLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
   const params = useParams();
   const { success, error, toasts, removeToast } = useToast();
@@ -52,10 +52,10 @@ export default function EditUserPage() {
         const data = await response.json();
         setUserData(data.user);
         setFormData({
-          name: data.user.name || '',
-          email: data.user.email || '',
-          role: data.user.role || 'USER',
-          status: data.user.status || 'active'
+          name: data.adminUser.name || '',
+          email: data.adminUser.email || '',
+          role: data.adminUser.role || 'USER',
+          status: data.adminUser.status || 'active'
         });
       } else {
         error('Failed to load user data');
@@ -142,7 +142,7 @@ export default function EditUserPage() {
     }
   };
 
-  if (!mounted || loading) {
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

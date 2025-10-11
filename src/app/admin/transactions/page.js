@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
+import { useAdminAuth } from '../../../lib/admin-auth';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -10,7 +10,7 @@ import Input from '../../../components/Input';
 import { useToast, ToastContainer } from '../../../components/Toast';
 
 export default function AdminTransactionsPage() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { adminUser, isLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
@@ -31,6 +31,28 @@ export default function AdminTransactionsPage() {
   const [failedTransactions, setFailedTransactions] = useState(0);
   const [transactionsPerPage] = useState(10);
 
+  // Deposit management state
+  const [depositRequests, setDepositRequests] = useState([]);
+  const [loadingDeposits, setLoadingDeposits] = useState(true);
+  const [depositStats, setDepositStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    totalApprovedAmount: 0
+  });
+
+  // Withdrawal management state
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
+  const [withdrawalStats, setWithdrawalStats] = useState({
+    total: 0,
+    pending: 0,
+    completed: 0,
+    failed: 0,
+    totalCompletedAmount: 0
+  });
+
   // Transaction management state
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -48,6 +70,8 @@ export default function AdminTransactionsPage() {
         return;
       }
       loadTransactions();
+      loadDepositRequests();
+      loadWithdrawals();
     }
   }, [mounted, loading, isAuthenticated]);
 
@@ -118,6 +142,66 @@ export default function AdminTransactionsPage() {
     }
   };
 
+  const loadDepositRequests = async () => {
+    try {
+      setLoadingDeposits(true);
+      
+      const response = await fetch('/api/admin/deposits');
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDepositRequests(data.depositRequests || []);
+        setDepositStats(data.statistics || {
+          total: 0,
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          totalApprovedAmount: 0
+        });
+      } else {
+        const errorData = await response.json();
+        error('Failed to load deposit requests: ' + (errorData.error || 'Unknown error'));
+        setDepositRequests([]);
+      }
+    } catch (err) {
+      console.error('Error loading deposit requests:', err);
+      error('Failed to load deposit requests');
+      setDepositRequests([]);
+    } finally {
+      setLoadingDeposits(false);
+    }
+  };
+
+  const loadWithdrawals = async () => {
+    try {
+      setLoadingWithdrawals(true);
+      
+      const response = await fetch('/api/admin/withdrawals');
+      
+      if (response.ok) {
+        const data = await response.json();
+        setWithdrawals(data.withdrawals || []);
+        setWithdrawalStats(data.statistics || {
+          total: 0,
+          pending: 0,
+          completed: 0,
+          failed: 0,
+          totalCompletedAmount: 0
+        });
+      } else {
+        const errorData = await response.json();
+        error('Failed to load withdrawals: ' + (errorData.error || 'Unknown error'));
+        setWithdrawals([]);
+      }
+    } catch (err) {
+      console.error('Error loading withdrawals:', err);
+      error('Failed to load withdrawals');
+      setWithdrawals([]);
+    } finally {
+      setLoadingWithdrawals(false);
+    }
+  };
+
   const handleViewTransaction = (transaction) => {
     setSelectedTransaction(transaction);
     setShowTransactionModal(true);
@@ -183,6 +267,102 @@ export default function AdminTransactionsPage() {
     }
   };
 
+  const handleApproveDeposit = async (depositId) => {
+    setActionLoading(true);
+    try {
+      const response = await fetch(`/api/admin/deposits/${depositId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve' }),
+      });
+
+      if (response.ok) {
+        success('Deposit request approved successfully');
+        loadDepositRequests(); // Reload data to reflect changes
+      } else {
+        const errorData = await response.json();
+        error(`Failed to approve deposit: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error approving deposit:', err);
+      error('Failed to approve deposit');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectDeposit = async (depositId) => {
+    setActionLoading(true);
+    try {
+      const response = await fetch(`/api/admin/deposits/${depositId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject' }),
+      });
+
+      if (response.ok) {
+        success('Deposit request rejected successfully');
+        loadDepositRequests(); // Reload data to reflect changes
+      } else {
+        const errorData = await response.json();
+        error(`Failed to reject deposit: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error rejecting deposit:', err);
+      error('Failed to reject deposit');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleApproveWithdrawal = async (withdrawalId) => {
+    setActionLoading(true);
+    try {
+      const response = await fetch(`/api/admin/withdrawals/${withdrawalId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve' }),
+      });
+
+      if (response.ok) {
+        success('Withdrawal request approved successfully');
+        loadWithdrawals(); // Reload data to reflect changes
+      } else {
+        const errorData = await response.json();
+        error(`Failed to approve withdrawal: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error approving withdrawal:', err);
+      error('Failed to approve withdrawal');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectWithdrawal = async (withdrawalId) => {
+    setActionLoading(true);
+    try {
+      const response = await fetch(`/api/admin/withdrawals/${withdrawalId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject' }),
+      });
+
+      if (response.ok) {
+        success('Withdrawal request rejected successfully');
+        loadWithdrawals(); // Reload data to reflect changes
+      } else {
+        const errorData = await response.json();
+        error(`Failed to reject withdrawal: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error rejecting withdrawal:', err);
+      error('Failed to reject withdrawal');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -238,7 +418,7 @@ export default function AdminTransactionsPage() {
     return filteredTransactions;
   };
 
-  if (!mounted || loading) {
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -447,6 +627,9 @@ export default function AdminTransactionsPage() {
                               Amount
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Currency
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Status
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -482,6 +665,9 @@ export default function AdminTransactionsPage() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {formatCurrency(transaction.amount)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {transaction.currency || 'USD'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(transaction.status)}`}>

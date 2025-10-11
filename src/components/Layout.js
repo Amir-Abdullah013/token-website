@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import AdminSidebar from './AdminSidebar';
 import MobileNavigation from './MobileNavigation';
 import TikiStatusBar from './TikiStatusBar';
 import { useAuth } from '../lib/auth-context';
@@ -11,6 +13,10 @@ const Layout = ({ children, showSidebar = false }) => {
   const { user, loading, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+  
+  // Determine if we're on an admin page
+  const isAdminPage = pathname.startsWith('/admin');
 
   useEffect(() => {
     setMounted(true);
@@ -44,11 +50,19 @@ const Layout = ({ children, showSidebar = false }) => {
         {/* Sidebar (desktop fixed width, mobile toggled) */}
         {showSidebar && user && (
           <aside className="hidden lg:flex lg:w-64 flex-shrink-0 border-r bg-white lg:sticky lg:top-0 lg:h-screen">
-            <Sidebar
-              user={user}
-              isOpen={sidebarOpen}
-              onClose={() => setSidebarOpen(false)}
-            />
+            {isAdminPage ? (
+              <AdminSidebar
+                user={user}
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+              />
+            ) : (
+              <Sidebar
+                user={user}
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+              />
+            )}
           </aside>
         )}
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
+import { useAdminAuth } from '../../../lib/admin-auth';
 import { authHelpers } from '@/lib/supabase';;
 import Layout from '../../../components/Layout';
 import ProfileCard from '../../../components/ProfileCard';
@@ -11,7 +11,7 @@ import Button from '../../../components/Button';
 import Loader from '../../../components/Loader';
 
 export default function AdminProfile() {
-  const { user, loading: authLoading, isAuthenticated, isAdmin } = useAuth();
+  const { adminUser, isLoading: authLoading, isAuthenticated, isAdmin } = useAdminAuth();
   const router = useRouter();
   const [profileLoading, setProfileLoading] = useState(false);
   const [userData, setUserData] = useState(null);
@@ -35,7 +35,7 @@ export default function AdminProfile() {
       // Merge user data with preferences for phone number
       const userWithPhone = {
         ...user,
-        phone: user.prefs?.phone || ''
+        phone: adminUser.prefs?.phone || ''
       };
       setUserData(userWithPhone);
     }
