@@ -23,14 +23,14 @@ export default function Home() {
       />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
       {/* Navigation */}
-      <nav className="bg-black/30 backdrop-blur-md border-b border-gray-700">
+      <nav className="bg-black/20 backdrop-blur-md border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <Link href="/" className="flex-shrink-0 flex items-center">
+              <Link href="/" className="flex-shrink-0 flex items-center group">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
                     <span className="text-white font-bold text-sm sm:text-lg">T</span>
                   </div>
                   <span className="text-lg sm:text-2xl font-bold text-white">TokenApp</span>
@@ -44,7 +44,7 @@ export default function Home() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="text-gray-300 hover:text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10"
+                  className="text-gray-300 hover:text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 hover:bg-white/10"
                 >
                   {item.name}
                 </Link>
@@ -55,13 +55,13 @@ export default function Home() {
             <div className="hidden md:flex md:items-center md:space-x-4">
               <Link
                 href="/auth/signin"
-                className="text-white hover:text-blue-300 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border border-white hover:border-blue-400 bg-transparent hover:bg-blue-500/10"
+                className="text-white hover:text-blue-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-200 border border-gray-600 hover:border-blue-400 bg-transparent hover:bg-white/5"
               >
                 Sign In
               </Link>
               <Link
                 href="/auth/signup"
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 shadow-lg hover:scale-105 transform"
               >
                 Get Started
               </Link>
@@ -93,12 +93,12 @@ export default function Home() {
           {/* Mobile Navigation Menu */}
           {isMenuOpen && (
             <div className="md:hidden">
-              <div className="px-2 pt-2 pb-3 space-y-1 bg-black/20 backdrop-blur-md rounded-lg mt-2 border border-gray-700">
+              <div className="px-2 pt-2 pb-3 space-y-1 bg-black/20 backdrop-blur-md rounded-2xl mt-2 border border-gray-700">
                 {navigation.map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="text-gray-300 hover:text-white block px-3 py-2 rounded-lg text-base font-medium transition-colors hover:bg-white/10"
+                    className="text-gray-300 hover:text-white block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 hover:bg-white/10"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {item.name}
@@ -107,14 +107,14 @@ export default function Home() {
                 <div className="border-t border-gray-700 pt-3 mt-3">
                   <Link
                     href="/auth/signin"
-                    className="text-white hover:text-blue-300 block px-3 py-2 rounded-lg text-base font-semibold transition-colors border border-white hover:border-blue-400 bg-transparent hover:bg-blue-500/10 mb-2"
+                    className="text-white hover:text-blue-300 block px-3 py-2 rounded-xl text-base font-semibold transition-colors duration-200 border border-gray-600 hover:border-blue-400 bg-transparent hover:bg-white/5 mb-2"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/auth/signup"
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 block px-3 py-2 rounded-lg text-base font-medium transition-all duration-200 text-center"
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg block px-3 py-2 rounded-xl text-base font-bold transition-all duration-300 text-center shadow-lg"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Get Started
@@ -131,7 +131,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
             {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/20 border border-blue-400/30 mb-8">
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/20 border border-blue-500/30 mb-8">
               <span className="text-yellow-400 mr-2">🚀</span>
               <span className="text-blue-300 text-sm font-semibold">Next-Generation Trading Platform</span>
             </div>
@@ -145,7 +145,7 @@ export default function Home() {
             {/* Subtitle */}
             <p className="text-lg sm:text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed px-4">
               Experience lightning-fast crypto trading with institutional-grade security. 
-              <span className="text-blue-400 font-semibold"> Join thousands of traders</span> who trust our platform.
+              <span className="text-blue-300 font-semibold"> Join thousands of traders</span> who trust our platform.
             </p>
 
             {/* CTA Buttons */}
@@ -153,29 +153,34 @@ export default function Home() {
               <Link href="/auth/signup" className="w-full sm:w-auto">
                 <Button 
                   size="lg" 
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 transform hover:scale-105"
+                  variant="primary"
+                  className="w-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg"
                 >
                   Start Trading Now
                 </Button>
               </Link>
               <Link href="/auth/signin" className="w-full sm:w-auto">
-                <button className="w-full bg-transparent border-2 border-white text-white hover:bg-white hover:text-gray-900 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 inline-flex items-center justify-center transform hover:scale-105">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg"
+                >
                   Sign In
-                </button>
+                </Button>
               </Link>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-4xl mx-auto px-4">
-              <div className="text-center p-4">
-                <div className="text-3xl sm:text-4xl font-bold text-blue-400 mb-2">$2.4B+</div>
+              <div className="text-center p-6 bg-black/20 backdrop-blur-md rounded-2xl border border-gray-700 hover:border-blue-500/50 transition-all duration-300">
+                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-2">$2.4B+</div>
                 <div className="text-gray-300 text-sm sm:text-base">Trading Volume</div>
               </div>
-              <div className="text-center p-4">
-                <div className="text-3xl sm:text-4xl font-bold text-green-400 mb-2">50K+</div>
+              <div className="text-center p-6 bg-black/20 backdrop-blur-md rounded-2xl border border-gray-700 hover:border-cyan-500/50 transition-all duration-300">
+                <div className="text-3xl sm:text-4xl font-bold text-cyan-400 mb-2">50K+</div>
                 <div className="text-gray-300 text-sm sm:text-base">Active Users</div>
               </div>
-              <div className="text-center p-4">
+              <div className="text-center p-6 bg-black/20 backdrop-blur-md rounded-2xl border border-gray-700 hover:border-purple-500/50 transition-all duration-300">
                 <div className="text-3xl sm:text-4xl font-bold text-purple-400 mb-2">99.9%</div>
                 <div className="text-gray-300 text-sm sm:text-base">Uptime</div>
               </div>
@@ -198,32 +203,32 @@ export default function Home() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-sm rounded-2xl p-8 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-6">
+            <div className="bg-black/20 backdrop-blur-md rounded-2xl p-8 border border-gray-700 hover:border-cyan-500/50 hover:shadow-lg group transition-all duration-300">
+              <div className="w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300">
                 <span className="text-2xl">⚡</span>
               </div>
               <h3 className="text-2xl font-bold text-white mb-4">Lightning Fast</h3>
               <p className="text-gray-300 leading-relaxed">
-                Execute trades in <span className="text-blue-400 font-semibold">milliseconds</span> with our high-performance trading engine. 
+                Execute trades in <span className="text-cyan-400 font-semibold">milliseconds</span> with our high-performance trading engine. 
                 Never miss an opportunity with real-time market data.
               </p>
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-sm rounded-2xl p-8 border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6">
+            <div className="bg-black/20 backdrop-blur-md rounded-2xl p-8 border border-gray-700 hover:border-emerald-500/50 hover:shadow-lg group transition-all duration-300">
+              <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300">
                 <span className="text-2xl">🔒</span>
               </div>
               <h3 className="text-2xl font-bold text-white mb-4">Bank-Grade Security</h3>
               <p className="text-gray-300 leading-relaxed">
-                Your assets are protected with <span className="text-green-400 font-semibold">military-grade encryption</span> and 
+                Your assets are protected with <span className="text-emerald-400 font-semibold">military-grade encryption</span> and 
                 multi-layer security protocols. Your investments are safe with us.
               </p>
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6">
+            <div className="bg-black/20 backdrop-blur-md rounded-2xl p-8 border border-gray-700 hover:border-purple-500/50 hover:shadow-lg group transition-all duration-300">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300">
                 <span className="text-2xl">📊</span>
               </div>
               <h3 className="text-2xl font-bold text-white mb-4">Advanced Analytics</h3>
@@ -239,26 +244,31 @@ export default function Home() {
       {/* CTA Section */}
       <div className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-3xl p-12 border border-blue-500/30 text-center">
+          <div className="bg-black/20 backdrop-blur-lg rounded-3xl p-12 text-center border border-gray-700">
             <h2 className="text-4xl font-bold text-white mb-6">
               Ready to Start Your <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Trading Journey</span>?
             </h2>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join <span className="text-blue-400 font-semibold">thousands of successful traders</span> who trust TokenApp for their crypto needs.
+              Join <span className="text-cyan-400 font-semibold">thousands of successful traders</span> who trust TokenApp for their crypto needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center px-4">
               <Link href="/auth/signup" className="w-full sm:w-auto">
                 <Button 
-                  size="lg" 
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0 px-6 sm:px-10 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 transform hover:scale-105"
+                  size="lg"
+                  variant="primary"
+                  className="w-full px-6 sm:px-10 py-3 sm:py-4 text-base sm:text-lg"
                 >
                   🚀 Create Free Account
                 </Button>
               </Link>
               <Link href="/auth/signin" className="w-full sm:w-auto">
-                <button className="w-full bg-transparent border-2 border-white text-white hover:bg-white hover:text-gray-900 px-6 sm:px-10 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 inline-flex items-center justify-center transform hover:scale-105">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full px-6 sm:px-10 py-3 sm:py-4 text-base sm:text-lg"
+                >
                   Sign In
-                </button>
+                </Button>
               </Link>
             </div>
           </div>
@@ -266,11 +276,11 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-black/40 border-t border-gray-700">
+      <footer className="bg-black/20 backdrop-blur-md border-t border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold">T</span>
               </div>
               <span className="text-xl font-bold text-white">TokenApp</span>
@@ -279,9 +289,9 @@ export default function Home() {
               The future of cryptocurrency trading is here.
             </p>
             <div className="flex justify-center space-x-6 text-sm text-gray-400">
-              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-              <Link href="/support" className="hover:text-white transition-colors">Support</Link>
+              <Link href="/privacy" className="hover:text-cyan-400 transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-cyan-400 transition-colors">Terms of Service</Link>
+              <Link href="/support" className="hover:text-cyan-400 transition-colors">Support</Link>
             </div>
           </div>
         </div>

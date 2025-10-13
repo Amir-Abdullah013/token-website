@@ -5,14 +5,38 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 
 export async function POST(request) {
+  console.log('🚀 Deposit API called');
+  
   try {
     const session = await getServerSession();
+    console.log('👤 Session data:', session ? { id: session.id, email: session.email } : 'No session');
+    
     if (!session?.id) {
+      console.log('❌ No session found, returning 401');
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
       );
     }
+
+    // Verify user exists in database - try by ID first, then by email
+    let dbUser = await databaseHelpers.user.getUserById(session.id);
+    
+    // If not found by ID, try by email (common with OAuth)
+    if (!dbUser && session.email) {
+      console.log('🔄 User not found by ID, trying by email:', session.email);
+      dbUser = await databaseHelpers.user.getUserByEmail(session.email);
+    }
+    
+    if (!dbUser) {
+      console.log('❌ User not found in database:', session.id, session.email);
+      return NextResponse.json(
+        { success: false, error: 'User not found. Please sign in again.' },
+        { status: 401 }
+      );
+    }
+    
+    console.log('✅ User found in database:', dbUser.id, dbUser.email);
 
     const userRole = await getUserRole(session);
     if (userRole !== 'USER' && userRole !== 'ADMIN') {
@@ -92,17 +116,17 @@ export async function POST(request) {
     const buffer = Buffer.from(bytes);
     await writeFile(filepath, buffer);
 
-    // Create deposit request
+    // Create deposit request using the database user ID
     const depositRequest = await databaseHelpers.deposit.createDepositRequest({
-      userId: session.id,
+      userId: dbUser.id, // Use database user ID, not session ID
       amount,
       screenshot: `/uploads/deposits/${filename}`,
       binanceAddress: binanceAddress
     });
 
-    // Create transaction record
+    // Create transaction record using the database user ID
     const transaction = await databaseHelpers.transaction.createTransaction({
-      userId: session.id,
+      userId: dbUser.id, // Use database user ID, not session ID
       type: 'DEPOSIT',
       amount,
       currency: 'USD',
@@ -111,13 +135,6 @@ export async function POST(request) {
       screenshot: `/uploads/deposits/${filename}`,
       binanceAddress: binanceAddress,
       description: `Deposit request via Binance`
-    });
-
-    console.log('✅ Deposit request created:', {
-      userId: session.id,
-      amount,
-      transactionId: transaction.id,
-      depositRequestId: depositRequest.id
     });
 
     return NextResponse.json({
@@ -133,9 +150,42 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Error creating deposit request:', error);
+    
+    // Provide more specific error messages based on error type
+    let errorMessage = 'Failed to create deposit request';
+    let statusCode = 500;
+    
+    if (error.message.includes('SASL') || error.message.includes('authentication')) {
+      errorMessage = 'Database authentication failed. Please check your database credentials.';
+      statusCode = 503; // Service Unavailable
+    } else if (error.message.includes('connection')) {
+      errorMessage = 'Database connection failed. Please try again in a moment.';
+      statusCode = 503; // Service Unavailable
+    } else if (error.message.includes('relation') && error.message.includes('does not exist')) {
+      errorMessage = 'Database table not found. Please run database migrations.';
+      statusCode = 500;
+    } else if (error.message.includes('foreign key constraint')) {
+      errorMessage = 'Database constraint error. Please check your database setup.';
+      statusCode = 500;
+    } else if (error.message.includes('Missing required fields')) {
+      errorMessage = 'Invalid deposit data. Please check all required fields.';
+      statusCode = 400; // Bad Request
+    } else if (error.message.includes('Invalid amount')) {
+      errorMessage = 'Invalid deposit amount. Please enter a valid amount.';
+      statusCode = 400; // Bad Request
+    } else if (error.message.includes('User not found')) {
+      errorMessage = 'User session expired. Please log in again.';
+      statusCode = 401; // Unauthorized
+    }
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to create deposit request' },
-      { status: 500 }
+      { 
+        success: false, 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        timestamp: new Date().toISOString()
+      },
+      { status: statusCode }
     );
   }
 }
@@ -150,6 +200,25 @@ export async function GET(request) {
       );
     }
 
+    // Verify user exists in database - try by ID first, then by email
+    let dbUser = await databaseHelpers.user.getUserById(session.id);
+    
+    // If not found by ID, try by email (common with OAuth)
+    if (!dbUser && session.email) {
+      console.log('🔄 User not found by ID, trying by email:', session.email);
+      dbUser = await databaseHelpers.user.getUserByEmail(session.email);
+    }
+    
+    if (!dbUser) {
+      console.log('❌ User not found in database:', session.id, session.email);
+      return NextResponse.json(
+        { success: false, error: 'User not found. Please sign in again.' },
+        { status: 401 }
+      );
+    }
+    
+    console.log('✅ User found in database:', dbUser.id, dbUser.email);
+
     const userRole = await getUserRole(session);
     if (userRole !== 'USER' && userRole !== 'ADMIN') {
       return NextResponse.json(
@@ -158,8 +227,8 @@ export async function GET(request) {
       );
     }
 
-    // Get user's deposit requests
-    const depositRequests = await databaseHelpers.deposit.getUserDepositRequests(session.id);
+    // Get user's deposit requests using database user ID
+    const depositRequests = await databaseHelpers.deposit.getUserDepositRequests(dbUser.id);
 
     return NextResponse.json({
       success: true,
@@ -168,8 +237,21 @@ export async function GET(request) {
 
   } catch (error) {
     console.error('Error fetching deposit requests:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to fetch deposit requests';
+    if (error.message.includes('SASL')) {
+      errorMessage = 'Database connection error. Please check your database configuration.';
+    } else if (error.message.includes('relation') && error.message.includes('does not exist')) {
+      errorMessage = 'Database table not found. Please run database migrations.';
+    }
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch deposit requests' },
+      { 
+        success: false, 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
       { status: 500 }
     );
   }

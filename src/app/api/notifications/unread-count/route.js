@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { databaseHelpers } from '@/lib/database';
 
 export async function GET(request) {
   try {
@@ -12,28 +13,9 @@ export async function GET(request) {
       );
     }
 
-    // Try to load Prisma dynamically
-    let prisma;
+    // Use the existing database connection instead of Prisma
     try {
-      const prismaModule = await import('../../../../lib/prisma.js');
-      prisma = prismaModule.prisma;
-    } catch (error) {
-      console.warn('Prisma not available:', error.message);
-      // Return mock count when database is unavailable
-      return NextResponse.json({ count: 2 });
-    }
-
-    // Try to get unread count from database
-    try {
-      const count = await prisma.notification.count({
-        where: {
-          OR: [
-            { userId, status: 'UNREAD' },
-            { userId: null, status: 'UNREAD' }
-          ]
-        }
-      });
-
+      const count = await databaseHelpers.notification.getUnreadCount(userId);
       return NextResponse.json({ count });
     } catch (dbError) {
       console.error('Database error:', dbError);

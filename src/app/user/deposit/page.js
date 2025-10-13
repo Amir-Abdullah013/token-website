@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth-context';
 import { useTiki } from '../../../lib/tiki-context';
+// Removed complex session logic - using simple authentication
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -210,15 +211,16 @@ export default function DepositPage() {
     }
   };
 
-  // Validate form
+  // Validate form - SIMPLIFIED
   const validateForm = () => {
     const newErrors = {};
     
-    // Amount validation (using converted USD amount)
-    if (!formData.amount) {
+    // Amount validation
+    if (!formData.amount || formData.amount.trim() === '') {
       newErrors.amount = 'Amount is required';
     } else {
       const usdAmount = convertedAmount || parseFloat(formData.amount);
+      
       if (isNaN(usdAmount) || usdAmount <= 0) {
         newErrors.amount = 'Please enter a valid amount';
       } else if (usdAmount < MIN_AMOUNT) {
@@ -237,11 +239,16 @@ export default function DepositPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
+  // Handle form submission - SIMPLIFIED APPROACH
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('🚀 Form submission started');
+    console.log('👤 User:', user ? { email: user.email, id: user.id } : 'No user');
+    
+    // Validate form first
     if (!validateForm()) {
+      console.log('❌ Form validation failed');
       return;
     }
 
@@ -249,17 +256,44 @@ export default function DepositPage() {
     
     try {
       const formDataToSend = new FormData();
-      // Use converted USD amount for submission
       const usdAmount = convertedAmount || parseFloat(formData.amount);
       formDataToSend.append('amount', usdAmount.toString());
       formDataToSend.append('screenshot', formData.screenshot);
+
+      console.log('📤 Submitting deposit request...', {
+        amount: usdAmount,
+        user: user?.email,
+        hasScreenshot: !!formData.screenshot
+      });
 
       const response = await fetch('/api/deposit', {
         method: 'POST',
         body: formDataToSend
       });
 
-      const data = await response.json();
+      console.log('📥 Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      let data;
+      try {
+        const responseText = await response.text();
+        console.log('📄 Raw response:', responseText);
+        
+        if (responseText && responseText.trim() !== '') {
+          data = JSON.parse(responseText);
+        } else {
+          console.warn('⚠️ Empty response from server');
+          data = { success: false, error: 'Empty response from server' };
+        }
+      } catch (parseError) {
+        console.error('❌ Failed to parse response:', parseError);
+        data = { success: false, error: 'Invalid response format' };
+      }
+
+      console.log('📊 Parsed response data:', data);
 
       if (response.ok) {
         success('Deposit request submitted successfully. Waiting for admin confirmation.');
@@ -270,10 +304,19 @@ export default function DepositPage() {
         const fileInput = document.getElementById('screenshot');
         if (fileInput) fileInput.value = '';
       } else {
-        error(data.error || 'Failed to submit deposit request');
+        console.error('❌ Deposit request failed:', data);
+        
+        if (response.status === 401) {
+          error('Authentication required. Please log in again.');
+          setTimeout(() => {
+            router.push('/auth/signin');
+          }, 2000);
+        } else {
+          error(data.error || 'Failed to submit deposit request');
+        }
       }
     } catch (err) {
-      console.error('Error submitting deposit request:', err);
+      console.error('❌ Error submitting deposit request:', err);
       error('Failed to submit deposit request. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -497,7 +540,7 @@ export default function DepositPage() {
                 <Button
                   type="submit"
                   className="flex-1 bg-green-600 hover:bg-green-700"
-                  disabled={isSubmitting || !formData.amount || !formData.screenshot || !!errors.amount || !!errors.screenshot}
+                  disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <>
@@ -509,9 +552,11 @@ export default function DepositPage() {
                   )}
                 </Button>
               </div>
+              
             </form>
           </CardContent>
         </Card>
+
 
         {/* Information Card */}
         <Card className="mt-6">

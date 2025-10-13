@@ -1,4 +1,4 @@
-import { config } from './config'
+// Removed config import - using environment variables directly
 
 // Mock Supabase client for compatibility with existing code
 // This allows the app to work with a regular database instead of Supabase
@@ -174,7 +174,7 @@ export const authHelpers = {
   async signInWithGoogle() {
     try {
       // Check if we have the required configuration
-      if (!config.oauth.google.clientId) {
+      if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
         throw new Error('Google OAuth is not configured. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment variables.')
       }
 
@@ -220,7 +220,7 @@ export const authHelpers = {
           
           const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
           const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-            `client_id=${encodeURIComponent(config.oauth.google.clientId)}&` +
+            `client_id=${encodeURIComponent(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)}&` +
             `redirect_uri=${encodeURIComponent(window.location.origin + '/api/auth/oauth-callback')}&` +
             `scope=${encodeURIComponent('openid email profile')}&` +
             `response_type=code&` +
@@ -242,7 +242,7 @@ export const authHelpers = {
   async signInWithGithub() {
     try {
       // Check if we have the required configuration
-      if (!config.oauth.github.clientId) {
+      if (!process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID) {
         throw new Error('GitHub OAuth is not configured. Please set NEXT_PUBLIC_GITHUB_CLIENT_ID in your environment variables.')
       }
 
@@ -288,7 +288,7 @@ export const authHelpers = {
         
         const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
         const githubAuthUrl = `https://github.com/login/oauth/authorize?` +
-          `client_id=${encodeURIComponent(config.oauth.github.clientId)}&` +
+          `client_id=${encodeURIComponent(process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID)}&` +
           `redirect_uri=${encodeURIComponent(window.location.origin + '/api/auth/oauth-callback')}&` +
           `scope=${encodeURIComponent('user:email')}&` +
           `state=github_${state}`

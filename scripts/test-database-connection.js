@@ -1,68 +1,39 @@
-// Test script to verify database connection works
-const { getPrisma, retryDatabaseOperation } = require('../src/lib/database-connection.js');
+const { databaseHelpers } = require('../src/lib/database');
 
 async function testDatabaseConnection() {
   try {
     console.log('🔍 Testing database connection...');
     
-    // Test 1: Get Prisma instance
-    const prisma = await getPrisma();
-    console.log('✅ Prisma instance created successfully');
+    // Test basic connection
+    console.log('\n📊 Testing basic database query:');
+    const users = await databaseHelpers.user.getAllUsers();
+    console.log('✅ Users found:', users.length);
     
-    // Test 2: Test tokenStats query with retry mechanism
-    const stats = await retryDatabaseOperation(async (prisma) => {
-      return await prisma.tokenStats.findFirst({
-        orderBy: { createdAt: 'desc' }
-      });
-    });
-    
-    if (stats) {
-      console.log('✅ TokenStats query successful:', {
-        totalTokens: stats.totalTokens,
-        currentPrice: stats.currentPrice
-      });
-    } else {
-      console.log('⚠️ No tokenStats found, creating initial data...');
-      
-      const newStats = await retryDatabaseOperation(async (prisma) => {
-        return await prisma.tokenStats.create({
-          data: {
-            totalTokens: 100000000,
-            totalInvestment: 350000,
-            currentPrice: 0.0035
-          }
-        });
-      });
-      
-      console.log('✅ Initial tokenStats created:', newStats.id);
+    // Test deposit_requests table
+    console.log('\n💰 Testing deposit_requests table:');
+    try {
+      const depositRequests = await databaseHelpers.deposit.getAllDepositRequests();
+      console.log('✅ Deposit requests found:', depositRequests.length);
+    } catch (error) {
+      console.log('❌ Deposit requests table error:', error.message);
     }
     
-    // Test 3: Test price query
-    const price = await retryDatabaseOperation(async (prisma) => {
-      return await prisma.price.findFirst({
-        where: { symbol: 'TOKEN' },
-        orderBy: { timestamp: 'desc' }
+    // Test creating a deposit request
+    console.log('\n📝 Testing createDepositRequest:');
+    try {
+      const testDeposit = await databaseHelpers.deposit.createDepositRequest({
+        userId: 'test-user-id',
+        amount: 100,
+        screenshot: '/test/screenshot.jpg',
+        binanceAddress: 'test-address'
       });
-    });
-    
-    if (price) {
-      console.log('✅ Price query successful:', {
-        symbol: price.symbol,
-        price: price.price
-      });
-    } else {
-      console.log('⚠️ No price data found');
+      console.log('✅ Test deposit request created:', testDeposit.id);
+    } catch (error) {
+      console.log('❌ Create deposit request error:', error.message);
     }
-    
-    console.log('🎉 Database connection test completed successfully!');
     
   } catch (error) {
-    console.error('❌ Database connection test failed:', error);
-    
-    if (error.message?.includes('prepared statement')) {
-      console.log('💡 This is still a Prisma connection pooling issue.');
-      console.log('💡 Try restarting your development server completely.');
-    }
+    console.error('❌ Database connection error:', error.message);
   }
 }
 

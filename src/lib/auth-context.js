@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { authHelpers } from './supabase';
 import { config, validateConfig } from './config';
 import { useLogout } from './useLogout';
+import { autoSyncSession, ensureSessionSync } from './session-sync';
 
 const AuthContext = createContext();
 
@@ -44,6 +45,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     setMounted(true);
     
+    // Initialize session synchronization
+    const cleanup = autoSyncSession();
+    
     // Only run auth check on client side after component mounts
     const initializeAuth = () => {
       console.log('Initializing authentication...');
@@ -70,6 +74,9 @@ export const AuthProvider = ({ children }) => {
             setConfigValid(true);
             setLoading(false);
             console.log('User authenticated from localStorage:', correctedUserData.email);
+            
+            // Sync session to server
+            ensureSessionSync();
             return;
           } else {
             console.warn('Invalid user session data, clearing...');
@@ -119,6 +126,9 @@ export const AuthProvider = ({ children }) => {
             setConfigValid(true);
             setLoading(false);
             console.log('User authenticated from OAuth session:', correctedUserData.email);
+            
+            // Sync session to server
+            ensureSessionSync();
             return;
           }
           

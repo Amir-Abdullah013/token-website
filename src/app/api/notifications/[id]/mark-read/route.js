@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { databaseHelpers } from '@/lib/database';
 
 export async function POST(request, { params }) {
   try {
@@ -19,27 +20,9 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Try to load Prisma dynamically to avoid build-time issues
-    let prisma;
+    // Use the existing database connection instead of Prisma
     try {
-      const prismaModule = await import('../../../../../lib/prisma.js');
-      prisma = prismaModule.prisma;
-    } catch (error) {
-      console.warn('Prisma not available:', error.message);
-      // Return success without database operation
-      return NextResponse.json({ 
-        success: true,
-        message: 'Notification marked as read (database unavailable)'
-      });
-    }
-
-    // Use database if available
-    try {
-      const notification = await prisma.notification.update({
-        where: { id },
-        data: { status: 'READ' } // Use correct field name based on schema
-      });
-
+      const notification = await databaseHelpers.notification.markAsRead(id);
       return NextResponse.json({ 
         success: true,
         notification

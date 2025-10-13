@@ -37,3 +37,4 @@ fetch('http://localhost:3000/api/stake')
     console.log('❌ Error accessing staking API:', error.message);
   });
 
+

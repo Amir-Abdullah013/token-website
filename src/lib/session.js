@@ -1,5 +1,5 @@
 import { supabase } from './supabase.js';
-import { cookies } from 'next/headers';
+import { cookies } from 'next/headers.js';
 
 // Cache for development mock user to prevent repeated calls
 let mockUserCache = null;
@@ -8,58 +8,92 @@ let roleCache = new Map(); // Cache for user roles
 // Server-side session management
 export async function getServerSession() {
   try {
-    // Check for actual user session first (OAuth or regular auth)
     const cookieStore = await cookies();
-    const userSession = cookieStore.get('userSession');
     
+    // Check for userSession cookie first
+    const userSession = cookieStore.get('userSession');
     if (userSession) {
       try {
         const userData = JSON.parse(userSession.value);
-        console.log('Found user session:', userData);
+        console.log('✅ Found user session in cookie:', userData.email);
         return userData;
       } catch (error) {
-        console.error('Error parsing user session:', error);
+        console.error('❌ Error parsing user session cookie:', error);
+      }
+    }
+    
+    // Check for session cookie (alternative session storage)
+    const sessionCookie = cookieStore.get('session');
+    if (sessionCookie) {
+      try {
+        const sessionData = JSON.parse(decodeURIComponent(sessionCookie.value));
+        console.log('✅ Found session cookie:', sessionData.email);
+        return sessionData;
+      } catch (error) {
+        console.error('❌ Error parsing session cookie:', error);
+      }
+    }
+    
+    // Check for OAuth session cookie
+    const oauthSession = cookieStore.get('oauthSession');
+    if (oauthSession) {
+      try {
+        const oauthData = JSON.parse(oauthSession.value);
+        console.log('✅ Found OAuth session:', oauthData.email);
+        return oauthData;
+      } catch (error) {
+        console.error('❌ Error parsing OAuth session:', error);
       }
     }
     
     // For development/testing purposes, return a cached mock user only if no real session
     if (process.env.NODE_ENV === 'development') {
       if (!mockUserCache) {
-        console.log('Development mode: using mock user');
+        console.log('🔧 Development mode: using mock user');
         mockUserCache = {
-          id: 'mock-user-id',
-          name: 'Test User',
-          email: 'test@example.com',
-          user_metadata: { role: 'user' }
+          id: '1f1fffe0-3e3b-40cb-a8e1-3be943a186fd', // Use real user ID for testing
+          name: 'Amir Abdullah',
+          email: 'amirabdullah2508@gmail.com',
+          user_metadata: { role: 'admin' }
         };
       }
+      console.log('✅ Development mock user returned:', mockUserCache.email);
       return mockUserCache;
     }
 
-    // Get user from Supabase
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error || !user) {
+    // Try to get user from Supabase as last resort
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) {
+        console.log('❌ No Supabase user found');
+        return null;
+      }
+      
+      console.log('✅ Found Supabase user:', user.email);
+      return user;
+    } catch (supabaseError) {
+      console.log('❌ Supabase auth error:', supabaseError.message);
       return null;
     }
-
-    return user;
+    
   } catch (error) {
-    // For development/testing purposes, return a cached mock user if Supabase is not configured
+    console.error('❌ Session management error:', error);
+    
+    // For development/testing purposes, return a cached mock user if everything fails
     if (process.env.NODE_ENV === 'development') {
       if (!mockUserCache) {
-        console.log('Supabase not configured, using mock user for development');
+        console.log('🔧 Fallback: using mock user for development');
         mockUserCache = {
-          id: 'mock-user-id',
-          name: 'Test User',
-          email: 'test@example.com',
-          user_metadata: { role: 'user' }
+          id: '1f1fffe0-3e3b-40cb-a8e1-3be943a186fd', // Use real user ID for testing
+          name: 'Amir Abdullah',
+          email: 'amirabdullah2508@gmail.com',
+          user_metadata: { role: 'admin' }
         };
       }
       return mockUserCache;
     }
     
-    // Session is invalid or expired
     return null;
   }
 }

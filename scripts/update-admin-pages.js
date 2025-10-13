@@ -90,3 +90,4 @@ adminPages.forEach(updateAdminPage);
 
 console.log('\n✅ Admin pages update completed!');
 
+

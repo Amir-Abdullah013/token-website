@@ -1,32 +1,99 @@
 import { Pool } from 'pg';
 import { randomUUID } from 'crypto';
+import { config } from 'dotenv';
 
-// Database connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false, // Disable SSL for Supabase compatibility
-  max: 10, // Reduce max connections
-  idleTimeoutMillis: 10000, // Reduce idle timeout
-  connectionTimeoutMillis: 5000, // Increase connection timeout
-  acquireTimeoutMillis: 10000, // Add acquire timeout
-});
+// Load environment variables
+config({ path: '.env.local' });
 
-// Test database connection
-const testConnection = async () => {
+// Parse DATABASE_URL to handle special characters in password
+const parseDatabaseUrl = (url) => {
   try {
-    const client = await pool.connect();
-    await client.query('SELECT NOW()');
-    client.release();
-    console.log('✅ Database connection successful');
-    return true;
+    const urlObj = new URL(url);
+    return {
+      host: urlObj.hostname,
+      port: parseInt(urlObj.port) || 5432,
+      database: urlObj.pathname.slice(1),
+      user: urlObj.username,
+      password: urlObj.password,
+      ssl: { rejectUnauthorized: false }
+    };
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
-    return false;
+    console.error('Error parsing DATABASE_URL:', error);
+    return null;
   }
+};
+
+// Database connection pool with improved configuration
+const createPool = () => {
+  // Check if DATABASE_URL is available
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL environment variable is not set');
+    throw new Error('DATABASE_URL environment variable is required');
+  }
+
+  console.log('🔗 DATABASE_URL found:', process.env.DATABASE_URL.substring(0, 50) + '...');
+  
+  const dbConfig = parseDatabaseUrl(process.env.DATABASE_URL);
+  
+  if (!dbConfig) {
+    console.error('❌ Failed to parse DATABASE_URL');
+    throw new Error('Invalid DATABASE_URL configuration');
+  }
+
+  console.log('✅ Database configuration parsed successfully');
+  console.log('   Host:', dbConfig.host);
+  console.log('   Port:', dbConfig.port);
+  console.log('   Database:', dbConfig.database);
+  console.log('   User:', dbConfig.user);
+
+  return new Pool({
+    ...dbConfig,
+    max: 5, // Reduced max connections for better stability
+    idleTimeoutMillis: 30000, // 30 seconds
+    connectionTimeoutMillis: 10000, // 10 seconds
+    acquireTimeoutMillis: 15000, // 15 seconds
+    allowExitOnIdle: true
+  });
+};
+
+const pool = createPool();
+
+// Test database connection with retry logic
+const testConnection = async (retries = 3) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const client = await pool.connect();
+      await client.query('SELECT NOW()');
+      client.release();
+      console.log('✅ Database connection successful');
+      return true;
+    } catch (error) {
+      console.error(`❌ Database connection attempt ${i + 1} failed:`, error.message);
+      if (i === retries - 1) {
+        console.error('❌ All database connection attempts failed');
+        return false;
+      }
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+  return false;
 };
 
 // Initialize connection
 testConnection();
+
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Closing database pool...');
+  await pool.end();
+  process.exit(0);
+});
 
 export const databaseHelpers = {
   // Export pool for direct queries
@@ -393,20 +460,52 @@ export const databaseHelpers = {
   // Transaction operations
   transaction: {
     async createTransaction(transactionData) {
+      let client;
       try {
-        const { userId, type, amount, currency = 'USD', status = 'PENDING', description = null, gateway = null, binanceAddress = null } = transactionData;
+        const { userId, type, amount, currency = 'USD', status = 'PENDING', description = null, gateway = null, binanceAddress = null, screenshot = null } = transactionData;
         const id = randomUUID();
         
-        const result = await pool.query(`
-          INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-          RETURNING *
-        `, [id, userId, type, amount, currency, status, description, gateway, binanceAddress]);
+        // Validate required fields
+        if (!userId || !type || !amount) {
+          throw new Error('Missing required fields for transaction');
+        }
+
+        // Validate amount
+        if (isNaN(amount) || amount <= 0) {
+          throw new Error('Invalid amount for transaction');
+        }
+
+        client = await pool.connect();
         
+        const result = await client.query(`
+          INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", screenshot, "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+          RETURNING *
+        `, [id, userId, type, amount, currency, status, description, gateway, binanceAddress, screenshot]);
+        
+        console.log('✅ Transaction created:', id);
         return result.rows[0];
       } catch (error) {
         console.error('Error creating transaction:', error);
+        
+        // Provide more specific error messages
+        if (error.code === '23505') {
+          throw new Error('Transaction with this ID already exists');
+        } else if (error.code === '23503') {
+          throw new Error('User not found for transaction');
+        } else if (error.code === '23514') {
+          throw new Error('Invalid data for transaction');
+        } else if (error.message.includes('SASL')) {
+          throw new Error('Database authentication failed. Please check your database credentials.');
+        } else if (error.message.includes('connection')) {
+          throw new Error('Database connection failed. Please try again.');
+        }
+        
         throw error;
+      } finally {
+        if (client) {
+          client.release();
+        }
       }
     },
 
@@ -795,17 +894,85 @@ export const databaseHelpers = {
         console.error('Error getting notification by ID:', error);
         return null;
       }
+    },
+
+    async getUnreadCount(userId) {
+      try {
+        const result = await pool.query(`
+          SELECT COUNT(*) as count
+          FROM notifications
+          WHERE ("userId" = $1 OR "userId" IS NULL) AND status = 'UNREAD'
+        `, [userId]);
+        return parseInt(result.rows[0].count) || 0;
+      } catch (error) {
+        console.error('Error getting unread count:', error);
+        return 0;
+      }
+    },
+
+    async markAsRead(notificationId) {
+      try {
+        const result = await pool.query(`
+          UPDATE notifications 
+          SET status = 'READ', "updatedAt" = NOW()
+          WHERE id = $1
+          RETURNING *
+        `, [notificationId]);
+        
+        console.log('✅ Notification marked as read:', notificationId);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+        throw error;
+      }
+    },
+
+    async markAllAsRead(userId) {
+      try {
+        const result = await pool.query(`
+          UPDATE notifications 
+          SET status = 'READ', "updatedAt" = NOW()
+          WHERE ("userId" = $1 OR "userId" IS NULL) AND status = 'UNREAD'
+          RETURNING COUNT(*) as updated
+        `, [userId]);
+        
+        const updated = result.rowCount || 0;
+        console.log('✅ All notifications marked as read for user:', userId, 'Updated:', updated);
+        return { updated };
+      } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+        throw error;
+      }
     }
   },
 
   // Deposit operations
   deposit: {
     async createDepositRequest(depositData) {
+      let client;
       try {
         const { userId, amount, screenshot, binanceAddress } = depositData;
         const id = randomUUID();
         
-        const result = await pool.query(`
+        // Validate required fields
+        if (!userId || !amount || !screenshot || !binanceAddress) {
+          throw new Error('Missing required fields for deposit request');
+        }
+
+        // Validate amount
+        if (isNaN(amount) || amount <= 0) {
+          throw new Error('Invalid amount for deposit request');
+        }
+
+        // Verify user exists before creating deposit request
+        const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
+        if (userCheck.rows.length === 0) {
+          throw new Error(`User with ID ${userId} not found in database`);
+        }
+
+        client = await pool.connect();
+        
+        const result = await client.query(`
           INSERT INTO deposit_requests (id, "userId", amount, screenshot, "binanceAddress", status, "createdAt", "updatedAt")
           VALUES ($1, $2, $3, $4, $5, 'PENDING', NOW(), NOW())
           RETURNING *
@@ -815,7 +982,25 @@ export const databaseHelpers = {
         return result.rows[0];
       } catch (error) {
         console.error('Error creating deposit request:', error);
+        
+        // Provide more specific error messages
+        if (error.code === '23505') {
+          throw new Error('Deposit request with this ID already exists');
+        } else if (error.code === '23503') {
+          throw new Error('User not found for deposit request');
+        } else if (error.code === '23514') {
+          throw new Error('Invalid data for deposit request');
+        } else if (error.message.includes('SASL')) {
+          throw new Error('Database authentication failed. Please check your database credentials.');
+        } else if (error.message.includes('connection')) {
+          throw new Error('Database connection failed. Please try again.');
+        }
+        
         throw error;
+      } finally {
+        if (client) {
+          client.release();
+        }
       }
     },
 

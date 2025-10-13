@@ -39,7 +39,7 @@ const Layout = ({ children, showSidebar = false }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex flex-col">
       {/* Top Navbar */}
       <Navbar user={user} onSignOut={handleSignOut} />
       
@@ -49,7 +49,7 @@ const Layout = ({ children, showSidebar = false }) => {
       <div className="flex flex-1">
         {/* Sidebar (desktop fixed width, mobile toggled) */}
         {showSidebar && user && (
-          <aside className="hidden lg:flex lg:w-64 flex-shrink-0 border-r bg-white lg:sticky lg:top-0 lg:h-screen">
+          <aside className="hidden lg:flex lg:w-64 flex-shrink-0 border-r border-white/10 bg-black/20 backdrop-blur-md lg:sticky lg:top-0 lg:h-screen">
             {isAdminPage ? (
               <AdminSidebar
                 user={user}
