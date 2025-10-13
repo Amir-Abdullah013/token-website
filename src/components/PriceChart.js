@@ -146,14 +146,14 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-        <p className="text-sm text-gray-600 mb-1">
+      <div className="bg-black/90 backdrop-blur-md p-4 border border-white/20 rounded-lg shadow-xl">
+        <p className="text-sm text-gray-300 mb-2">
           {data.date} {data.time}
         </p>
-        <p className="text-lg font-semibold text-gray-900">
+        <p className="text-xl font-bold text-white">
           ${data.price.toFixed(6)}
         </p>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-400">
           Volume: {data.volume.toLocaleString()}
         </p>
       </div>
@@ -165,7 +165,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 // Loading skeleton component
 const LoadingSkeleton = () => (
   <div className="animate-pulse">
-    <div className="h-64 bg-gray-200 rounded"></div>
+    <div className="h-64 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg"></div>
   </div>
 );
 
@@ -231,7 +231,7 @@ const PriceChart = ({ className = '' }) => {
 
   // Get price change color
   const getPriceChangeColor = () => {
-    return priceChange >= 0 ? 'text-green-600' : 'text-red-600';
+    return priceChange >= 0 ? 'text-green-400' : 'text-red-400';
   };
 
   // Get price change icon
@@ -240,122 +240,124 @@ const PriceChart = ({ className = '' }) => {
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-           
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600">Time Range:</span>
-              <div className="flex space-x-1">
-                {TIME_FILTERS.map((filter) => (
-                  <Button
-                    key={filter.value}
-                    size="sm"
-                    variant={selectedFilter === filter.value ? 'default' : 'outline'}
-                    onClick={() => handleFilterChange(filter.value)}
-                    className={`text-xs px-2 py-1 ${
-                      selectedFilter === filter.value
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    {filter.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
+    <div className={`w-full h-full ${className}`}>
+      {/* Time Range Filter */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-300">Time Range:</span>
+          <div className="flex space-x-1">
+            {TIME_FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => handleFilterChange(filter.value)}
+                className={`text-xs px-3 py-1 rounded-md transition-all duration-200 ${
+                  selectedFilter === filter.value
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                    : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
           </div>
-        </CardHeader>
-        <CardContent>
-          {/* Current Price Display */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Current Price</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {formatPrice(currentPrice)}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className={`flex items-center text-sm ${getPriceChangeColor()}`}>
-                  <span className="mr-1">{getPriceChangeIcon()}</span>
-                  <span>
-                    {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)} 
-                    ({((priceChange / (currentPrice - priceChange)) * 100).toFixed(2)}%)
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">
-                  {selectedFilter === '1min' ? 'Last hour' :
-                   selectedFilter === '1h' ? 'Last 24 hours' :
-                   selectedFilter === '1d' ? 'Last 7 days' :
-                   selectedFilter === '7d' ? 'Last 30 days' :
-                   'Last 90 days'}
-                </p>
-              </div>
-            </div>
-          </div>
+        </div>
+      </div>
 
-          {/* Chart */}
-          {isLoading ? (
-            <LoadingSkeleton />
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="time"
-                    stroke="#666"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    stroke="#666"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => `$${value.toFixed(6)}`}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Line
-                    type="monotone"
-                    dataKey="price"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: '#3b82f6' }}
-                  />
-                  <ReferenceLine 
-                    y={currentPrice} 
-                    stroke="#10b981" 
-                    strokeDasharray="2 2"
-                    strokeOpacity={0.5}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Chart Info */}
-          <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                <span>Price</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-2" style={{ opacity: 0.5 }}></div>
-                <span>Current</span>
-              </div>
-            </div>
-            <div>
-              {chartData.length} data points
-            </div>
+      {/* Current Price Display */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-300 mb-1">Current Price</p>
+            <p className="text-3xl font-bold text-white">
+              {formatPrice(currentPrice)}
+            </p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="text-right">
+            <div className={`flex items-center text-sm font-semibold ${getPriceChangeColor()}`}>
+              <span className="mr-1 text-lg">{getPriceChangeIcon()}</span>
+              <span>
+                {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(6)} 
+                ({((priceChange / (currentPrice - priceChange)) * 100).toFixed(2)}%)
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              {selectedFilter === '1min' ? 'Last hour' :
+               selectedFilter === '1h' ? 'Last 24 hours' :
+               selectedFilter === '1d' ? 'Last 7 days' :
+               selectedFilter === '7d' ? 'Last 30 days' :
+               'Last 90 days'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Chart */}
+      {isLoading ? (
+        <LoadingSkeleton />
+      ) : (
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+              <XAxis 
+                dataKey="time"
+                stroke="#9CA3AF"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: '#9CA3AF' }}
+              />
+              <YAxis 
+                stroke="#9CA3AF"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: '#9CA3AF' }}
+                tickFormatter={(value) => `$${value.toFixed(6)}`}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <defs>
+                <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                  <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              <Line
+                type="monotone"
+                dataKey="price"
+                stroke="#3B82F6"
+                strokeWidth={3}
+                dot={false}
+                activeDot={{ r: 6, fill: '#3B82F6', stroke: '#1E40AF', strokeWidth: 2 }}
+                fill="url(#priceGradient)"
+              />
+              <ReferenceLine 
+                y={currentPrice} 
+                stroke="#10B981" 
+                strokeDasharray="4 4"
+                strokeOpacity={0.7}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Chart Info */}
+      <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+            <span className="text-white">Price</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-2" style={{ opacity: 0.7 }}></div>
+            <span className="text-white">Current</span>
+          </div>
+        </div>
+        <div className="text-gray-300">
+          {chartData.length} data points
+        </div>
+      </div>
     </div>
   );
 };

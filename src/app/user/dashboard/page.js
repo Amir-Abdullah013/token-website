@@ -323,7 +323,7 @@ export default function UserDashboard() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="h-80 lg:h-96 bg-black/20 backdrop-blur-sm rounded-lg border border-white/10">
+              <div className="h-80 lg:h-96">
                 <PriceChart />
               </div>
             </CardContent>

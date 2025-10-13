@@ -6,6 +6,54 @@ const nextConfig = {
     optimizePackageImports: ['@/components', '@/lib'],
   },
   
+  // Webpack configuration to handle fs module issues and bundle analysis
+  webpack: (config, { isServer }) => {
+    // Handle fs module issues for client-side
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        os: false,
+        crypto: false,
+        stream: false,
+        util: false,
+        buffer: false,
+        process: false,
+        assert: false,
+        http: false,
+        https: false,
+        zlib: false,
+        url: false,
+        querystring: false,
+        net: false,
+        tls: false,
+        child_process: false,
+      };
+      
+      // Exclude problematic modules from client bundle
+      config.externals = config.externals || [];
+      config.externals.push({
+        'fs': 'commonjs fs',
+        'path': 'commonjs path',
+        'os': 'commonjs os',
+      });
+      
+      // Add bundle analyzer if ANALYZE is true
+      if (process.env.ANALYZE === 'true') {
+        const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+        config.plugins.push(
+          new BundleAnalyzerPlugin({
+            analyzerMode: 'static',
+            openAnalyzer: false,
+            reportFilename: './bundle-analysis.html',
+          })
+        );
+      }
+    }
+    return config;
+  },
+  
   // Image optimization
   images: {
     formats: ['image/webp', 'image/avif'],
@@ -16,22 +64,6 @@ const nextConfig = {
   // Compression
   compress: true,
   
-  // Bundle analyzer (only in development)
-  ...(process.env.ANALYZE === 'true' && {
-    webpack: (config, { isServer }) => {
-      if (!isServer) {
-        const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-        config.plugins.push(
-          new BundleAnalyzerPlugin({
-            analyzerMode: 'static',
-            openAnalyzer: false,
-            reportFilename: './bundle-analysis.html',
-          })
-        );
-      }
-      return config;
-    },
-  }),
   
   // Headers for security and performance
   async headers() {
