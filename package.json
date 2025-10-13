@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
+    "build:webpack": "next build",
     "start": "next start",
     "analyze": "ANALYZE=true npm run build",
     "optimize": "node scripts/optimize.js",
@@ -26,6 +27,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "autoprefixer": "^10.4.21",
     "bcryptjs": "^3.0.2",
     "critters": "^0.0.23",
     "date-fns": "^4.1.0",
@@ -41,7 +43,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "^4.1.14",
     "glob": "^11.0.3",
     "lighthouse": "^12.0.0",
     "prisma": "^5.22.0",

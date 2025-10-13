@@ -166,5 +166,4 @@ export const useAuth = () => {
   };
 };
 
-// Export useAuth for backward compatibility
-export { useAuth };
+// useAuth is already exported above

@@ -31,14 +31,6 @@ const nextConfig = {
         child_process: false,
       };
       
-      // Exclude problematic modules from client bundle
-      config.externals = config.externals || [];
-      config.externals.push({
-        'fs': 'commonjs fs',
-        'path': 'commonjs path',
-        'os': 'commonjs os',
-      });
-      
       // Add bundle analyzer if ANALYZE is true
       if (process.env.ANALYZE === 'true') {
         const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
