@@ -283,17 +283,27 @@ export const TikiProvider = ({ children }) => {
 
   const getCurrencies = () => Object.keys(currencyRates);
 
-  // Fetch current price from API
+  // Fetch current price from API with improved error handling
   const fetchCurrentPrice = async () => {
     try {
+      // Check if we're in browser environment
+      if (typeof window === 'undefined') {
+        return getFallbackPrice();
+      }
+
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
       const response = await fetch('/api/tiki/price', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        // Add timeout to prevent hanging
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -301,19 +311,21 @@ export const TikiProvider = ({ children }) => {
       
       const data = await response.json();
       
-      if (data.success && data.price) {
+      if (data.success && data.price && typeof data.price === 'number') {
         setTikiPrice(data.price);
         // Store in localStorage as backup
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('tikiPrice', data.price.toString());
-        }
+        localStorage.setItem('tikiPrice', data.price.toString());
+        localStorage.setItem('tikiPriceTimestamp', Date.now().toString());
         return data.price;
       } else {
-        console.warn('Price API returned unsuccessful response:', data);
+        console.warn('Price API returned invalid data:', data);
         return getFallbackPrice();
       }
     } catch (error) {
-      console.error('Error fetching current price:', error);
+      // Only log error if it's not an abort (timeout)
+      if (error.name !== 'AbortError') {
+        console.warn('Price fetch failed, using fallback:', error.message);
+      }
       return getFallbackPrice();
     }
   };
@@ -322,18 +334,25 @@ export const TikiProvider = ({ children }) => {
   const getFallbackPrice = () => {
     if (typeof window !== 'undefined') {
       const storedPrice = localStorage.getItem('tikiPrice');
-      if (storedPrice) {
+      const storedTimestamp = localStorage.getItem('tikiPriceTimestamp');
+      
+      if (storedPrice && storedTimestamp) {
         const price = parseFloat(storedPrice);
-        if (!isNaN(price)) {
+        const timestamp = parseInt(storedTimestamp);
+        const now = Date.now();
+        
+        // Use stored price if it's less than 1 hour old
+        if (!isNaN(price) && price > 0 && (now - timestamp) < 3600000) {
           setTikiPrice(price);
           return price;
         }
       }
     }
-    // Default fallback price
-    const defaultPrice = 0.0035;
-    setTikiPrice(defaultPrice);
-    return defaultPrice;
+    
+    // Default fallback price - use current price if available, otherwise default
+    const fallbackPrice = tikiPrice > 0 ? tikiPrice : 0.0035;
+    setTikiPrice(fallbackPrice);
+    return fallbackPrice;
   };
 
   const value = {
