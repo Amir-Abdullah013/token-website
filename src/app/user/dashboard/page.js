@@ -239,7 +239,7 @@ export default function UserDashboard() {
   return (
     <Layout showSidebar={true}>
       {/* Professional Dashboard */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Welcome Header */}
         <div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/10">
           <div className="flex items-center justify-between">
@@ -493,10 +493,10 @@ export default function UserDashboard() {
           </CardContent>
         </Card>
 
-             </div>
+        </div>
 
-      {/* Toast Container */}
-      <ToastContainer toasts={toasts} removeToast={removeToast} />
+        {/* Toast Container */}
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
     </Layout>
   );
 }
