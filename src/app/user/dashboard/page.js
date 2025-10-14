@@ -301,13 +301,13 @@ export default function UserDashboard() {
       {/* Professional Dashboard */}
       <div className="space-y-6">
         {/* Welcome Header */}
-        <div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/10">
+        <div className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-md rounded-xl p-4 border border-slate-600/30 shadow-xl">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
                 Welcome back, {user?.name || 'Trader'}! 👋
               </h1>
-              <p className="text-gray-300 text-sm">
+              <p className="text-slate-300 text-sm font-medium">
                 Ready to trade? Your portfolio is looking great today.
               </p>
               {/* User ID Display */}
@@ -315,7 +315,7 @@ export default function UserDashboard() {
                 <UserIdDisplay 
                   userId={user?.tikiId || user?.id} 
                   showFull={false}
-                  className="text-white"
+                  className="text-slate-200"
                 />
               </div>
             </div>
@@ -323,7 +323,7 @@ export default function UserDashboard() {
               <div className="text-xl font-bold text-white">
                 {formatCurrency(usdBalance + (tikiBalance * tikiPrice), 'USD')}
               </div>
-              <div className="text-green-400 text-xs">+2.5% today</div>
+              <div className="text-emerald-400 text-xs font-medium">+2.5% today</div>
             </div>
           </div>
         </div>
@@ -331,46 +331,46 @@ export default function UserDashboard() {
         {/* Portfolio Overview Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Balance */}
-          <Card variant="primary" className="hover:scale-105 transition-transform">
+          <Card className="bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-indigo-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/20">
             <CardContent className="p-4">
-              <div className="text-xs text-gray-300 mb-1">Total Balance</div>
+              <div className="text-xs text-indigo-200 mb-1">Total Balance</div>
               <div className="text-xl font-bold text-white mb-1">
                 {formatCurrency(usdBalance + (tikiBalance * tikiPrice), 'USD')}
               </div>
-              <div className="text-green-400 text-xs">+2.5% from yesterday</div>
+              <div className="text-emerald-400 text-xs font-medium">+2.5% from yesterday</div>
             </CardContent>
           </Card>
 
           {/* USD Balance */}
-          <Card variant="success" className="hover:scale-105 transition-transform">
+          <Card className="bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/20">
             <CardContent className="p-4">
-              <div className="text-xs text-gray-300 mb-1">USD Balance</div>
+              <div className="text-xs text-emerald-200 mb-1">USD Balance</div>
               <div className="text-xl font-bold text-white mb-1">
                 {formatCurrency(usdBalance, 'USD')}
               </div>
-              <div className="text-gray-300 text-xs">Available for trading</div>
+              <div className="text-emerald-300 text-xs">Available for trading</div>
             </CardContent>
           </Card>
 
           {/* TIKI Holdings */}
-          <Card variant="warning" className="hover:scale-105 transition-transform">
+          <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-red-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
             <CardContent className="p-4">
-              <div className="text-xs text-gray-300 mb-1">TIKI Holdings</div>
+              <div className="text-xs text-amber-200 mb-1">TIKI Holdings</div>
               <div className="text-xl font-bold text-white mb-1">
                 {formatTiki(tikiBalance)}
               </div>
-              <div className="text-gray-300 text-xs">Worth {formatCurrency(tikiBalance * tikiPrice, 'USD')}</div>
+              <div className="text-amber-300 text-xs">Worth {formatCurrency(tikiBalance * tikiPrice, 'USD')}</div>
             </CardContent>
           </Card>
 
           {/* TIKI Price */}
-          <Card variant="error" className="hover:scale-105 transition-transform">
+          <Card className="bg-gradient-to-br from-rose-500/20 via-pink-500/20 to-purple-500/20 border border-rose-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/20">
             <CardContent className="p-4">
-              <div className="text-xs text-gray-300 mb-1">TIKI Price</div>
+              <div className="text-xs text-rose-200 mb-1">TIKI Price</div>
               <div className="text-xl font-bold text-white mb-1">
                 {formatCurrency(tikiPrice, 'USD')}
               </div>
-              <div className="text-green-400 text-xs">+2.5% today</div>
+              <div className="text-emerald-400 text-xs font-medium">+2.5% today</div>
             </CardContent>
           </Card>
         </div>
@@ -378,15 +378,15 @@ export default function UserDashboard() {
         {/* Trading Interface - Chart Hidden on Mobile */}
         <div className="space-y-4">
           {/* Price Chart - Hidden on Mobile, Visible on Desktop */}
-          <Card className="w-full hidden md:block">
+          <Card className="w-full hidden md:block bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <CardTitle className="text-white text-lg">TIKI/USD Chart</CardTitle>
+                <CardTitle className="text-white text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">TIKI/USD Chart</CardTitle>
                 <div className="flex flex-wrap gap-2">
-                  <button className="px-3 py-1 bg-white/10 text-gray-300 rounded text-sm hover:bg-white/20 transition-colors">1m</button>
-                  <button className="px-3 py-1 bg-white/10 text-gray-300 rounded text-sm hover:bg-white/20 transition-colors">5m</button>
-                  <button className="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded text-sm">1h</button>
-                  <button className="px-3 py-1 bg-white/10 text-gray-300 rounded text-sm hover:bg-white/20 transition-colors">1d</button>
+                  <button className="px-3 py-1 bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 rounded text-sm hover:from-slate-500/50 hover:to-slate-600/50 transition-all duration-200 border border-slate-500/30">1m</button>
+                  <button className="px-3 py-1 bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 rounded text-sm hover:from-slate-500/50 hover:to-slate-600/50 transition-all duration-200 border border-slate-500/30">5m</button>
+                  <button className="px-3 py-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-white rounded text-sm shadow-lg shadow-cyan-500/25 border border-cyan-400/30">1h</button>
+                  <button className="px-3 py-1 bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 rounded text-sm hover:from-slate-500/50 hover:to-slate-600/50 transition-all duration-200 border border-slate-500/30">1d</button>
                 </div>
               </div>
             </CardHeader>
@@ -400,9 +400,9 @@ export default function UserDashboard() {
           {/* Trading & Staking - Below Chart on Desktop, Always Visible on Mobile */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Quick Trade */}
-            <Card>
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg">Quick Trade</CardTitle>
+                <CardTitle className="text-white text-lg bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Quick Trade</CardTitle>
               </CardHeader>
               <CardContent className="pt-0 space-y-3">
                 {/* Trade Type Toggle */}
@@ -410,8 +410,8 @@ export default function UserDashboard() {
                   <button 
                     className={`py-2 px-3 rounded-lg font-medium transition-all text-sm ${
                       tradeType === 'buy' 
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg' 
-                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                        ? 'bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30' 
+                        : 'bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 border border-slate-500/30'
                     }`} 
                     onClick={() => setTradeType('buy')}
                   >
@@ -420,8 +420,8 @@ export default function UserDashboard() {
                   <button 
                     className={`py-2 px-3 rounded-lg font-medium transition-all text-sm ${
                       tradeType === 'sell' 
-                        ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg' 
-                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                        ? 'bg-gradient-to-r from-rose-500 via-red-500 to-pink-600 text-white shadow-lg shadow-rose-500/25 border border-rose-400/30' 
+                        : 'bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 border border-slate-500/30'
                     }`} 
                     onClick={() => setTradeType('sell')}
                   >
@@ -431,35 +431,35 @@ export default function UserDashboard() {
 
                 {/* Price Input */}
                 <div>
-                  <label className="block text-xs text-gray-300 mb-1">Price (USD)</label>
+                  <label className="block text-xs text-slate-300 mb-1 font-medium">Price (USD)</label>
                   <input
                     type="number"
                     value={tikiPrice}
                     readOnly
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-gray-400 text-sm"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded text-white placeholder-slate-400 text-sm backdrop-blur-sm"
                   />
                 </div>
                 
                 {/* Amount Input */}
                 <div>
-                  <label className="block text-xs text-gray-300 mb-1">Amount ({tradeType === 'buy' ? 'USD' : 'TIKI'})</label>
+                  <label className="block text-xs text-slate-300 mb-1 font-medium">Amount ({tradeType === 'buy' ? 'USD' : 'TIKI'})</label>
                   <input
                     type="number"
                     value={tradeAmount}
                     onChange={(e) => setTradeAmount(e.target.value)}
                     placeholder={tradeType === 'buy' ? 'Enter USD amount' : 'Enter TIKI amount'}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded text-white placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 text-sm backdrop-blur-sm transition-all duration-200"
                   />
                 </div>
 
                 {/* Total Display */}
                 <div>
-                  <label className="block text-xs text-gray-300 mb-1">Total</label>
+                  <label className="block text-xs text-slate-300 mb-1 font-medium">Total</label>
                   <input
                     type="number"
                     value={tradeType === 'buy' ? (parseFloat(tradeAmount) / tikiPrice || 0) : (parseFloat(tradeAmount) * tikiPrice || 0)}
                     readOnly
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-gray-400 text-sm"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded text-white placeholder-slate-400 text-sm backdrop-blur-sm"
                   />
                 </div>
 
@@ -469,9 +469,9 @@ export default function UserDashboard() {
                   disabled={isTrading || !tradeAmount}
                   className={`w-full py-2 px-4 rounded-lg font-semibold transition-all text-sm ${
                     tradeType === 'buy'
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg'
-                      : 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg'
-                  } ${isTrading || !tradeAmount ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+                      ? 'bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30'
+                      : 'bg-gradient-to-r from-rose-500 via-red-500 to-pink-600 hover:from-rose-600 hover:via-red-600 hover:to-pink-700 text-white shadow-lg shadow-rose-500/25 border border-rose-400/30'
+                  } ${isTrading || !tradeAmount ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-xl'}`}
                 >
                   {isTrading ? 'Processing...' : `${tradeType === 'buy' ? 'Buy' : 'Sell'} TIKI`}
                 </button>
@@ -479,25 +479,25 @@ export default function UserDashboard() {
             </Card>
 
             {/* Staking Overview */}
-            <Card variant="primary">
+            <Card className="bg-gradient-to-br from-violet-500/20 via-purple-500/20 to-indigo-500/20 border border-violet-400/30 backdrop-blur-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg flex items-center">
+                <CardTitle className="text-white text-lg flex items-center bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
                   🏦 Staking Overview
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 space-y-3">
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                <div className="bg-gradient-to-r from-slate-700/40 to-slate-800/40 rounded-lg p-3 border border-slate-500/30 backdrop-blur-sm">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300 text-xs">Staked TIKI</span>
+                    <span className="text-slate-300 text-xs font-medium">Staked TIKI</span>
                     <span className="text-white font-semibold text-sm">0 TIKI</span>
                   </div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300 text-xs">APY</span>
-                    <span className="text-green-400 font-semibold text-sm">12.5%</span>
+                    <span className="text-slate-300 text-xs font-medium">APY</span>
+                    <span className="text-emerald-400 font-semibold text-sm">12.5%</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300 text-xs">Rewards Earned</span>
-                    <span className="text-yellow-400 font-semibold text-sm">0 TIKI</span>
+                    <span className="text-slate-300 text-xs font-medium">Rewards Earned</span>
+                    <span className="text-amber-400 font-semibold text-sm">0 TIKI</span>
                   </div>
                 </div>
                 
@@ -523,37 +523,33 @@ export default function UserDashboard() {
         </div>
 
         {/* Quick Actions - Hidden on Mobile */}
-        <Card variant="success" className="hidden md:block">
+        <Card className="hidden md:block bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-400/30 backdrop-blur-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-white text-lg">Quick Actions</CardTitle>
+            <CardTitle className="text-white text-lg bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <Button 
                 onClick={() => router.push('/user/deposit')}
-                variant="success"
-                className="w-full text-sm"
+                className="w-full text-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30 hover:scale-105 transition-all duration-200"
               >
                 💰 Deposit
               </Button>
               <Button 
                 onClick={() => router.push('/user/withdraw')}
-                variant="danger"
-                className="w-full text-sm"
+                className="w-full text-sm bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white shadow-lg shadow-rose-500/25 border border-rose-400/30 hover:scale-105 transition-all duration-200"
               >
                 💸 Withdraw
               </Button>
               <Button 
                 onClick={() => router.push('/user/send')}
-                variant="outline"
-                className="w-full text-sm"
+                className="w-full text-sm bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 border border-blue-400/30 hover:scale-105 transition-all duration-200"
               >
                 📤 Send
               </Button>
               <Button 
                 onClick={() => router.push('/user/transactions')}
-                variant="ghost"
-                className="w-full text-sm"
+                className="w-full text-sm bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-lg shadow-amber-500/25 border border-amber-400/30 hover:scale-105 transition-all duration-200"
               >
                 📋 History
               </Button>

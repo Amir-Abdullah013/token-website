@@ -35,26 +35,26 @@ const MobileMenu = ({ user, isOpen, onClose }) => {
   
   return (
     <>
-      {/* Overlay */}
+      {/* Premium Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
           onClick={onClose}
         />
       )}
       
-      {/* Mobile Menu */}
+      {/* Premium Mobile Menu */}
       <div className={`
-        fixed inset-y-0 right-0 z-50 w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out
+        fixed inset-y-0 right-0 z-50 w-80 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-l border-slate-600/30
         ${isOpen ? 'translate-x-0' : 'translate-x-full'}
       `}>
         <div className="flex flex-col h-full overflow-y-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 bg-blue-600 text-white">
-            <h2 className="text-lg font-semibold">Menu</h2>
+          {/* Premium Header */}
+          <div className="flex items-center justify-between h-16 px-6 border-b border-slate-600/30 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-white">
+            <h2 className="text-lg font-semibold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Menu</h2>
             <button
               onClick={onClose}
-              className="p-2 rounded-md text-white hover:bg-blue-700"
+              className="p-2 rounded-md text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all duration-200"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -62,32 +62,32 @@ const MobileMenu = ({ user, isOpen, onClose }) => {
             </button>
           </div>
           
-          {/* User info */}
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          {/* Premium User info */}
+          <div className="px-6 py-4 border-b border-slate-600/30 bg-gradient-to-r from-slate-800/40 to-slate-700/40">
             <div className="flex items-center">
-              <div className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/25">
                 <span className="text-lg font-medium text-white">
                   {user?.name?.charAt(0) || 'U'}
                 </span>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
-                <p className="text-xs text-gray-500">{user?.email || 'user@example.com'}</p>
+                <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
+                <p className="text-xs text-slate-400">{user?.email || 'user@example.com'}</p>
               </div>
             </div>
           </div>
           
-          {/* Navigation */}
+          {/* Premium Navigation */}
           <nav className="flex-1 px-6 py-4 space-y-1">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
                 className={`
-                  flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors
+                  flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200
                   ${isActive(item.href)
-                    ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border-l-4 border-cyan-400 shadow-lg shadow-cyan-500/10'
+                    : 'text-slate-300 hover:bg-gradient-to-r hover:from-slate-700/20 hover:to-slate-600/20 hover:text-white'
                   }
                 `}
                 onClick={onClose}
@@ -98,23 +98,23 @@ const MobileMenu = ({ user, isOpen, onClose }) => {
             ))}
           </nav>
           
-          {/* Additional Components */}
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          {/* Premium Additional Components */}
+          <div className="px-6 py-4 border-t border-slate-600/30 bg-gradient-to-r from-slate-800/40 to-slate-700/40">
             <div className="space-y-4">
-              {/* Quick Stats */}
-              <Card>
+              {/* Premium Quick Stats */}
+              <Card className="bg-gradient-to-br from-slate-800/40 to-slate-700/40 border border-slate-600/30">
                 <CardHeader className="p-4">
-                  <CardTitle className="text-sm">Quick Stats</CardTitle>
+                  <CardTitle className="text-sm text-white bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Quick Stats</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <div className="text-lg font-bold text-blue-600">156</div>
-                      <div className="text-xs text-gray-600">Total Trades</div>
+                    <div className="text-center p-3 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg border border-cyan-400/30">
+                      <div className="text-lg font-bold text-cyan-400">156</div>
+                      <div className="text-xs text-slate-300">Total Trades</div>
                     </div>
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <div className="text-lg font-bold text-green-600">$45.2K</div>
-                      <div className="text-xs text-gray-600">Total Profit</div>
+                    <div className="text-center p-3 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-lg border border-emerald-400/30">
+                      <div className="text-lg font-bold text-emerald-400">$45.2K</div>
+                      <div className="text-xs text-slate-300">Total Profit</div>
                     </div>
                   </div>
                 </CardContent>

@@ -87,10 +87,10 @@ export default function AdminDashboard() {
 
   if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -102,10 +102,10 @@ export default function AdminDashboard() {
     <AdminRoute>
       <Layout showSidebar={true}>
         <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Premium Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">Welcome back, {adminUser?.name || 'Admin'}! Manage your application.</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Admin Dashboard</h1>
+          <p className="text-slate-300 mt-2">Welcome back, {adminUser?.name || 'Admin'}! Manage your application.</p>
         </div>
 
         {/* Admin Stats */}
@@ -117,29 +117,29 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Management Cards - Takes 2 columns on large screens */}
           <div className="lg:col-span-2 space-y-6">
-            {/* User Management */}
-            <Card>
+            {/* Premium User Management */}
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>User Management</CardTitle>
+                <CardTitle className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">User Management</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="p-4 bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-indigo-500/20 rounded-lg border border-cyan-400/30 hover:scale-105 transition-all duration-300">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-blue-900">Total Users</h3>
+                      <h3 className="font-semibold text-cyan-200">Total Users</h3>
                       <span className="text-2xl">👥</span>
                     </div>
-                    <p className="text-3xl font-bold text-blue-900 mb-1">{dashboardData.totalUsers.toLocaleString()}</p>
-                    <p className="text-sm text-blue-700">Total registered users</p>
+                    <p className="text-3xl font-bold text-white mb-1">{dashboardData.totalUsers.toLocaleString()}</p>
+                    <p className="text-sm text-cyan-300">Total registered users</p>
                   </div>
                   
-                  <div className="p-4 bg-green-50 rounded-lg">
+                  <div className="p-4 bg-gradient-to-br from-emerald-500/20 via-green-500/20 to-teal-500/20 rounded-lg border border-emerald-400/30 hover:scale-105 transition-all duration-300">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-green-900">Active Users</h3>
+                      <h3 className="font-semibold text-emerald-200">Active Users</h3>
                       <span className="text-2xl">✅</span>
                     </div>
-                    <p className="text-3xl font-bold text-green-900 mb-1">{dashboardData.activeUsers.toLocaleString()}</p>
-                    <p className="text-sm text-green-700">Users with active wallets</p>
+                    <p className="text-3xl font-bold text-white mb-1">{dashboardData.activeUsers.toLocaleString()}</p>
+                    <p className="text-sm text-emerald-300">Users with active wallets</p>
                   </div>
                 </div>
                 
@@ -147,12 +147,14 @@ export default function AdminDashboard() {
                   <Button 
                     variant="primary"
                     onClick={() => router.push('/admin/users')}
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30"
                   >
                     Manage Users
                   </Button>
                   <Button 
                     variant="outline"
                     onClick={() => router.push('/admin/users?action=add')}
+                    className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                   >
                     Add New User
                   </Button>
@@ -160,29 +162,29 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Transaction Management */}
-            <Card>
+            {/* Premium Transaction Management */}
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Transaction Overview</CardTitle>
+                <CardTitle className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Transaction Overview</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="text-center p-4 bg-emerald-50 rounded-lg">
-                    <h3 className="font-semibold text-emerald-900 mb-1">Total Deposits</h3>
-                    <p className="text-2xl font-bold text-emerald-900">${dashboardData.totalDeposits.toLocaleString()}</p>
-                    <p className="text-sm text-emerald-700">Total deposits processed</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-emerald-500/20 via-green-500/20 to-teal-500/20 rounded-lg border border-emerald-400/30 hover:scale-105 transition-all duration-300">
+                    <h3 className="font-semibold text-emerald-200 mb-1">Total Deposits</h3>
+                    <p className="text-2xl font-bold text-white">${dashboardData.totalDeposits.toLocaleString()}</p>
+                    <p className="text-sm text-emerald-300">Total deposits processed</p>
                   </div>
                   
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <h3 className="font-semibold text-red-900 mb-1">Total Withdrawals</h3>
-                    <p className="text-2xl font-bold text-red-900">${dashboardData.totalWithdrawals.toLocaleString()}</p>
-                    <p className="text-sm text-red-700">Total withdrawals processed</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-red-500/20 via-rose-500/20 to-pink-500/20 rounded-lg border border-red-400/30 hover:scale-105 transition-all duration-300">
+                    <h3 className="font-semibold text-red-200 mb-1">Total Withdrawals</h3>
+                    <p className="text-2xl font-bold text-white">${dashboardData.totalWithdrawals.toLocaleString()}</p>
+                    <p className="text-sm text-red-300">Total withdrawals processed</p>
                   </div>
                   
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <h3 className="font-semibold text-yellow-900 mb-1">Pending</h3>
-                    <p className="text-2xl font-bold text-yellow-900">{dashboardData.pendingTransactions}</p>
-                    <p className="text-sm text-yellow-700">transactions pending</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 rounded-lg border border-amber-400/30 hover:scale-105 transition-all duration-300">
+                    <h3 className="font-semibold text-amber-200 mb-1">Pending</h3>
+                    <p className="text-2xl font-bold text-white">{dashboardData.pendingTransactions}</p>
+                    <p className="text-sm text-amber-300">transactions pending</p>
                   </div>
                 </div>
                 
@@ -190,12 +192,14 @@ export default function AdminDashboard() {
                   <Button 
                     variant="primary"
                     onClick={() => router.push('/admin/transactions')}
+                    className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/25 border border-violet-400/30"
                   >
                     View All Transactions
                   </Button>
                   <Button 
                     variant="outline"
                     onClick={() => router.push('/admin/deposits')}
+                    className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                   >
                     Manage Deposits
                   </Button>
@@ -205,6 +209,7 @@ export default function AdminDashboard() {
                       console.log('Admin Dashboard: Navigating to withdrawals page');
                       router.push('/admin/withdrawals');
                     }}
+                    className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                   >
                     Manage Withdrawals
                   </Button>
@@ -218,100 +223,100 @@ export default function AdminDashboard() {
            
             
 
-            {/* Quick Actions */}
-            <Card>
+            {/* Premium Quick Actions */}
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <button 
                     onClick={() => router.push('/admin/users')}
-                    className="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 rounded-lg border border-cyan-400/30 transition-all duration-300 hover:scale-105"
                   >
                     <div className="flex items-center">
                       <span className="text-2xl mr-3">👥</span>
-                      <span className="font-medium">Manage Users</span>
+                      <span className="font-medium text-cyan-200">Manage Users</span>
                     </div>
-                    <span className="text-blue-600">→</span>
+                    <span className="text-cyan-400">→</span>
                   </button>
 
                   <button 
                     onClick={() => router.push('/admin/transactions')}
-                    className="w-full flex items-center justify-between p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 rounded-lg border border-emerald-400/30 transition-all duration-300 hover:scale-105"
                   >
                     <div className="flex items-center">
                       <span className="text-2xl mr-3">💳</span>
-                      <span className="font-medium">Manage Transactions</span>
+                      <span className="font-medium text-emerald-200">Manage Transactions</span>
                     </div>
-                    <span className="text-green-600">→</span>
+                    <span className="text-emerald-400">→</span>
                   </button>
 
                   <button 
                     onClick={() => router.push('/admin/notifications')}
-                    className="w-full flex items-center justify-between p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-violet-500/20 to-purple-500/20 hover:from-violet-500/30 hover:to-purple-500/30 rounded-lg border border-violet-400/30 transition-all duration-300 hover:scale-105"
                   >
                     <div className="flex items-center">
                       <span className="text-2xl mr-3">📢</span>
-                      <span className="font-medium">Manage Notifications</span>
+                      <span className="font-medium text-violet-200">Manage Notifications</span>
                     </div>
-                    <span className="text-purple-600">→</span>
+                    <span className="text-violet-400">→</span>
                   </button>
 
                   <button 
                     onClick={() => router.push('/admin/wallets')}
-                    className="w-full flex items-center justify-between p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 rounded-lg border border-amber-400/30 transition-all duration-300 hover:scale-105"
                   >
                     <div className="flex items-center">
                       <span className="text-2xl mr-3">💼</span>
-                      <span className="font-medium">View Wallets</span>
+                      <span className="font-medium text-amber-200">View Wallets</span>
                     </div>
-                    <span className="text-green-600">→</span>
+                    <span className="text-amber-400">→</span>
                   </button>
 
                   <button 
                     onClick={() => router.push('/admin/transactions')}
-                    className="w-full flex items-center justify-between p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-rose-500/20 to-pink-500/20 hover:from-rose-500/30 hover:to-pink-500/30 rounded-lg border border-rose-400/30 transition-all duration-300 hover:scale-105"
                   >
                     <div className="flex items-center">
                       <span className="text-2xl mr-3">📋</span>
-                      <span className="font-medium">View Transactions</span>
+                      <span className="font-medium text-rose-200">View Transactions</span>
                     </div>
-                    <span className="text-purple-600">→</span>
+                    <span className="text-rose-400">→</span>
                   </button>
 
                   <button 
                     onClick={() => router.push('/admin/profile')}
-                    className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-slate-500/20 to-gray-500/20 hover:from-slate-500/30 hover:to-gray-500/30 rounded-lg border border-slate-400/30 transition-all duration-300 hover:scale-105"
                   >
                     <div className="flex items-center">
                       <span className="text-2xl mr-3">👤</span>
-                      <span className="font-medium">Admin Profile</span>
+                      <span className="font-medium text-slate-200">Admin Profile</span>
                     </div>
-                    <span className="text-gray-600">→</span>
+                    <span className="text-slate-400">→</span>
                   </button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Recent Activity */}
-            <Card>
+            {/* Premium Recent Activity */}
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Recent Activity</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {dashboardData.recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-center justify-between p-2">
+                    <div key={index} className="flex items-center justify-between p-2 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg border border-slate-600/30 hover:scale-105 transition-all duration-300">
                       <div className="flex items-center">
                         <div className={`w-2 h-2 rounded-full mr-3 ${
-                          activity.status === 'success' ? 'bg-green-500' :
-                          activity.status === 'info' ? 'bg-blue-500' :
-                          activity.status === 'warning' ? 'bg-yellow-500' : 'bg-gray-500'
+                          activity.status === 'success' ? 'bg-emerald-500' :
+                          activity.status === 'info' ? 'bg-cyan-500' :
+                          activity.status === 'warning' ? 'bg-amber-500' : 'bg-slate-500'
                         }`}></div>
-                        <span className="text-sm">{activity.message}</span>
+                        <span className="text-sm text-slate-200">{activity.message}</span>
                       </div>
-                      <span className="text-xs text-gray-500">{activity.time}</span>
+                      <span className="text-xs text-slate-400">{activity.time}</span>
                     </div>
                   ))}
                 </div>

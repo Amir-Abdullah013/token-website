@@ -25,41 +25,41 @@ export default function NotificationCard({
 
   const getNotificationColor = (type, status) => {
     if (status === 'read') {
-      return 'bg-gray-50 border-gray-200';
+      return 'bg-gradient-to-br from-slate-800/20 to-slate-900/20 border border-slate-600/30';
     }
     
     switch (type) {
       case 'success':
-        return 'bg-green-50 border-green-200';
+        return 'bg-gradient-to-br from-emerald-500/20 via-green-500/20 to-teal-500/20 border border-emerald-400/30';
       case 'warning':
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30';
       case 'alert':
-        return 'bg-red-50 border-red-200';
+        return 'bg-gradient-to-br from-red-500/20 via-rose-500/20 to-pink-500/20 border border-red-400/30';
       case 'info':
       default:
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-indigo-500/20 border border-cyan-400/30';
     }
   };
 
   const getTypeColor = (type) => {
     switch (type) {
       case 'success':
-        return 'bg-green-100 text-green-800';
+        return 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30';
       case 'warning':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-400/30';
       case 'alert':
-        return 'bg-red-100 text-red-800';
+        return 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 border border-red-400/30';
       case 'info':
       default:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-400/30';
     }
   };
 
   if (compact) {
     return (
       <div
-        className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-md cursor-pointer ${getNotificationColor(notification.type, notification.status)} ${
-          notification.status === 'unread' ? 'ring-2 ring-blue-200' : ''
+        className={`p-3 rounded-lg border transition-all duration-300 hover:shadow-xl hover:scale-105 backdrop-blur-sm cursor-pointer ${getNotificationColor(notification.type, notification.status)} ${
+          notification.status === 'unread' ? 'ring-2 ring-cyan-400/50 shadow-lg shadow-cyan-500/20' : ''
         }`}
         onClick={() => onView && onView(notification.$id)}
       >
@@ -71,17 +71,17 @@ export default function NotificationCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <h3 className={`text-sm font-semibold ${
-                notification.status === 'unread' ? 'text-gray-900' : 'text-gray-700'
+                notification.status === 'unread' ? 'text-white' : 'text-slate-300'
               }`}>
                 {notification.title}
               </h3>
               {notification.status === 'unread' && (
-                <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-cyan-400 rounded-full flex-shrink-0"></div>
               )}
             </div>
             
             <p className={`text-xs mt-1 ${
-              notification.status === 'unread' ? 'text-gray-800' : 'text-gray-600'
+              notification.status === 'unread' ? 'text-slate-200' : 'text-slate-400'
             }`}>
               {notification.message.length > 100 
                 ? `${notification.message.substring(0, 100)}...` 
@@ -95,18 +95,18 @@ export default function NotificationCard({
                   {notification.type}
                 </span>
                 {notification.userId && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 border border-violet-400/30">
                     Personal
                   </span>
                 )}
                 {!notification.userId && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-slate-500/20 to-gray-500/20 text-slate-300 border border-slate-400/30">
                     Global
                   </span>
                 )}
               </div>
               
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-slate-400">
                 {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
               </span>
             </div>
@@ -118,8 +118,8 @@ export default function NotificationCard({
 
   return (
     <div
-      className={`p-4 rounded-lg border transition-all duration-200 hover:shadow-md cursor-pointer ${getNotificationColor(notification.type, notification.status)} ${
-        notification.status === 'unread' ? 'ring-2 ring-blue-200' : ''
+      className={`p-4 rounded-lg border transition-all duration-300 hover:shadow-xl hover:scale-105 backdrop-blur-sm cursor-pointer ${getNotificationColor(notification.type, notification.status)} ${
+        notification.status === 'unread' ? 'ring-2 ring-cyan-400/50 shadow-lg shadow-cyan-500/20' : ''
       }`}
       onClick={() => onView && onView(notification.$id)}
     >
@@ -131,22 +131,22 @@ export default function NotificationCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
             <h3 className={`text-lg font-semibold ${
-              notification.status === 'unread' ? 'text-gray-900' : 'text-gray-700'
+              notification.status === 'unread' ? 'text-white' : 'text-slate-300'
             }`}>
               {notification.title}
             </h3>
             <div className="flex items-center space-x-2">
               {notification.status === 'unread' && (
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
               )}
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-slate-400">
                 {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
               </span>
             </div>
           </div>
           
           <p className={`mt-2 ${
-            notification.status === 'unread' ? 'text-gray-800' : 'text-gray-600'
+            notification.status === 'unread' ? 'text-slate-200' : 'text-slate-400'
           }`}>
             {notification.message.length > 150 
               ? `${notification.message.substring(0, 150)}...` 
@@ -160,12 +160,12 @@ export default function NotificationCard({
                 {notification.type}
               </span>
               {notification.userId && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 border border-violet-400/30">
                   Personal
                 </span>
               )}
               {!notification.userId && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-slate-500/20 to-gray-500/20 text-slate-300 border border-slate-400/30">
                   Global
                 </span>
               )}
@@ -177,7 +177,7 @@ export default function NotificationCard({
                   e.stopPropagation();
                   onMarkAsRead(notification.$id);
                 }}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                className="text-sm text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
               >
                 Mark as Read
               </button>

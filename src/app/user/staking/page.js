@@ -78,15 +78,15 @@ const StatusBadge = ({ status }) => {
   const getStatusStyles = () => {
     switch (status) {
       case 'ACTIVE':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-400/30';
       case 'COMPLETED':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30';
       case 'CLAIMED':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gradient-to-r from-slate-500/20 to-gray-500/20 text-slate-300 border border-slate-400/30';
       case 'REJECTED':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 border border-red-400/30';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gradient-to-r from-slate-500/20 to-gray-500/20 text-slate-300 border border-slate-400/30';
     }
   };
 
@@ -100,15 +100,15 @@ const StatusBadge = ({ status }) => {
 const LoadingSkeleton = () => (
   <>
     {[...Array(3)].map((_, i) => (
-    <tr key={i} className="border-b border-gray-200 animate-pulse">
-      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
-      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
-      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-12"></div></td>
-      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
-      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
-      <td className="px-4 py-3"><div className="h-6 bg-gray-200 rounded-full w-16"></div></td>
-      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
-      <td className="px-4 py-3"><div className="h-6 bg-gray-200 rounded w-20"></div></td>
+    <tr key={i} className="border-b border-slate-600/20 animate-pulse">
+      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
+      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-16"></div></td>
+      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-12"></div></td>
+      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-24"></div></td>
+      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-24"></div></td>
+      <td className="px-4 py-3"><div className="h-6 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-full w-16"></div></td>
+      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
+      <td className="px-4 py-3"><div className="h-6 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
     </tr>
   ))}
   </>
@@ -146,55 +146,55 @@ const StakingRow = ({ staking, onClaim }) => {
   const totalReturn = staking.amountStaked + rewardAmount;
 
   return (
-    <tr className="hover:bg-gray-50 transition-colors duration-150">
-      <td className="px-4 py-3 text-sm text-gray-900">
+    <tr className="hover:bg-slate-700/20 transition-colors duration-150">
+      <td className="px-4 py-3 text-sm text-white">
         {formatTiki(staking.amountStaked)} TIKI
       </td>
-      <td className="px-4 py-3 text-sm text-gray-900">
+      <td className="px-4 py-3 text-sm text-white">
         {staking.durationDays} days
       </td>
-      <td className="px-4 py-3 text-sm text-gray-900">
+      <td className="px-4 py-3 text-sm text-white">
         {staking.rewardPercent}%
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">
+      <td className="px-4 py-3 text-sm text-slate-300">
         {formatDate(staking.startDate)}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">
+      <td className="px-4 py-3 text-sm text-slate-300">
         {formatDate(staking.endDate)}
       </td>
       <td className="px-4 py-3">
         <StatusBadge status={staking.status} />
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">
+      <td className="px-4 py-3 text-sm text-slate-300">
         {staking.status === 'ACTIVE' && daysRemaining > 0 ? (
-          <span className="text-blue-600 font-medium">
+          <span className="text-cyan-400 font-medium">
             {daysRemaining} days left
           </span>
         ) : staking.status === 'COMPLETED' ? (
-          <span className="text-green-600 font-medium">
+          <span className="text-emerald-400 font-medium">
             Ready to claim
           </span>
         ) : staking.status === 'CLAIMED' ? (
-          <span className="text-gray-600">
+          <span className="text-slate-400">
             Claimed
           </span>
         ) : (
-          <span className="text-gray-500">—</span>
+          <span className="text-slate-500">—</span>
         )}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-900">
+      <td className="px-4 py-3 text-sm text-white">
         {staking.status === 'COMPLETED' ? (
           <Button
             onClick={() => onClaim(staking.id)}
             variant="success"
-            className="px-3 py-1 text-xs"
+            className="px-3 py-1 text-xs bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
           >
             Claim Reward
           </Button>
         ) : staking.status === 'CLAIMED' ? (
-          <span className="text-gray-500 text-xs">Claimed</span>
+          <span className="text-slate-400 text-xs">Claimed</span>
         ) : (
-          <span className="text-gray-400 text-xs">—</span>
+          <span className="text-slate-500 text-xs">—</span>
         )}
       </td>
     </tr>
@@ -233,10 +233,10 @@ const ToastContainer = ({ toasts, removeToast }) => (
     {toasts.map(toast => (
       <div
         key={toast.id}
-        className={`px-4 py-2 rounded-lg shadow-lg cursor-pointer transition-all duration-300 ${
+        className={`px-4 py-2 rounded-lg shadow-2xl cursor-pointer transition-all duration-300 backdrop-blur-sm border ${
           toast.type === 'success' 
-            ? 'bg-green-500 text-white hover:bg-green-600' 
-            : 'bg-red-500 text-white hover:bg-red-600'
+            ? 'bg-gradient-to-r from-emerald-500/90 to-green-500/90 text-white hover:from-emerald-600/90 hover:to-green-600/90 border-emerald-400/30' 
+            : 'bg-gradient-to-r from-red-500/90 to-rose-500/90 text-white hover:from-red-600/90 hover:to-rose-600/90 border-red-400/30'
         }`}
         onClick={() => removeToast(toast.id)}
       >
@@ -421,7 +421,7 @@ export default function StakingPage() {
     return (
       <Layout showSidebar={true}>
         <div className="flex justify-center items-center h-full">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
         </div>
       </Layout>
     );
@@ -433,11 +433,11 @@ export default function StakingPage() {
         <div className="flex justify-center items-center h-full">
           <div className="text-center">
             <div className="text-red-500 text-4xl mb-4">🔒</div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
-            <p className="text-gray-600 mb-4">Please sign in to access the staking page.</p>
+            <h2 className="text-xl font-semibold bg-gradient-to-r from-red-400 to-rose-400 bg-clip-text text-transparent mb-2">Authentication Required</h2>
+            <p className="text-slate-300 mb-4">Please sign in to access the staking page.</p>
             <button 
               onClick={() => router.push('/auth/signin')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 py-2 rounded-md hover:from-cyan-600 hover:to-blue-600 shadow-lg shadow-cyan-500/25"
             >
               Sign In
             </button>
@@ -451,28 +451,28 @@ export default function StakingPage() {
     <Layout showSidebar={true}>
       <div className="container mx-auto p-4">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Staking</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Staking</h1>
         </div>
 
-        {/* Current Balance */}
-        <Card className="mb-6">
+        {/* Premium Current Balance */}
+        <Card className="mb-6 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
           <CardHeader>
-            <CardTitle>Your TIKI Balance</CardTitle>
+            <CardTitle className="text-amber-200">Your TIKI Balance</CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-4xl font-bold text-gray-900">{formatTiki(tikiBalance)} TIKI</p>
+            <p className="text-4xl font-bold text-white">{formatTiki(tikiBalance)} TIKI</p>
           </CardContent>
         </Card>
 
-        {/* Staking Form */}
-        <Card className="mb-6">
+        {/* Premium Staking Form */}
+        <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Stake TIKI Tokens</CardTitle>
+            <CardTitle className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Stake TIKI Tokens</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleStake} className="space-y-4">
               <div>
-                <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="amount" className="block text-sm font-medium text-slate-300 mb-2">
                   Amount to Stake (TIKI)
                 </label>
                 <Input
@@ -484,29 +484,30 @@ export default function StakingPage() {
                   onChange={(e) => setStakingAmount(e.target.value)}
                   placeholder="Enter amount to stake"
                   disabled={isSubmitting}
+                  className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/30"
                 />
               </div>
 
               <div>
-                <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="duration" className="block text-sm font-medium text-slate-300 mb-2">
                   Staking Duration
                 </label>
                 <select
                   id="duration"
                   value={stakingDuration}
                   onChange={(e) => setStakingDuration(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400"
                   disabled={isSubmitting}
                 >
-                  <option value={7}>7 days (2% reward)</option>
-                  <option value={30}>30 days (10% reward)</option>
-                  <option value={90}>90 days (25% reward)</option>
+                  <option value={7} className="bg-slate-800 text-white">7 days (2% reward)</option>
+                  <option value={30} className="bg-slate-800 text-white">30 days (10% reward)</option>
+                  <option value={90} className="bg-slate-800 text-white">90 days (25% reward)</option>
                 </select>
               </div>
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
                 disabled={isSubmitting || !stakingAmount || parseFloat(stakingAmount) <= 0}
               >
                 {isSubmitting ? 'Creating Staking...' : 'Stake Now'}
@@ -515,41 +516,41 @@ export default function StakingPage() {
           </CardContent>
         </Card>
 
-        {/* My Stakings */}
-        <Card>
+        {/* Premium My Stakings */}
+        <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>My Stakings</CardTitle>
+            <CardTitle className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">My Stakings</CardTitle>
           </CardHeader>
           <CardContent>
             {errorState ? (
               <div className="text-center py-8">
                 <div className="text-red-500 text-4xl mb-4">⚠️</div>
-                <p className="text-red-600 mb-4">{errorState}</p>
-                <Button onClick={fetchStakings} variant="outline">
+                <p className="text-red-400 mb-4">{errorState}</p>
+                <Button onClick={fetchStakings} variant="outline" className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30">
                   Try Again
                 </Button>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-600/30">
+                  <thead className="bg-gradient-to-r from-slate-700/30 to-slate-800/30">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reward %</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Left</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Duration</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Reward %</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Start Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">End Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Time Left</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-gradient-to-br from-slate-800/20 to-slate-900/20 divide-y divide-slate-600/20">
                     {isLoading ? (
                       <LoadingSkeleton />
                     ) : stakings.length === 0 ? (
                       <tr>
-                        <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                        <td colSpan="8" className="px-4 py-8 text-center text-slate-400">
                           No stakings found. Start staking to earn rewards!
                         </td>
                       </tr>
@@ -562,6 +563,40 @@ export default function StakingPage() {
                 </table>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Premium Information Section */}
+        <Card className="mt-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Staking Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-4 rounded-lg border border-cyan-400/30">
+                <h4 className="text-cyan-200 font-semibold mb-2">How Staking Works</h4>
+                <p className="text-cyan-300 text-sm">
+                  Lock your TIKI tokens for a specified period to earn rewards. The longer you stake, the higher the reward percentage.
+                </p>
+              </div>
+              
+              <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 p-4 rounded-lg border border-emerald-400/30">
+                <h4 className="text-emerald-200 font-semibold mb-2">Reward Structure</h4>
+                <div className="text-emerald-300 text-sm space-y-1">
+                  <p>• 7 days: 2% reward</p>
+                  <p>• 30 days: 10% reward</p>
+                  <p>• 90 days: 25% reward</p>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-r from-violet-500/20 to-purple-500/20 p-4 rounded-lg border border-violet-400/30">
+                <h4 className="text-violet-200 font-semibold mb-2">Important Notes</h4>
+                <p className="text-violet-300 text-sm">
+                  Staked tokens are locked for the duration period. You can only claim rewards after the staking period ends. 
+                  Early withdrawal is not allowed.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

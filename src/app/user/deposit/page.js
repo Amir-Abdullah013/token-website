@@ -325,10 +325,10 @@ export default function DepositPage() {
 
   if (!mounted || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading...</p>
         </div>
       </div>
     );
@@ -341,89 +341,89 @@ export default function DepositPage() {
   return (
     <Layout showSidebar={true}>
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
+        {/* Premium Header */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
             <Button
               variant="ghost"
               onClick={() => router.back()}
-              className="mr-4"
+              className="mr-4 text-slate-300 hover:text-white hover:bg-slate-700/50"
             >
               ← Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Deposit Funds</h1>
-              <p className="text-gray-600 mt-1">Add money to your wallet via Binance</p>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Deposit Funds</h1>
+              <p className="text-slate-300 mt-1">Add money to your wallet via Binance</p>
             </div>
           </div>
         </div>
 
-        {/* Current Balances */}
+        {/* Premium Current Balances */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card>
+          <Card className="bg-gradient-to-br from-emerald-500/20 via-green-500/20 to-teal-500/20 border border-emerald-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/20">
             <CardHeader>
-              <CardTitle className="text-lg">USD Balance</CardTitle>
+              <CardTitle className="text-lg text-emerald-200">USD Balance</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-white">
                   {formatCurrency(usdBalance, 'USD')}
                 </h2>
-                <p className="text-sm text-gray-500">Available USD</p>
+                <p className="text-sm text-emerald-300">Available USD</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
             <CardHeader>
-              <CardTitle className="text-lg">Tiki Balance</CardTitle>
+              <CardTitle className="text-lg text-amber-200">Tiki Balance</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-white">
                   {formatTiki(tikiBalance)} TIKI
                 </h2>
-                <p className="text-sm text-gray-500">Available Tokens</p>
+                <p className="text-sm text-amber-300">Available Tokens</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Binance Deposit Instructions */}
-        <Card className="mb-6">
+        {/* Premium Binance Deposit Instructions */}
+        <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg">📋 Deposit Instructions</CardTitle>
+            <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">📋 Deposit Instructions</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-2">Step 1: Send Amount to Binance</h3>
-                <p className="text-blue-800 text-sm mb-3">
+              <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-4 rounded-lg border border-cyan-400/30">
+                <h3 className="font-semibold text-cyan-200 mb-2">Step 1: Send Amount to Binance</h3>
+                <p className="text-cyan-300 text-sm mb-3">
                   Send your amount to the Binance address below:
                 </p>
-                <div className="bg-white p-3 rounded border flex items-center justify-between">
-                  <code className="text-sm font-mono break-all flex-1 mr-3">{binanceAddress}</code>
+                <div className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 p-3 rounded border border-slate-500/30 flex items-center justify-between">
+                  <code className="text-sm font-mono break-all flex-1 mr-3 text-slate-300">{binanceAddress}</code>
                   <Button
                     type="button"
                     size="sm"
                     onClick={copyBinanceAddress}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-xs"
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white px-3 py-1 text-xs shadow-lg shadow-cyan-500/25"
                   >
                     📋 Copy
                   </Button>
                 </div>
               </div>
               
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-green-900 mb-2">Step 2: Submit Deposit Request</h3>
-                <p className="text-green-800 text-sm">
+              <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 p-4 rounded-lg border border-emerald-400/30">
+                <h3 className="font-semibold text-emerald-200 mb-2">Step 2: Submit Deposit Request</h3>
+                <p className="text-emerald-300 text-sm">
                   After sending amount, enter the USD equivalent amount and upload a screenshot of your transaction.
                 </p>
               </div>
               
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-yellow-900 mb-2">Step 3: Wait for Approval</h3>
-                <p className="text-yellow-800 text-sm">
+              <div className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 p-4 rounded-lg border border-amber-400/30">
+                <h3 className="font-semibold text-amber-200 mb-2">Step 3: Wait for Approval</h3>
+                <p className="text-amber-300 text-sm">
                   Our admin team will review your deposit request and approve it within 24 hours.
                 </p>
               </div>
@@ -431,16 +431,16 @@ export default function DepositPage() {
           </CardContent>
         </Card>
 
-        {/* Deposit Form */}
-        <Card>
+        {/* Premium Deposit Form */}
+        <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Submit Deposit Request</CardTitle>
+            <CardTitle className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Submit Deposit Request</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Currency Selection */}
               <div>
-                <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="currency" className="block text-sm font-medium text-slate-300 mb-2">
                   Select Currency *
                 </label>
                 <select
@@ -448,20 +448,20 @@ export default function DepositPage() {
                   name="currency"
                   value={formData.currency}
                   onChange={handleCurrencyChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400"
                   disabled={isSubmitting}
                 >
                   {CURRENCIES.map(currency => (
-                    <option key={currency.code} value={currency.code}>
+                    <option key={currency.code} value={currency.code} className="bg-slate-800 text-white">
                       {currency.symbol} {currency.name} ({currency.code})
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Amount Input */}
+              {/* Premium Amount Input */}
               <div>
-                <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="amount" className="block text-sm font-medium text-slate-300 mb-2">
                   Amount in {formData.currency} *
                 </label>
                 <div className="relative">
@@ -474,39 +474,39 @@ export default function DepositPage() {
                     value={formData.amount}
                     onChange={handleInputChange}
                     placeholder={`Enter amount in ${formData.currency}`}
-                    className={`pr-20 ${errors.amount ? 'border-red-500' : ''}`}
+                    className={`pr-20 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/30 ${errors.amount ? 'border-red-500' : ''}`}
                     disabled={isSubmitting}
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <span className="text-gray-500 text-sm">{formData.currency}</span>
+                    <span className="text-slate-400 text-sm">{formData.currency}</span>
                   </div>
                 </div>
                 {errors.amount && (
-                  <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
+                  <p className="mt-1 text-sm text-red-400">{errors.amount}</p>
                 )}
                 
-                {/* USD Conversion Display */}
+                {/* Premium USD Conversion Display */}
                 {formData.amount && convertedAmount > 0 && (
-                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <div className="mt-2 p-3 bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-emerald-400/30 rounded-md">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-green-800">
+                      <span className="text-sm text-emerald-200">
                         <strong>USD Equivalent:</strong> ${convertedAmount.toFixed(2)}
                       </span>
-                      <span className="text-xs text-green-600">
+                      <span className="text-xs text-emerald-300">
                         Rate: 1 {formData.currency} = ${(1 / exchangeRates[formData.currency]).toFixed(4)} USD
                       </span>
                     </div>
                   </div>
                 )}
                 
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-400">
                   Minimum: ${MIN_AMOUNT} USD | Maximum: ${MAX_AMOUNT} USD
                 </p>
               </div>
 
-              {/* Screenshot Upload */}
+              {/* Premium Screenshot Upload */}
               <div>
-                <label htmlFor="screenshot" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="screenshot" className="block text-sm font-medium text-slate-300 mb-2">
                   Transaction Screenshot *
                 </label>
                 <input
@@ -515,31 +515,31 @@ export default function DepositPage() {
                   type="file"
                   accept="image/jpeg,image/jpg,image/png"
                   onChange={handleFileChange}
-                  className={`block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${errors.screenshot ? 'border-red-500' : ''}`}
+                  className={`block w-full text-sm text-slate-200 placeholder-slate-300 placeholder-opacity-90 file:mr-4 file:py-2 file:px-4 file:rounded-full file:text-sm file:font-semibold file:bg-gradient-to-r file:from-emerald-500/20 file:to-green-500/20 file:text-emerald-200 hover:file:from-emerald-500/30 hover:file:to-green-500/30 file:border file:border-emerald-400/30 ${errors.screenshot ? 'border-red-500' : ''}`}
                   disabled={isSubmitting}
                 />
                 {errors.screenshot && (
-                  <p className="mt-1 text-sm text-red-600">{errors.screenshot}</p>
+                  <p className="mt-1 text-sm text-red-400">{errors.screenshot}</p>
                 )}
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-400">
                   Upload a screenshot of your Binance transaction (JPG, PNG, max 5MB)
                 </p>
               </div>
 
-              {/* Submit Button */}
+              {/* Premium Submit Buttons */}
               <div className="flex space-x-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => router.back()}
-                  className="flex-1"
+                  className="flex-1 bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                   disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  className="flex-1 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
@@ -558,10 +558,10 @@ export default function DepositPage() {
         </Card>
 
 
-        {/* Information Card */}
-        <Card className="mt-6">
+        {/* Premium Information Card */}
+        <Card className="mt-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg">Important Information</CardTitle>
+            <CardTitle className="text-lg bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Important Information</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -570,8 +570,8 @@ export default function DepositPage() {
                   <span className="text-2xl">⏱️</span>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-gray-900">Processing Time</h3>
-                  <p className="text-sm text-gray-600">Deposits are typically processed within 24 hours after admin review.</p>
+                  <h3 className="text-sm font-medium text-white">Processing Time</h3>
+                  <p className="text-sm text-slate-300">Deposits are typically processed within 24 hours after admin review.</p>
                 </div>
               </div>
               
@@ -580,8 +580,8 @@ export default function DepositPage() {
                   <span className="text-2xl">🔒</span>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-gray-900">Security</h3>
-                  <p className="text-sm text-gray-600">All transactions are verified by our admin team for security.</p>
+                  <h3 className="text-sm font-medium text-white">Security</h3>
+                  <p className="text-sm text-slate-300">All transactions are verified by our admin team for security.</p>
                 </div>
               </div>
               
@@ -590,8 +590,8 @@ export default function DepositPage() {
                   <span className="text-2xl">📞</span>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-gray-900">Support</h3>
-                  <p className="text-sm text-gray-600">Contact support if you have any questions about your deposit.</p>
+                  <h3 className="text-sm font-medium text-white">Support</h3>
+                  <p className="text-sm text-slate-300">Contact support if you have any questions about your deposit.</p>
                 </div>
               </div>
             </div>

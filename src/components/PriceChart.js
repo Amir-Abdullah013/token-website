@@ -141,19 +141,19 @@ const generateFallbackData = (timeFilter) => {
   };
 };
 
-// Custom tooltip component
+// Premium custom tooltip component
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-black/90 backdrop-blur-md p-4 border border-white/20 rounded-lg shadow-xl">
-        <p className="text-sm text-gray-300 mb-2">
+      <div className="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md p-4 border border-slate-600/30 rounded-lg shadow-2xl">
+        <p className="text-sm text-slate-300 mb-2 font-medium">
           {data.date} {data.time}
         </p>
-        <p className="text-xl font-bold text-white">
+        <p className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
           ${data.price.toFixed(6)}
         </p>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-slate-400 font-medium">
           Volume: {data.volume.toLocaleString()}
         </p>
       </div>
@@ -162,10 +162,12 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// Loading skeleton component
+// Premium loading skeleton component
 const LoadingSkeleton = () => (
   <div className="animate-pulse">
-    <div className="h-64 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg"></div>
+    <div className="h-64 bg-gradient-to-br from-slate-800/40 to-slate-900/40 rounded-lg border border-slate-600/20 backdrop-blur-sm">
+      <div className="h-full bg-gradient-to-br from-slate-700/30 to-slate-800/30 rounded-lg"></div>
+    </div>
   </div>
 );
 
@@ -241,19 +243,19 @@ const PriceChart = ({ className = '' }) => {
 
   return (
     <div className={`w-full h-full ${className}`}>
-      {/* Time Range Filter */}
+      {/* Premium Time Range Filter */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-300">Time Range:</span>
+          <span className="text-sm text-slate-300 font-medium">Time Range:</span>
           <div className="flex space-x-1">
             {TIME_FILTERS.map((filter) => (
               <button
                 key={filter.value}
                 onClick={() => handleFilterChange(filter.value)}
-                className={`text-xs px-3 py-1 rounded-md transition-all duration-200 ${
+                className={`text-xs px-3 py-1 rounded-md transition-all duration-200 font-medium ${
                   selectedFilter === filter.value
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                    : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white'
+                    ? 'bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30'
+                    : 'bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30'
                 }`}
               >
                 {filter.label}
@@ -263,12 +265,12 @@ const PriceChart = ({ className = '' }) => {
         </div>
       </div>
 
-      {/* Current Price Display */}
-      <div className="mb-6">
+      {/* Premium Current Price Display */}
+      <div className="mb-6 bg-gradient-to-r from-slate-800/40 to-slate-700/40 rounded-lg p-4 border border-slate-600/30 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-300 mb-1">Current Price</p>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-sm text-slate-300 mb-1 font-medium">Current Price</p>
+            <p className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
               {formatPrice(currentPrice)}
             </p>
           </div>
@@ -280,7 +282,7 @@ const PriceChart = ({ className = '' }) => {
                 ({((priceChange / (currentPrice - priceChange)) * 100).toFixed(2)}%)
               </span>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-slate-400 mt-1 font-medium">
               {selectedFilter === '1min' ? 'Last hour' :
                selectedFilter === '1h' ? 'Last 24 hours' :
                selectedFilter === '1d' ? 'Last 7 days' :
@@ -295,66 +297,79 @@ const PriceChart = ({ className = '' }) => {
       {isLoading ? (
         <LoadingSkeleton />
       ) : (
-        <div className="h-80">
+        <div className="h-80 bg-gradient-to-br from-slate-800/20 to-slate-900/20 rounded-lg p-4 border border-slate-600/20">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#64748B" opacity={0.2} />
               <XAxis 
                 dataKey="time"
-                stroke="#9CA3AF"
+                stroke="#94A3B8"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: '#9CA3AF' }}
+                tick={{ fill: '#94A3B8' }}
               />
               <YAxis 
-                stroke="#9CA3AF"
+                stroke="#94A3B8"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: '#9CA3AF' }}
+                tick={{ fill: '#94A3B8' }}
                 tickFormatter={(value) => `$${value.toFixed(6)}`}
               />
               <Tooltip content={<CustomTooltip />} />
               <defs>
                 <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                  <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                  <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.8}/>
+                  <stop offset="50%" stopColor="#3B82F6" stopOpacity={0.4}/>
+                  <stop offset="100%" stopColor="#6366F1" stopOpacity={0.1}/>
+                </linearGradient>
+                <linearGradient id="priceLine" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#06B6D4"/>
+                  <stop offset="50%" stopColor="#3B82F6"/>
+                  <stop offset="100%" stopColor="#6366F1"/>
                 </linearGradient>
               </defs>
               <Line
                 type="monotone"
                 dataKey="price"
-                stroke="#3B82F6"
+                stroke="url(#priceLine)"
                 strokeWidth={3}
                 dot={false}
-                activeDot={{ r: 6, fill: '#3B82F6', stroke: '#1E40AF', strokeWidth: 2 }}
+                activeDot={{ 
+                  r: 8, 
+                  fill: '#06B6D4', 
+                  stroke: '#0891B2', 
+                  strokeWidth: 3,
+                  filter: 'drop-shadow(0 0 6px rgba(6, 182, 212, 0.5))'
+                }}
                 fill="url(#priceGradient)"
               />
               <ReferenceLine 
                 y={currentPrice} 
                 stroke="#10B981" 
                 strokeDasharray="4 4"
-                strokeOpacity={0.7}
+                strokeOpacity={0.8}
+                strokeWidth={2}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {/* Chart Info */}
-      <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+      {/* Premium Chart Info */}
+      <div className="mt-4 flex items-center justify-between text-xs text-slate-400 bg-gradient-to-r from-slate-800/30 to-slate-700/30 rounded-lg p-3 border border-slate-600/20">
         <div className="flex items-center space-x-4">
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-            <span className="text-white">Price</span>
+            <div className="w-3 h-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mr-2 shadow-sm shadow-cyan-500/50"></div>
+            <span className="text-slate-200 font-medium">Price</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-green-500 rounded-full mr-2" style={{ opacity: 0.7 }}></div>
-            <span className="text-white">Current</span>
+            <div className="w-3 h-3 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full mr-2 shadow-sm shadow-emerald-500/50" style={{ opacity: 0.8 }}></div>
+            <span className="text-slate-200 font-medium">Current</span>
           </div>
         </div>
-        <div className="text-gray-300">
+        <div className="text-slate-300 font-medium">
           {chartData.length} data points
         </div>
       </div>

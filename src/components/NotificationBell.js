@@ -115,19 +115,19 @@ export default function NotificationBell() {
 
   const getNotificationColor = (type, status) => {
     if (status === 'READ') {
-      return 'bg-gray-50';
+      return 'bg-gradient-to-br from-slate-800/20 to-slate-900/20';
     }
     
     switch (type) {
       case 'SUCCESS':
-        return 'bg-green-50';
+        return 'bg-gradient-to-br from-emerald-500/20 via-green-500/20 to-teal-500/20';
       case 'WARNING':
-        return 'bg-yellow-50';
+        return 'bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20';
       case 'ALERT':
-        return 'bg-red-50';
+        return 'bg-gradient-to-br from-red-500/20 via-rose-500/20 to-pink-500/20';
       case 'INFO':
       default:
-        return 'bg-blue-50';
+        return 'bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-indigo-500/20';
     }
   };
 
@@ -137,10 +137,10 @@ export default function NotificationBell() {
 
   return (
     <div className="relative">
-      {/* Bell Icon */}
+      {/* Premium Bell Icon */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full"
+        className="relative p-2 text-slate-300 hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 rounded-full transition-colors"
       >
         <svg
           className="w-6 h-6"
@@ -156,9 +156,9 @@ export default function NotificationBell() {
           />
         </svg>
         
-        {/* Unread Badge */}
+        {/* Premium Unread Badge */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-rose-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center shadow-lg shadow-red-500/25 border border-red-400/30">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -173,39 +173,39 @@ export default function NotificationBell() {
             onClick={() => setIsOpen(false)}
           />
           
-          {/* Dropdown Content */}
-          <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-            {/* Header */}
-            <div className="px-4 py-3 border-b border-gray-200">
+          {/* Premium Dropdown Content */}
+          <div className="absolute right-0 mt-2 w-80 bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-sm rounded-lg shadow-2xl shadow-slate-900/50 border border-slate-600/30 z-20">
+            {/* Premium Header */}
+            <div className="px-4 py-3 border-b border-slate-600/30">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                <h3 className="text-lg font-semibold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Notifications</h3>
                 <button
                   onClick={handleViewAll}
-                  className="text-sm text-blue-600 hover:text-blue-800"
+                  className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
                 >
                   View all
                 </button>
               </div>
               {unreadCount > 0 && (
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-slate-300 mt-1">
                   {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
                 </p>
               )}
             </div>
 
-            {/* Notifications List */}
+            {/* Premium Notifications List */}
             <div className="max-h-96 overflow-y-auto">
               {notifications.length === 0 ? (
                 <div className="px-4 py-8 text-center">
-                  <div className="text-gray-400 text-4xl mb-2">🔔</div>
-                  <p className="text-gray-600">No notifications yet</p>
+                  <div className="text-slate-400 text-4xl mb-2">🔔</div>
+                  <p className="text-slate-300">No notifications yet</p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-slate-600/30">
                   {notifications.map((notification, index) => (
                     <div
                       key={notification.id || notification.$id || `notification-${index}`}
-                      className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${getNotificationColor(notification.type, notification.status)}`}
+                      className={`px-4 py-3 hover:bg-slate-700/20 cursor-pointer transition-all duration-300 ${getNotificationColor(notification.type, notification.status)}`}
                       onClick={() => handleViewNotification(notification.id || notification.$id)}
                     >
                       <div className="flex items-start space-x-3">
@@ -216,16 +216,16 @@ export default function NotificationBell() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <h4 className={`text-sm font-medium ${
-                              notification.status === 'UNREAD' ? 'text-gray-900' : 'text-gray-700'
+                              notification.status === 'UNREAD' ? 'text-white' : 'text-slate-300'
                             }`}>
                               {notification.title}
                             </h4>
                             {notification.status === 'UNREAD' && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
+                              <div className="w-2 h-2 bg-cyan-400 rounded-full flex-shrink-0"></div>
                             )}
                           </div>
                           
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                          <p className="text-sm text-slate-300 mt-1 line-clamp-2">
                             {notification.message.length > 80 
                               ? `${notification.message.substring(0, 80)}...` 
                               : notification.message
@@ -233,7 +233,7 @@ export default function NotificationBell() {
                           </p>
                           
                           <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-slate-400">
                               {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                             </span>
                             
@@ -243,7 +243,7 @@ export default function NotificationBell() {
                                   e.stopPropagation();
                                   handleMarkAsRead(notification.$id);
                                 }}
-                                className="text-xs text-blue-600 hover:text-blue-800"
+                                className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
                               >
                                 Mark as read
                               </button>
@@ -257,12 +257,12 @@ export default function NotificationBell() {
               )}
             </div>
 
-            {/* Footer */}
+            {/* Premium Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 py-3 border-t border-gray-200">
+              <div className="px-4 py-3 border-t border-slate-600/30">
                 <button
                   onClick={handleViewAll}
-                  className="w-full text-center text-sm text-blue-600 hover:text-blue-800"
+                  className="w-full text-center text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
                 >
                   View all notifications
                 </button>

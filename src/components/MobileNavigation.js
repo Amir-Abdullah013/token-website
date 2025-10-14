@@ -45,12 +45,12 @@ const MobileNavigation = ({ user }) => {
   }
   
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-black/20 backdrop-blur-md border-t border-white/10 z-50 shadow-lg">
-      {/* Mode indicator */}
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-md border-t border-slate-600/30 z-50 shadow-2xl">
+      {/* Premium Mode indicator */}
       <div className={`px-4 py-1 text-xs font-medium text-center ${
         isAdminPage 
-          ? 'bg-red-500/20 text-red-400 border-b border-red-500/30' 
-          : 'bg-blue-500/20 text-blue-400 border-b border-blue-500/30'
+          ? 'bg-gradient-to-r from-rose-500/20 to-red-500/20 text-rose-400 border-b border-rose-500/30' 
+          : 'bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-400 border-b border-emerald-500/30'
       }`}>
         {isAdminPage ? '⚙️ Admin Mode' : '👤 User Mode'}
       </div>
@@ -62,8 +62,8 @@ const MobileNavigation = ({ user }) => {
             className={`
               flex flex-col items-center justify-center space-y-1 px-1 py-2 transition-all duration-200
               ${isActive(item.href)
-                ? 'text-white bg-gradient-to-t from-blue-500/20 to-purple-500/20 border-t-2 border-blue-400'
-                : 'text-gray-400 hover:text-white hover:bg-white/10'
+                ? 'text-white bg-gradient-to-t from-cyan-500/20 via-blue-500/20 to-indigo-500/20 border-t-2 border-cyan-400 shadow-lg shadow-cyan-500/10'
+                : 'text-slate-400 hover:text-white hover:bg-gradient-to-t hover:from-slate-700/20 hover:to-slate-600/20'
               }
             `}
           >

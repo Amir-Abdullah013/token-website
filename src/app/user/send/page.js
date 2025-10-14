@@ -47,15 +47,15 @@ const StatusBadge = ({ status }) => {
   const getStatusStyles = () => {
     switch (status) {
       case 'COMPLETED':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30';
       case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-400/30';
       case 'FAILED':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 border border-red-400/30';
       case 'CANCELLED':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gradient-to-r from-slate-500/20 to-gray-500/20 text-slate-300 border border-slate-400/30';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gradient-to-r from-slate-500/20 to-gray-500/20 text-slate-300 border border-slate-400/30';
     }
   };
 
@@ -81,26 +81,26 @@ const TransferRow = ({ transfer, type }) => {
   };
 
   return (
-    <tr className="hover:bg-gray-50 transition-colors duration-150">
+    <tr className="hover:bg-slate-700/20 transition-colors duration-150">
       <td className="px-4 py-3 text-sm">
         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
           type === 'sent' 
-            ? 'bg-orange-100 text-orange-800' 
-            : 'bg-green-100 text-green-800'
+            ? 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-300 border border-orange-400/30' 
+            : 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30'
         }`}>
           {type === 'sent' ? 'Sent' : 'Received'}
         </span>
       </td>
-      <td className="px-4 py-3 text-sm text-gray-900">
+      <td className="px-4 py-3 text-sm text-white">
         {type === 'sent' ? transfer.recipientTikiId : transfer.senderTikiId}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+      <td className="px-4 py-3 text-sm text-white font-medium">
         {formatTiki(transfer.amount)} TIKI
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">
+      <td className="px-4 py-3 text-sm text-slate-300">
         {transfer.note || '—'}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">
+      <td className="px-4 py-3 text-sm text-slate-300">
         {formatDate(transfer.createdAt)}
       </td>
       <td className="px-4 py-3">
@@ -286,7 +286,7 @@ export default function SendTokensPage() {
     return (
       <Layout showSidebar={true}>
         <div className="flex justify-center items-center h-full">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
         </div>
       </Layout>
     );
@@ -295,30 +295,30 @@ export default function SendTokensPage() {
   return (
     <Layout showSidebar={true}>
       <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Send TIKI Tokens</h1>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-6">Send TIKI Tokens</h1>
 
-        {/* User Balance */}
-        <Card className="mb-6">
+        {/* Premium User Balance */}
+        <Card className="mb-6 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
           <CardHeader>
-            <CardTitle>Your TIKI Balance</CardTitle>
+            <CardTitle className="text-amber-200">Your TIKI Balance</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-center">
-              <p className="text-3xl font-bold text-gray-900">{formatTiki(tikiBalance)} TIKI</p>
-              <p className="text-sm text-gray-500 mt-1">Available for transfer</p>
+              <p className="text-3xl font-bold text-white">{formatTiki(tikiBalance)} TIKI</p>
+              <p className="text-sm text-amber-300 mt-1">Available for transfer</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Send Form */}
-        <Card className="mb-6">
+        {/* Premium Send Form */}
+        <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Send Tokens to Another User</CardTitle>
+            <CardTitle className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Send Tokens to Another User</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="recipientTikiId" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="recipientTikiId" className="block text-sm font-medium text-slate-300 mb-2">
                   Recipient TIKI ID *
                 </label>
                 <Input
@@ -328,19 +328,19 @@ export default function SendTokensPage() {
                   value={formData.recipientTikiId}
                   onChange={handleInputChange}
                   placeholder="Enter recipient's TIKI ID (e.g., TIKI-USER-12345678)"
-                  className={errors.recipientTikiId ? 'border-red-500' : ''}
+                  className={`bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30 ${errors.recipientTikiId ? 'border-red-500' : ''}`}
                   disabled={isSubmitting}
                 />
                 {errors.recipientTikiId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.recipientTikiId}</p>
+                  <p className="mt-1 text-sm text-red-400">{errors.recipientTikiId}</p>
                 )}
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-400">
                   The recipient must be registered on Tiki with this TIKI ID
                 </p>
               </div>
 
               <div>
-                <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="amount" className="block text-sm font-medium text-slate-300 mb-2">
                   Amount (TIKI) *
                 </label>
                 <Input
@@ -352,19 +352,19 @@ export default function SendTokensPage() {
                   value={formData.amount}
                   onChange={handleInputChange}
                   placeholder="Enter amount to send"
-                  className={errors.amount ? 'border-red-500' : ''}
+                  className={`bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30 ${errors.amount ? 'border-red-500' : ''}`}
                   disabled={isSubmitting}
                 />
                 {errors.amount && (
-                  <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
+                  <p className="mt-1 text-sm text-red-400">{errors.amount}</p>
                 )}
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-400">
                   Maximum: {formatTiki(tikiBalance)} TIKI
                 </p>
               </div>
 
               <div>
-                <label htmlFor="note" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="note" className="block text-sm font-medium text-slate-300 mb-2">
                   Note (Optional)
                 </label>
                 <Input
@@ -374,16 +374,17 @@ export default function SendTokensPage() {
                   value={formData.note}
                   onChange={handleInputChange}
                   placeholder="Add a message (optional)"
+                  className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30"
                   disabled={isSubmitting}
                 />
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-400">
                   A short message to include with the transfer
                 </p>
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-600 hover:from-violet-600 hover:via-purple-600 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 border border-violet-400/30"
                 disabled={isSubmitting || !formData.recipientTikiId || !formData.amount}
               >
                 {isSubmitting ? 'Processing...' : 'Send Tokens'}
@@ -392,32 +393,32 @@ export default function SendTokensPage() {
           </CardContent>
         </Card>
 
-        {/* Transfer History */}
-        <Card>
+        {/* Premium Transfer History */}
+        <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Transfer History</CardTitle>
+            <CardTitle className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">Transfer History</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoadingTransfers ? (
               <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
               </div>
             ) : !transfers || transfers.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No transfers yet</p>
+              <p className="text-center text-slate-400 py-8">No transfers yet</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-600/30">
+                  <thead className="bg-gradient-to-r from-slate-700/30 to-slate-800/30">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Note</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Type</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Note</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-gradient-to-br from-slate-800/20 to-slate-900/20 divide-y divide-slate-600/20">
                     {transfers.map((transfer) => (
                       <TransferRow
                         key={transfer.id}
@@ -432,43 +433,43 @@ export default function SendTokensPage() {
           </CardContent>
         </Card>
 
-        {/* Confirmation Modal */}
+        {/* Premium Confirmation Modal */}
         {showConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-lg shadow-2xl max-w-md w-full border border-slate-600/30">
               <div className="p-6">
-                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-blue-100 rounded-full mb-4">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-gradient-to-r from-violet-500/20 to-purple-500/20 rounded-full mb-4 border border-violet-400/30">
                   <span className="text-2xl">💸</span>
                 </div>
                 
-                <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                <h3 className="text-lg font-semibold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent text-center mb-2">
                   Confirm Transfer
                 </h3>
                 
-                <p className="text-gray-600 text-center mb-6">
+                <p className="text-slate-300 text-center mb-6">
                   You are about to send TIKI tokens to another user.
                 </p>
                 
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg p-4 mb-6 border border-slate-600/30">
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Recipient:</span>
-                      <span className="font-semibold text-gray-900">{formData.recipientTikiId}</span>
+                      <span className="text-slate-400">Recipient:</span>
+                      <span className="font-semibold text-white">{formData.recipientTikiId}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Amount:</span>
-                      <span className="font-semibold text-gray-900">{formatTiki(parseFloat(formData.amount))} TIKI</span>
+                      <span className="text-slate-400">Amount:</span>
+                      <span className="font-semibold text-white">{formatTiki(parseFloat(formData.amount))} TIKI</span>
                     </div>
                     {formData.note && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Note:</span>
-                        <span className="font-semibold text-gray-900">{formData.note}</span>
+                        <span className="text-slate-400">Note:</span>
+                        <span className="font-semibold text-white">{formData.note}</span>
                       </div>
                     )}
-                    <div className="border-t pt-3">
+                    <div className="border-t border-slate-600/30 pt-3">
                       <div className="flex justify-between">
-                        <span className="text-gray-900 font-semibold">Your Balance After:</span>
-                        <span className="font-bold text-blue-600">{formatTiki(tikiBalance - parseFloat(formData.amount))} TIKI</span>
+                        <span className="text-white font-semibold">Your Balance After:</span>
+                        <span className="font-bold text-cyan-400">{formatTiki(tikiBalance - parseFloat(formData.amount))} TIKI</span>
                       </div>
                     </div>
                   </div>
@@ -478,13 +479,13 @@ export default function SendTokensPage() {
                   <Button
                     onClick={cancelTransfer}
                     variant="outline"
-                    className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                    className="flex-1 bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={confirmTransfer}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    className="flex-1 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-600 hover:from-violet-600 hover:via-purple-600 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 border border-violet-400/30"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? 'Sending...' : 'Confirm Send'}

@@ -227,10 +227,10 @@ export default function TradePage() {
   if (!mounted || loading) {
     return (
       <Layout showSidebar={true}>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading trading interface...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+            <p className="text-slate-300">Loading trading interface...</p>
           </div>
         </div>
       </Layout>
@@ -241,10 +241,10 @@ export default function TradePage() {
   if (!isAuthenticated || !user) {
     return (
       <Layout showSidebar={true}>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Redirecting to sign in...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+            <p className="text-slate-300">Redirecting to sign in...</p>
           </div>
         </div>
       </Layout>
@@ -253,19 +253,20 @@ export default function TradePage() {
 
   return (
     <Layout showSidebar={true}>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white shadow-sm border-b">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        {/* Premium Header */}
+        <div className="bg-gradient-to-r from-slate-800/40 via-slate-700/30 to-slate-800/40 shadow-xl border-b border-slate-600/30 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Trading</h1>
-                <p className="text-gray-600">Trade cryptocurrencies with advanced tools</p>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Trading</h1>
+                <p className="text-slate-300">Trade cryptocurrencies with advanced tools</p>
               </div>
               <div className="flex items-center space-x-4">
                 <Button 
                   variant="outline"
                   onClick={() => router.push('/user/dashboard')}
+                  className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                 >
                   Back to Dashboard
                 </Button>
@@ -274,17 +275,17 @@ export default function TradePage() {
           </div>
         </div>
 
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b">
+        {/* Premium Mobile Header */}
+        <div className="lg:hidden bg-gradient-to-r from-slate-800/40 via-slate-700/30 to-slate-800/40 border-b border-slate-600/30 backdrop-blur-sm">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Trading</h1>
-                <p className="text-xs text-gray-600">Trade Tiki Tokens</p>
+                <h1 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Trading</h1>
+                <p className="text-xs text-slate-300">Trade Tiki Tokens</p>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-blue-600">
+                <div className="w-8 h-8 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-full flex items-center justify-center border border-cyan-400/30">
+                  <span className="text-sm font-medium text-cyan-300">
                     {user?.name?.charAt(0) || 'U'}
                   </span>
                 </div>
@@ -295,62 +296,62 @@ export default function TradePage() {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
-          {/* Real-time Balance Display */}
+          {/* Premium Real-time Balance Display */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card>
+            <Card className="bg-gradient-to-br from-emerald-500/20 via-green-500/20 to-teal-500/20 border border-emerald-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/20">
               <CardHeader>
-                <CardTitle className="text-lg">USD Balance</CardTitle>
+                <CardTitle className="text-lg text-emerald-200">USD Balance</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-white">
                     {formatCurrency(usdBalance, 'USD')}
                   </h2>
-                  <p className="text-sm text-gray-500">Available for Trading</p>
+                  <p className="text-sm text-emerald-300">Available for Trading</p>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
               <CardHeader>
-                <CardTitle className="text-lg">Tiki Balance</CardTitle>
+                <CardTitle className="text-lg text-amber-200">Tiki Balance</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-white">
                     {formatTiki(tikiBalance)} TIKI
                   </h2>
-                  <p className="text-sm text-gray-500">Available Tokens</p>
+                  <p className="text-sm text-amber-300">Available Tokens</p>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-indigo-500/20 border border-cyan-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/20">
               <CardHeader>
-                <CardTitle className="text-lg">Current Tiki Price</CardTitle>
+                <CardTitle className="text-lg text-cyan-200">Current Tiki Price</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <h2 className="text-2xl font-bold text-blue-600">
+                  <h2 className="text-2xl font-bold text-white">
                     {formatCurrency(tikiPrice, 'USD')}
                   </h2>
-                  <p className="text-sm text-gray-500">Per Token</p>
+                  <p className="text-sm text-cyan-300">Per Token</p>
                 </div>
               </CardContent>
             </Card>
           </div>
-          {/* Tiki Token Information */}
+          {/* Premium Tiki Token Information */}
           <div className="lg:hidden mb-6">
-            <Card>
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
               <CardHeader className="p-4">
-                <CardTitle className="text-lg">Tiki Token Trading</CardTitle>
+                <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Tiki Token Trading</CardTitle>
               </CardHeader>
               <CardContent className="p-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600 mb-2">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
                     TIKI Token
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-slate-300">
                     Trade Tiki tokens with real-time price updates
                   </div>
                 </div>
@@ -361,43 +362,43 @@ export default function TradePage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
             {/* Left Column - Trading Interface */}
             <div className="lg:col-span-1 space-y-4 lg:space-y-6">
-              {/* Tiki Token Information - Desktop Only */}
-              <Card className="hidden lg:block">
+              {/* Premium Tiki Token Information - Desktop Only */}
+              <Card className="hidden lg:block bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Tiki Token</CardTitle>
+                  <CardTitle className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Tiki Token</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-blue-600 mb-2">
+                    <div className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
                       TIKI
                     </div>
-                    <div className="text-sm text-gray-600 mb-4">
+                    <div className="text-sm text-slate-300 mb-4">
                       Tiki Token Trading
                     </div>
-                    <div className="text-lg font-semibold">
+                    <div className="text-lg font-semibold text-white">
                       {formatCurrency(tikiPrice, 'USD')}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-slate-400">
                       Current Price
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Trading Form */}
-              <Card>
+              {/* Premium Trading Form */}
+              <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Tiki Trading Panel</CardTitle>
+                  <CardTitle className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Tiki Trading Panel</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {/* Buy/Sell Toggle */}
-                    <div className="flex bg-gray-100 rounded-lg p-1">
+                    {/* Premium Buy/Sell Toggle */}
+                    <div className="flex bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg p-1 border border-slate-600/30">
                       <button
                         className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all duration-200 ${
                           tradeType === 'buy'
-                            ? 'bg-green-500 text-white'
-                            : 'text-gray-700 hover:text-gray-900'
+                            ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/25'
+                            : 'text-slate-300 hover:text-white hover:bg-gradient-to-r hover:from-slate-600/30 hover:to-slate-700/30'
                         }`}
                         onClick={() => setTradeType('buy')}
                       >
@@ -406,8 +407,8 @@ export default function TradePage() {
                       <button
                         className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all duration-200 ${
                           tradeType === 'sell'
-                            ? 'bg-red-500 text-white'
-                            : 'text-gray-700 hover:text-gray-900'
+                            ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/25'
+                            : 'text-slate-300 hover:text-white hover:bg-gradient-to-r hover:from-slate-600/30 hover:to-slate-700/30'
                         }`}
                         onClick={() => setTradeType('sell')}
                       >
@@ -417,22 +418,22 @@ export default function TradePage() {
 
                     {/* Order Type */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
                         Order Type
                       </label>
                       <select
                         value={orderType}
                         onChange={(e) => setOrderType(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400"
                       >
-                        <option value="market">Market Order</option>
-                        <option value="limit">Limit Order</option>
+                        <option value="market" className="bg-slate-800 text-white">Market Order</option>
+                        <option value="limit" className="bg-slate-800 text-white">Limit Order</option>
                       </select>
                     </div>
 
                     {/* Amount */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
                         {tradeType === 'buy' ? 'USD Amount to Spend' : 'Tiki Tokens to Sell'}
                       </label>
                       <Input
@@ -441,14 +442,15 @@ export default function TradePage() {
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         step="0.0001"
+                        className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30"
                       />
                       {tradeType === 'buy' && amount && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-slate-400 mt-1">
                           You will receive: {formatTiki(parseFloat(amount) / tikiPrice)} TIKI
                         </p>
                       )}
                       {tradeType === 'sell' && amount && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-slate-400 mt-1">
                           You will receive: {formatCurrency(parseFloat(amount) * tikiPrice, 'USD')}
                         </p>
                       )}
@@ -457,7 +459,7 @@ export default function TradePage() {
                     {/* Price (for limit orders) */}
                     {orderType === 'limit' && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
                           Price (USD)
                         </label>
                         <Input
@@ -466,24 +468,25 @@ export default function TradePage() {
                           value={price}
                           onChange={(e) => setPrice(e.target.value)}
                           step="0.01"
+                          className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30"
                         />
                       </div>
                     )}
 
                     {/* Total */}
-                    <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="p-3 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg border border-slate-600/30">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Total:</span>
-                        <span className="font-semibold">${total.toFixed(2)}</span>
+                        <span className="text-slate-300">Total:</span>
+                        <span className="font-semibold text-white">${total.toFixed(2)}</span>
                       </div>
                     </div>
 
-                    {/* Trade Button */}
+                    {/* Premium Trade Button */}
                     <Button
                       className={`w-full ${
                         tradeType === 'buy'
-                          ? 'bg-green-600 hover:bg-green-700'
-                          : 'bg-red-600 hover:bg-red-700'
+                          ? 'bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30'
+                          : 'bg-gradient-to-r from-red-500 via-rose-500 to-pink-600 hover:from-red-600 hover:via-rose-600 hover:to-pink-700 text-white shadow-lg shadow-red-500/25 border border-red-400/30'
                       }`}
                       onClick={handleTrade}
                       disabled={!amount || parseFloat(amount) <= 0 || isTrading}
@@ -507,38 +510,38 @@ export default function TradePage() {
               {/* Tiki Price Chart */}
               <TikiPriceChart />
 
-              {/* Market Overview */}
-              <Card>
+              {/* Premium Market Overview */}
+              <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Market Overview</CardTitle>
+                  <CardTitle className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Market Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-center p-4 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg border border-cyan-400/30">
+                      <div className="text-2xl font-bold text-white">
                         ${marketData.price?.toLocaleString() || '0'}
                       </div>
-                      <div className="text-sm text-gray-600">Current Price</div>
+                      <div className="text-sm text-cyan-300">Current Price</div>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center p-4 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-lg border border-emerald-400/30">
                       <div className={`text-2xl font-bold ${
-                        marketData.change >= 0 ? 'text-green-600' : 'text-red-600'
+                        marketData.change >= 0 ? 'text-emerald-400' : 'text-red-400'
                       }`}>
                         {marketData.change >= 0 ? '+' : ''}{marketData.change}%
                       </div>
-                      <div className="text-sm text-gray-600">24h Change</div>
+                      <div className="text-sm text-emerald-300">24h Change</div>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-center p-4 bg-gradient-to-br from-violet-500/20 to-purple-500/20 rounded-lg border border-violet-400/30">
+                      <div className="text-2xl font-bold text-white">
                         ${marketData.volume?.toLocaleString() || '0'}
                       </div>
-                      <div className="text-sm text-gray-600">24h Volume</div>
+                      <div className="text-sm text-violet-300">24h Volume</div>
                     </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-center p-4 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-lg border border-amber-400/30">
+                      <div className="text-2xl font-bold text-white">
                         TIKI
                       </div>
-                      <div className="text-sm text-gray-600">Trading Pair</div>
+                      <div className="text-sm text-amber-300">Trading Pair</div>
                     </div>
                   </div>
                 </CardContent>
@@ -547,45 +550,45 @@ export default function TradePage() {
 
             {/* Right Column - Order Book and Recent Trades */}
             <div className="lg:col-span-1 space-y-4 lg:space-y-6">
-              {/* Order Book */}
-              <Card>
+              {/* Premium Order Book */}
+              <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Order Book</CardTitle>
+                  <CardTitle className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">Order Book</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     {/* Asks (Sell Orders) */}
-                    <div className="text-sm font-medium text-red-600 mb-2">Sell Orders</div>
+                    <div className="text-sm font-medium text-red-300 mb-2">Sell Orders</div>
                     {orderBook.asks.slice(0, 5).map((ask, index) => (
                       <div key={index} className="flex justify-between text-sm">
-                        <span className="text-red-600">{ask.price}</span>
-                        <span className="text-gray-600">{ask.amount}</span>
+                        <span className="text-red-400">{ask.price}</span>
+                        <span className="text-slate-300">{ask.amount}</span>
                       </div>
                     ))}
                     
                     {/* Spread */}
-                    <div className="border-t border-gray-200 my-2 pt-2">
-                      <div className="text-center text-sm text-gray-600">
+                    <div className="border-t border-slate-600/30 my-2 pt-2">
+                      <div className="text-center text-sm text-slate-400">
                         Spread: ${(parseFloat(orderBook.asks[0]?.price || 0) - parseFloat(orderBook.bids[0]?.price || 0)).toFixed(2)}
                       </div>
                     </div>
                     
                     {/* Bids (Buy Orders) */}
-                    <div className="text-sm font-medium text-green-600 mb-2">Buy Orders</div>
+                    <div className="text-sm font-medium text-emerald-300 mb-2">Buy Orders</div>
                     {orderBook.bids.slice(0, 5).map((bid, index) => (
                       <div key={index} className="flex justify-between text-sm">
-                        <span className="text-green-600">{bid.price}</span>
-                        <span className="text-gray-600">{bid.amount}</span>
+                        <span className="text-emerald-400">{bid.price}</span>
+                        <span className="text-slate-300">{bid.amount}</span>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Recent Trades */}
-              <Card>
+              {/* Premium Recent Trades */}
+              <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Recent Trades</CardTitle>
+                  <CardTitle className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Recent Trades</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -593,13 +596,13 @@ export default function TradePage() {
                       <div key={trade.id} className="flex justify-between text-sm">
                         <div className="flex items-center space-x-2">
                           <span className={`w-2 h-2 rounded-full ${
-                            trade.type === 'buy' ? 'bg-green-500' : 'bg-red-500'
+                            trade.type === 'buy' ? 'bg-emerald-500' : 'bg-red-500'
                           }`}></span>
-                          <span className="text-gray-600">{trade.time}</span>
+                          <span className="text-slate-300">{trade.time}</span>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium">${trade.price}</div>
-                          <div className="text-gray-500">{trade.amount}</div>
+                          <div className="font-medium text-white">${trade.price}</div>
+                          <div className="text-slate-400">{trade.amount}</div>
                         </div>
                       </div>
                     ))}

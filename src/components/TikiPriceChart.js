@@ -99,19 +99,19 @@ const generateTikiData = (timeFilter, currentPrice) => {
   return data;
 };
 
-// Custom tooltip component for Tiki
+// Premium custom tooltip component for Tiki
 const TikiTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-        <p className="text-sm text-gray-600 mb-1">
+      <div className="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md p-4 border border-slate-600/30 rounded-lg shadow-2xl">
+        <p className="text-sm text-slate-300 mb-2 font-medium">
           {data.date} {data.time}
         </p>
-        <p className="text-lg font-semibold text-gray-900">
+        <p className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
           ${data.price.toFixed(4)}
         </p>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-slate-400 font-medium">
           Volume: {data.volume.toLocaleString()} TIKI
         </p>
       </div>
@@ -120,10 +120,12 @@ const TikiTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// Loading skeleton component
+// Premium loading skeleton component
 const LoadingSkeleton = () => (
   <div className="animate-pulse">
-    <div className="h-64 bg-gray-200 rounded"></div>
+    <div className="h-64 bg-gradient-to-br from-slate-800/40 to-slate-900/40 rounded-lg border border-slate-600/20 backdrop-blur-sm">
+      <div className="h-full bg-gradient-to-br from-slate-700/30 to-slate-800/30 rounded-lg"></div>
+    </div>
   </div>
 );
 
@@ -199,24 +201,24 @@ const TikiPriceChart = ({ className = '' }) => {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Current Price Display */}
-          <div className="mb-6">
+          {/* Premium Current Price Display */}
+          <div className="mb-6 bg-gradient-to-r from-slate-800/40 to-slate-700/40 rounded-lg p-4 border border-slate-600/30 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Current Tiki Price</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-slate-300 font-medium">Current Tiki Price</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
                   {formatCurrency(currentPrice, 'USD')}
                 </p>
               </div>
               <div className="text-right">
-                <div className={`flex items-center text-sm ${getPriceChangeColor()}`}>
+                <div className={`flex items-center text-sm font-semibold ${getPriceChangeColor()}`}>
                   <span className="mr-1">{getPriceChangeIcon()}</span>
                   <span>
                     {priceChange >= 0 ? '+' : ''}{formatCurrency(priceChange, 'USD')} 
                     ({((priceChange / (currentPrice - priceChange)) * 100).toFixed(2)}%)
                   </span>
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-slate-400 font-medium">
                   {selectedFilter === '1min' ? 'Last hour' :
                    selectedFilter === '1h' ? 'Last 24 hours' :
                    selectedFilter === '1d' ? 'Last 7 days' :
@@ -227,61 +229,83 @@ const TikiPriceChart = ({ className = '' }) => {
             </div>
           </div>
 
-          {/* Chart */}
+          {/* Premium Chart */}
           {isLoading ? (
             <LoadingSkeleton />
           ) : (
-            <div className="h-64">
+            <div className="h-64 bg-gradient-to-br from-slate-800/20 to-slate-900/20 rounded-lg p-4 border border-slate-600/20">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#64748B" opacity={0.2} />
                   <XAxis 
                     dataKey="time"
-                    stroke="#666"
+                    stroke="#94A3B8"
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
+                    tick={{ fill: '#94A3B8' }}
                   />
                   <YAxis 
-                    stroke="#666"
+                    stroke="#94A3B8"
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
+                    tick={{ fill: '#94A3B8' }}
                     tickFormatter={(value) => `$${value.toFixed(4)}`}
                   />
                   <Tooltip content={<TikiTooltip />} />
+                  <defs>
+                    <linearGradient id="tikiPriceGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.8}/>
+                      <stop offset="50%" stopColor="#3B82F6" stopOpacity={0.4}/>
+                      <stop offset="100%" stopColor="#6366F1" stopOpacity={0.1}/>
+                    </linearGradient>
+                    <linearGradient id="tikiPriceLine" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#06B6D4"/>
+                      <stop offset="50%" stopColor="#3B82F6"/>
+                      <stop offset="100%" stopColor="#6366F1"/>
+                    </linearGradient>
+                  </defs>
                   <Line
                     type="monotone"
                     dataKey="price"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
+                    stroke="url(#tikiPriceLine)"
+                    strokeWidth={3}
                     dot={false}
-                    activeDot={{ r: 4, fill: '#3b82f6' }}
+                    activeDot={{ 
+                      r: 6, 
+                      fill: '#06B6D4', 
+                      stroke: '#0891B2', 
+                      strokeWidth: 2,
+                      filter: 'drop-shadow(0 0 4px rgba(6, 182, 212, 0.5))'
+                    }}
+                    fill="url(#tikiPriceGradient)"
                   />
                   <ReferenceLine 
                     y={currentPrice} 
-                    stroke="#10b981" 
-                    strokeDasharray="2 2"
-                    strokeOpacity={0.5}
+                    stroke="#10B981" 
+                    strokeDasharray="4 4"
+                    strokeOpacity={0.8}
+                    strokeWidth={2}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           )}
 
-          {/* Chart Info */}
-          <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+          {/* Premium Chart Info */}
+          <div className="mt-4 flex items-center justify-between text-xs text-slate-400 bg-gradient-to-r from-slate-800/30 to-slate-700/30 rounded-lg p-3 border border-slate-600/20">
             <div className="flex items-center space-x-4">
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                <span>Tiki Price</span>
+                <div className="w-3 h-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mr-2 shadow-sm shadow-cyan-500/50"></div>
+                <span className="text-slate-200 font-medium">Tiki Price</span>
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-2" style={{ opacity: 0.5 }}></div>
-                <span>Current</span>
+                <div className="w-3 h-3 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full mr-2 shadow-sm shadow-emerald-500/50" style={{ opacity: 0.8 }}></div>
+                <span className="text-slate-200 font-medium">Current</span>
               </div>
             </div>
-            <div>
+            <div className="text-slate-300 font-medium">
               {chartData.length} data points
             </div>
           </div>
