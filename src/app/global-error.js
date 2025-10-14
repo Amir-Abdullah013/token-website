@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 export default function GlobalError({ error, reset }) {
   useEffect(() => {
@@ -14,7 +13,7 @@ export default function GlobalError({ error, reset }) {
       <body className="min-h-screen bg-[#0B0E11] flex items-center justify-center p-6">
         <div className="text-center max-w-md">
           <div className="flex justify-center mb-6">
-            <AlertTriangle className="h-16 w-16 text-red-500" />
+            <div className="text-6xl">⚠️</div>
           </div>
           
           <h1 className="text-2xl font-bold text-white mb-4">
@@ -30,7 +29,7 @@ export default function GlobalError({ error, reset }) {
               onClick={reset}
               className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <span className="mr-2">🔄</span>
               Try Again
             </button>
             
@@ -38,7 +37,7 @@ export default function GlobalError({ error, reset }) {
               onClick={() => window.location.href = '/'}
               className="inline-flex items-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             >
-              <Home className="h-4 w-4 mr-2" />
+              <span className="mr-2">🏠</span>
               Go Home
             </button>
           </div>
