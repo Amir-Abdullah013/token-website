@@ -5,6 +5,10 @@ import { getGoogleOAuthConfig, logOAuthConfig, validateOAuthConfig } from '../..
 
 export async function GET(request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const switchAccount = searchParams.get('switch');
+    const timestamp = searchParams.get('t');
+    
     // Validate OAuth configuration
     const validation = validateOAuthConfig();
     
@@ -38,8 +42,15 @@ export async function GET(request) {
     console.log('  Google Client ID:', googleConfig.clientId);
     console.log('  Environment:', validation.config.environment);
     console.log('  Vercel URL:', process.env.VERCEL_URL || 'Not set');
+    console.log('  Account Switch:', switchAccount ? 'YES' : 'NO');
     
     // Build Google OAuth URL with proper parameters
+    let prompt = googleConfig.prompt;
+    if (switchAccount) {
+      // Force account selection when switching
+      prompt = 'select_account';
+    }
+    
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(googleConfig.clientId)}&` +
       `redirect_uri=${encodeURIComponent(googleConfig.redirectUri)}&` +
@@ -47,7 +58,7 @@ export async function GET(request) {
       `response_type=${googleConfig.responseType}&` +
       `state=google_${state}&` +
       `access_type=${googleConfig.accessType}&` +
-      `prompt=${googleConfig.prompt}`;
+      `prompt=${prompt}`;
 
     console.log('Generated Google OAuth URL:', googleAuthUrl);
 

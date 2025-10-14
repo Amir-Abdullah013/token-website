@@ -179,10 +179,39 @@ export default function UserDashboard() {
       const urlParams = new URLSearchParams(window.location.search);
       const oauthSuccess = urlParams.get('oauth_success');
       const provider = urlParams.get('provider');
+      const userEmail = urlParams.get('userEmail');
+      const userName = urlParams.get('userName');
+      const userId = urlParams.get('userId');
+      const userPicture = urlParams.get('userPicture');
       
-      if (oauthSuccess === 'true' && provider) {
-        console.log('OAuth success detected:', provider);
+      if (oauthSuccess === 'true' && provider && userEmail) {
+        console.log('OAuth success detected:', provider, userEmail);
         setIsOAuthCallback(true);
+        
+        // Store OAuth user session data
+        const oauthUserData = {
+          id: userId || 'oauth-user-id',
+          $id: userId || 'oauth-user-id',
+          email: userEmail,
+          name: userName || userEmail.split('@')[0],
+          picture: userPicture || '',
+          provider: provider,
+          emailVerified: true,
+          role: 'USER' // Default role for OAuth users
+        };
+        
+        // Store in localStorage for client-side access
+        localStorage.setItem('userSession', JSON.stringify(oauthUserData));
+        localStorage.setItem('oauthSession', JSON.stringify({
+          provider: provider,
+          timestamp: Date.now()
+        }));
+        
+        // Also store in cookies for server-side access
+        document.cookie = `userSession=${JSON.stringify(oauthUserData)}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `oauthSession=${JSON.stringify({provider: provider, timestamp: Date.now()})}; path=/; max-age=86400; SameSite=Lax`;
+        
+        console.log('OAuth user session stored:', oauthUserData);
         
         // Show success message
         setTimeout(() => {
@@ -192,6 +221,11 @@ export default function UserDashboard() {
         // Clean up URL parameters
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
+        
+        // Force page reload to ensure auth context updates
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       }
     };
 
@@ -202,7 +236,7 @@ export default function UserDashboard() {
   // Handle authentication redirect
   useEffect(() => {
     if (mounted && !loading) {
-      if (!isAuthenticated) {
+      if (!isAuthenticated && !user) {
         console.log('Dashboard: User not authenticated, redirecting to sign in');
         setTimeout(() => {
           router.push('/auth/signin?redirect=/user/dashboard');

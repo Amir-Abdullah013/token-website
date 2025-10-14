@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth-context';
-import { updateUserData } from '../../../lib/update-user-data';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -60,8 +59,6 @@ export default function SettingsPage() {
   // Initialize component
   useEffect(() => {
     setMounted(true);
-    // Update user data to ensure correct information is displayed
-    updateUserData();
   }, []);
 
   // Redirect if not authenticated
@@ -74,15 +71,14 @@ export default function SettingsPage() {
   // Load user data
   useEffect(() => {
     if (user?.id) {
-      // Force correct data display immediately
+      // Initialize with actual user data
       setProfileData({
-        name: 'Amir Abdullah',
-        email: 'amirabdullah2508@gmail.com',
+        name: user.name || (user.email ? user.email.split('@')[0] : ''),
+        email: user.email || '',
         phone: user.phone || '',
         country: user.country || '',
         timezone: user.timezone || 'UTC'
       });
-      
       // Then try to load from database
       loadUserSettings();
     }
@@ -103,8 +99,8 @@ export default function SettingsPage() {
         // Fallback to user data from auth context
         console.log('API failed, using fallback data from auth context');
         setProfileData({
-          name: user.name || 'Amir Abdullah',
-          email: user.email || 'amirabdullah2508@gmail.com',
+          name: user.name || (user.email ? user.email.split('@')[0] : ''),
+          email: user.email || '',
           phone: user.phone || '',
           country: user.country || '',
           timezone: user.timezone || 'UTC'
@@ -115,8 +111,8 @@ export default function SettingsPage() {
       // Fallback to user data from auth context
       console.log('Error occurred, using fallback data from auth context');
       setProfileData({
-        name: user.name || 'Amir Abdullah',
-        email: user.email || 'amirabdullah2508@gmail.com',
+        name: user.name || (user.email ? user.email.split('@')[0] : ''),
+        email: user.email || '',
         phone: user.phone || '',
         country: user.country || '',
         timezone: user.timezone || 'UTC'

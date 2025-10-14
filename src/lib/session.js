@@ -51,9 +51,9 @@ export async function getServerSession() {
       if (!mockUserCache) {
         console.log('🔧 Development mode: using mock user');
         mockUserCache = {
-          id: '1f1fffe0-3e3b-40cb-a8e1-3be943a186fd', // Use real user ID for testing
-          name: 'Amir Abdullah',
-          email: 'amirabdullah2508@gmail.com',
+          id: 'dev-user-id',
+          name: 'Development User',
+          email: 'dev@example.com',
           user_metadata: { role: 'admin' }
         };
       }
@@ -85,9 +85,9 @@ export async function getServerSession() {
       if (!mockUserCache) {
         console.log('🔧 Fallback: using mock user for development');
         mockUserCache = {
-          id: '1f1fffe0-3e3b-40cb-a8e1-3be943a186fd', // Use real user ID for testing
-          name: 'Amir Abdullah',
-          email: 'amirabdullah2508@gmail.com',
+          id: 'dev-user-id',
+          name: 'Development User',
+          email: 'dev@example.com',
           user_metadata: { role: 'admin' }
         };
       }

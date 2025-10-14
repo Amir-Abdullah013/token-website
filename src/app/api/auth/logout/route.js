@@ -8,23 +8,27 @@ export async function POST(request) {
       message: 'Logged out successfully' 
     });
     
-    // Clear any session cookies
-    response.cookies.set('sb-access-token', '', {
-      expires: new Date(0),
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
-    });
+    // Clear all session-related cookies
+    const cookiesToClear = [
+      'sb-access-token',
+      'sb-refresh-token', 
+      'userSession',
+      'oauthSession',
+      'session',
+      'supabase.auth.token'
+    ];
     
-    response.cookies.set('sb-refresh-token', '', {
-      expires: new Date(0),
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+    cookiesToClear.forEach(cookieName => {
+      response.cookies.set(cookieName, '', {
+        expires: new Date(0),
+        path: '/',
+        httpOnly: false, // Allow client-side access for some cookies
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
     });
 
+    console.log('✅ All session cookies cleared');
     return response;
   } catch (error) {
     console.error('Logout error:', error);

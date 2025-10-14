@@ -5,6 +5,7 @@ import { authHelpers } from './supabase';
 import { config, validateConfig } from './config';
 import { useLogout } from './useLogout';
 import { autoSyncSession, ensureSessionSync } from './session-sync';
+import { clearAllSessions } from './session-clear';
 
 const AuthContext = createContext();
 
@@ -61,13 +62,13 @@ export const AuthProvider = ({ children }) => {
           
           // Validate the session data - be more lenient for OAuth users
           if (userData.email && (userData.name || userData.email)) {
-            // Ensure we have the correct user data
+            // Use the actual user data from session without hardcoded fallbacks
             const correctedUserData = {
               ...userData,
-              name: userData.name || 'Amir Abdullah',
-              email: userData.email || 'amirabdullah2508@gmail.com',
-              id: userData.id || userData.$id || '116615266603089085637',
-              createdAt: userData.createdAt || new Date('2024-01-01T00:00:00.000Z').toISOString()
+              name: userData.name || 'User',
+              email: userData.email, // Use actual email from session
+              id: userData.id || userData.$id || 'user-id',
+              createdAt: userData.createdAt || new Date().toISOString()
             };
             
             setUser(correctedUserData);
@@ -104,14 +105,14 @@ export const AuthProvider = ({ children }) => {
             console.log('Found OAuth user session:', userData);
             
             // Ensure we have the correct user data
-            const correctedUserData = {
-              ...userData,
-              name: userData.name || 'Amir Abdullah',
-              email: userData.email || 'amirabdullah2508@gmail.com',
-              id: userData.id || userData.$id || '116615266603089085637',
-              status: userData.status || 'active',
-              createdAt: userData.createdAt || new Date('2024-01-01T00:00:00.000Z').toISOString()
-            };
+          const correctedUserData = {
+            ...userData,
+            name: userData.name || (userData.email ? userData.email.split('@')[0] : 'User'),
+            email: userData.email,
+            id: userData.id || userData.$id || 'user-id',
+            status: userData.status || 'active',
+            createdAt: userData.createdAt || new Date().toISOString()
+          };
             
             // Check if user account is deactivated
             if (correctedUserData.status === 'inactive') {
@@ -142,25 +143,19 @@ export const AuthProvider = ({ children }) => {
         }
       }
       
-      // If no session found, set as not authenticated but don't redirect
+      // If no session found, mark unauthenticated
       console.log('No session found, setting as not authenticated');
-      // Set fallback user data to ensure correct display
-      setUser({
-        id: '116615266603089085637',
-        name: 'Amir Abdullah',
-        email: 'amirabdullah2508@gmail.com',
-        emailVerified: true,
-        role: 'USER',
-        status: 'active',
-        createdAt: new Date('2024-01-01T00:00:00.000Z').toISOString()
-      });
+      setUser(null);
       setConfigValid(true);
       setLoading(false);
     };
 
     // Use requestAnimationFrame to ensure DOM is ready
     if (typeof window !== 'undefined') {
-      requestAnimationFrame(initializeAuth);
+      // Add small delay to ensure session data is properly loaded
+      setTimeout(() => {
+        requestAnimationFrame(initializeAuth);
+      }, 50);
     } else {
       setLoading(false);
     }
@@ -336,17 +331,12 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       
-      // Clear all session data from localStorage
-      localStorage.removeItem('userSession');
-      localStorage.removeItem('oauthSession');
+      // Use comprehensive session clearing
+      await clearAllSessions();
       
       // Clear user state
       setUser(null);
-      
-      // Call logout function if available
-      if (logoutFn) {
-        await logoutFn();
-      }
+      setConfigValid(false);
       
       console.log('User signed out successfully');
       return { success: true };

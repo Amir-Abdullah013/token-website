@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SignIn() {
@@ -13,6 +13,7 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Pre-fill email if coming from signup
   useEffect(() => {
@@ -93,11 +94,14 @@ export default function SignIn() {
         // Clear any cached data
         localStorage.removeItem('signupEmail');
         
-        // Role-based redirect
+        // Check for redirect parameter
+        const redirectTo = searchParams.get('redirect');
+        
+        // Role-based redirect with fallback to redirect parameter
         if (data.user.role === 'admin') {
-          router.push('/admin/dashboard');
+          router.push(redirectTo && redirectTo.startsWith('/admin') ? redirectTo : '/admin/dashboard');
         } else {
-          router.push('/user/dashboard');
+          router.push(redirectTo && redirectTo.startsWith('/user') ? redirectTo : '/user/dashboard');
         }
       } else {
         // Handle specific error cases with detailed debugging
