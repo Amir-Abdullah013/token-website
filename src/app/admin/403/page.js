@@ -27,7 +27,7 @@ export default function AccessDeniedPage() {
         router.push('/user/dashboard');
       }
     }
-  }, [mounted, loading, isAuthenticated, user, router]);
+  }, [mounted, isLoading, isAuthenticated, user, router]);
 
   const handleGoToUserDashboard = () => {
     router.push('/user/dashboard');

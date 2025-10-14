@@ -15,7 +15,6 @@ const AdminSidebar = ({ user, isOpen, onClose }) => {
   const adminNavigation = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: '📊', description: 'Admin overview', category: 'overview' },
     { name: 'Users', href: '/admin/users', icon: '👥', description: 'Manage users', category: 'management' },
-    { name: 'Wallets', href: '/admin/wallets', icon: '💼', description: 'Wallet management', category: 'management' },
     { name: 'Deposits', href: '/admin/deposits', icon: '💰', description: 'Deposit requests', category: 'financial' },
     { name: 'Withdrawals', href: '/admin/withdrawals', icon: '💸', description: 'Withdrawal requests', category: 'financial' },
     { name: 'Transfers', href: '/admin/transfers', icon: '📤', description: 'User transfers', category: 'financial' },

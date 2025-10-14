@@ -38,7 +38,8 @@ export async function GET(request) {
     let filteredTransactions = [];
     
     try {
-      allTransactions = await databaseHelpers.transaction.getAllTransactions();
+      const result = await databaseHelpers.transaction.getAllTransactions({});
+      allTransactions = result.data || [];
       filteredTransactions = allTransactions;
     } catch (dbError) {
       console.error('Database error, using fallback data:', dbError);

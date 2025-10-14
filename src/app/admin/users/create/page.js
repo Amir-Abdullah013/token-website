@@ -39,7 +39,7 @@ export default function CreateUserPage() {
         return;
       }
     }
-  }, [mounted, loading, isAuthenticated, router]);
+  }, [mounted, isLoading, isAuthenticated, router]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

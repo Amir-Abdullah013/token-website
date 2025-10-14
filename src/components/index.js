@@ -12,7 +12,6 @@ export { default as ProtectedRoute } from './ProtectedRoute';
 export { default as ProfileCard } from './ProfileCard';
 export { default as WalletOverview } from './WalletOverview';
 export { default as QuickStats } from './QuickStats';
-export { default as AdminStats } from './AdminStats';
 export { default as NotificationBell } from './NotificationBell';
 export { default as NotificationCard } from './NotificationCard';
 export { default as Toast } from './Toast';

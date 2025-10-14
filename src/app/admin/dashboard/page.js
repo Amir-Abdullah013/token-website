@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAdminAuth } from '../../../lib/admin-auth';
 import Layout from '../../../components/Layout';
 import AdminRoute from '../../../components/AdminRoute';
-import AdminStats from '../../../components/AdminStats';
+
 import Button from '../../../components/Button';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 
@@ -31,35 +31,63 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setIsDataLoading(true);
+      console.log('📊 Fetching admin dashboard data...');
       
       // Fetch admin stats
       const statsResponse = await fetch('/api/admin/stats');
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
+        console.log('✅ Admin stats received:', statsData);
+        
+        if (statsData.success) {
+          setDashboardData(prev => ({
+            ...prev,
+            totalUsers: statsData.totalUsers || 0,
+            activeUsers: statsData.activeWallets || 0,
+            totalDeposits: statsData.totalDeposits || 0,
+            totalWithdrawals: statsData.totalWithdrawals || 0,
+            pendingTransactions: statsData.pendingTransactions || 0,
+            verifiedUsers: statsData.verifiedUsers || 0,
+            totalBalance: statsData.totalBalance || 0,
+            totalTikiBalance: statsData.totalTikiBalance || 0
+          }));
+        } else {
+          console.warn('⚠️ Admin stats API returned error:', statsData.error);
+        }
+      } else {
+        console.error('❌ Failed to fetch admin stats:', statsResponse.status);
+      }
+      
+      // Fetch recent activity from real API
+      try {
+        const activityResponse = await fetch('/api/admin/recent-activity');
+        if (activityResponse.ok) {
+          const activityData = await activityResponse.json();
+          if (activityData.success) {
+            setDashboardData(prev => ({
+              ...prev,
+              recentActivity: activityData.activities || []
+            }));
+          }
+        }
+      } catch (activityError) {
+        console.warn('⚠️ Could not fetch recent activity, using fallback:', activityError);
+        
+        // Fallback recent activity
+        const recentActivity = [
+          { type: 'user', message: 'New user registered', time: '2m ago', status: 'success' },
+          { type: 'deposit', message: 'Large deposit processed', time: '15m ago', status: 'info' },
+          { type: 'withdrawal', message: 'Withdrawal pending approval', time: '1h ago', status: 'warning' }
+        ];
+        
         setDashboardData(prev => ({
           ...prev,
-          totalUsers: statsData.totalUsers || 0,
-          activeUsers: statsData.activeWallets || 0,
-          totalDeposits: statsData.totalDeposits || 0,
-          totalWithdrawals: statsData.totalWithdrawals || 0,
-          pendingTransactions: statsData.pendingTransactions || 0
+          recentActivity
         }));
       }
       
-      // Fetch recent activity (mock for now, can be replaced with real API)
-      const recentActivity = [
-        { type: 'user', message: 'New user registered', time: '2m ago', status: 'success' },
-        { type: 'deposit', message: 'Large deposit processed', time: '15m ago', status: 'info' },
-        { type: 'withdrawal', message: 'Withdrawal pending approval', time: '1h ago', status: 'warning' }
-      ];
-      
-      setDashboardData(prev => ({
-        ...prev,
-        recentActivity
-      }));
-      
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('❌ Error fetching dashboard data:', error);
     } finally {
       setIsDataLoading(false);
     }
@@ -108,10 +136,7 @@ export default function AdminDashboard() {
           <p className="text-slate-300 mt-2">Welcome back, {adminUser?.name || 'Admin'}! Manage your application.</p>
         </div>
 
-        {/* Admin Stats */}
-        <div className="mb-8">
-          <AdminStats />
-        </div>
+      
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -261,17 +286,6 @@ export default function AdminDashboard() {
                       <span className="font-medium text-violet-200">Manage Notifications</span>
                     </div>
                     <span className="text-violet-400">→</span>
-                  </button>
-
-                  <button 
-                    onClick={() => router.push('/admin/wallets')}
-                    className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 rounded-lg border border-amber-400/30 transition-all duration-300 hover:scale-105"
-                  >
-                    <div className="flex items-center">
-                      <span className="text-2xl mr-3">💼</span>
-                      <span className="font-medium text-amber-200">View Wallets</span>
-                    </div>
-                    <span className="text-amber-400">→</span>
                   </button>
 
                   <button 

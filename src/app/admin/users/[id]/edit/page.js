@@ -41,7 +41,7 @@ export default function EditUserPage() {
       }
       loadUser();
     }
-  }, [mounted, loading, isAuthenticated, router, params.id]);
+  }, [mounted, isLoading, isAuthenticated, router, params.id]);
 
   const loadUser = async () => {
     try {

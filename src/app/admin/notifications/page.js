@@ -56,14 +56,14 @@ export default function AdminNotificationsPage() {
   }, []);
 
   useEffect(() => {
-    if (mounted && !loading) {
+    if (mounted && !isLoading) {
       if (!isAuthenticated) {
         router.push('/auth/signin');
         return;
       }
       loadNotifications();
     }
-  }, [mounted, loading, isAuthenticated]);
+  }, [mounted, isLoading, isAuthenticated]);
 
   // Reload notifications when filters change
   useEffect(() => {
@@ -319,10 +319,10 @@ export default function AdminNotificationsPage() {
 
   if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading notifications...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading notifications...</p>
         </div>
       </div>
     );
@@ -330,10 +330,10 @@ export default function AdminNotificationsPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to sign in...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Redirecting to sign in...</p>
         </div>
       </div>
     );
@@ -341,25 +341,26 @@ export default function AdminNotificationsPage() {
 
   return (
     <Layout showSidebar={true}>
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         {/* Header */}
-        <div className="bg-white shadow-sm border-b">
+        <div className="bg-gradient-to-r from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm shadow-xl border-b border-slate-600/30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
             <div>
-                <h1 className="text-3xl font-bold text-gray-900">Notification Management</h1>
-                <p className="text-gray-600">Create and manage notifications for all users</p>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Notification Management</h1>
+                <p className="text-slate-300">Create and manage notifications for all users</p>
             </div>
               <div className="flex items-center space-x-4">
               <Button
                   onClick={() => setShowCreateModal(true)}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
               >
                   Create Notification
               </Button>
               <Button
                 onClick={() => router.push('/admin/dashboard')}
                   variant="outline"
+                  className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
               >
                 Back to Dashboard
               </Button>
@@ -372,65 +373,65 @@ export default function AdminNotificationsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
+            <Card className="bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-indigo-500/20 border border-cyan-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/20 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <span className="text-blue-600 text-lg">📢</span>
+                    <div className="w-8 h-8 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-lg flex items-center justify-center">
+                      <span className="text-cyan-200 text-lg">📢</span>
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Total Notifications</p>
-                    <p className="text-2xl font-bold text-gray-900">{totalNotifications}</p>
+                    <p className="text-sm font-medium text-cyan-200">Total Notifications</p>
+                    <p className="text-2xl font-bold text-white">{totalNotifications}</p>
                   </div>
             </div>
               </CardContent>
           </Card>
           
-            <Card>
+            <Card className="bg-gradient-to-br from-emerald-500/20 via-green-500/20 to-teal-500/20 border border-emerald-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/20 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                      <span className="text-green-600 text-lg">🌍</span>
+                    <div className="w-8 h-8 bg-gradient-to-r from-emerald-500/30 to-green-500/30 rounded-lg flex items-center justify-center">
+                      <span className="text-emerald-200 text-lg">🌍</span>
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Global Notifications</p>
-                    <p className="text-2xl font-bold text-gray-900">{globalNotifications}</p>
+                    <p className="text-sm font-medium text-emerald-200">Global Notifications</p>
+                    <p className="text-2xl font-bold text-white">{globalNotifications}</p>
                   </div>
             </div>
               </CardContent>
           </Card>
           
-            <Card>
+            <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                      <span className="text-yellow-600 text-lg">📬</span>
+                    <div className="w-8 h-8 bg-gradient-to-r from-amber-500/30 to-orange-500/30 rounded-lg flex items-center justify-center">
+                      <span className="text-amber-200 text-lg">📬</span>
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Unread</p>
-                    <p className="text-2xl font-bold text-gray-900">{unreadNotifications}</p>
+                    <p className="text-sm font-medium text-amber-200">Unread</p>
+                    <p className="text-2xl font-bold text-white">{unreadNotifications}</p>
                   </div>
             </div>
               </CardContent>
           </Card>
           
-            <Card>
+            <Card className="bg-gradient-to-br from-violet-500/20 via-purple-500/20 to-indigo-500/20 border border-violet-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/20 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <span className="text-purple-600 text-lg">✅</span>
+                    <div className="w-8 h-8 bg-gradient-to-r from-violet-500/30 to-purple-500/30 rounded-lg flex items-center justify-center">
+                      <span className="text-violet-200 text-lg">✅</span>
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Read</p>
-                    <p className="text-2xl font-bold text-gray-900">{readNotifications}</p>
+                    <p className="text-sm font-medium text-violet-200">Read</p>
+                    <p className="text-2xl font-bold text-white">{readNotifications}</p>
                   </div>
             </div>
               </CardContent>
@@ -438,44 +439,44 @@ export default function AdminNotificationsPage() {
         </div>
 
           {/* Filters */}
-          <Card className="mb-6">
+          <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     Type
                   </label>
                   <select
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
                   >
-                    <option value="all">All Types</option>
-                    <option value="INFO">Info</option>
-                    <option value="SUCCESS">Success</option>
-                    <option value="WARNING">Warning</option>
-                    <option value="ALERT">Alert</option>
+                    <option value="all" className="bg-slate-800 text-white">All Types</option>
+                    <option value="INFO" className="bg-slate-800 text-white">Info</option>
+                    <option value="SUCCESS" className="bg-slate-800 text-white">Success</option>
+                    <option value="WARNING" className="bg-slate-800 text-white">Warning</option>
+                    <option value="ALERT" className="bg-slate-800 text-white">Alert</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     Status
                   </label>
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
                   >
-                    <option value="all">All Status</option>
-                    <option value="READ">Read</option>
-                    <option value="UNREAD">Unread</option>
+                    <option value="all" className="bg-slate-800 text-white">All Status</option>
+                    <option value="READ" className="bg-slate-800 text-white">Read</option>
+                    <option value="UNREAD" className="bg-slate-800 text-white">Unread</option>
                   </select>
                 </div>
                 <div className="flex items-end">
             <Button
                     onClick={loadNotifications}
                     disabled={loadingNotifications}
-                    className="w-full"
+                    className="w-full bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
             >
                     {loadingNotifications ? 'Loading...' : 'Refresh'}
             </Button>
@@ -485,55 +486,57 @@ export default function AdminNotificationsPage() {
           </Card>
 
           {/* Notifications Table */}
-          <Card>
+          <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
             <CardHeader>
-              <CardTitle>All Notifications</CardTitle>
+              <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">All Notifications</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingNotifications ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-2 text-gray-600">Loading notifications...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                  <span className="ml-2 text-slate-300">Loading notifications...</span>
                       </div>
               ) : (
                 <>
                   {getCurrentPageNotifications().length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-gray-500">No notifications found</p>
+                      <div className="text-slate-400 text-4xl mb-4">🔔</div>
+                      <h3 className="text-lg font-medium text-white mb-2">No Notifications Found</h3>
+                      <p className="text-slate-300">No notifications match your search criteria.</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                      <table className="min-w-full divide-y divide-slate-600/30">
+                        <thead className="bg-gradient-to-r from-slate-700/30 to-slate-800/30">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Title
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Type
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Status
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Created By
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Date
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Actions
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-gradient-to-br from-slate-800/20 to-slate-900/20 divide-y divide-slate-600/20">
                           {getCurrentPageNotifications().map((notification) => (
-                            <tr key={notification.id} className="hover:bg-gray-50">
+                            <tr key={notification.id} className="hover:bg-slate-700/20 transition-colors duration-150">
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-medium text-white">
                                   {notification.title}
                                 </div>
-                                <div className="text-sm text-gray-500 truncate max-w-xs">
+                                <div className="text-sm text-slate-300 truncate max-w-xs">
                                   {notification.message}
                                 </div>
                               </td>
@@ -547,10 +550,10 @@ export default function AdminNotificationsPage() {
                                   {notification.status}
                           </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                 {notification.creator_name || 'System'}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                                 {formatDate(notification.createdAt)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -559,6 +562,7 @@ export default function AdminNotificationsPage() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleViewNotification(notification)}
+                                    className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-blue-500/30 hover:text-cyan-200 border border-cyan-400/30"
                                   >
                                     View
                                   </Button>
@@ -566,7 +570,7 @@ export default function AdminNotificationsPage() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleEditNotification(notification)}
-                                    className="text-blue-600 hover:text-blue-700"
+                                    className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-emerald-200 border border-emerald-400/30"
                                   >
                                     Edit
                                   </Button>
@@ -574,7 +578,7 @@ export default function AdminNotificationsPage() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleDeleteNotification(notification)}
-                                    className="text-red-600 hover:text-red-700"
+                                    className="bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 hover:from-red-500/30 hover:to-rose-500/30 hover:text-red-200 border border-red-400/30"
                                     disabled={actionLoading}
                                   >
                                     Delete
@@ -591,7 +595,7 @@ export default function AdminNotificationsPage() {
                   {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between mt-6">
-                      <div className="text-sm text-gray-700">
+                      <div className="text-sm text-slate-300">
                         Showing {((currentPage - 1) * notificationsPerPage) + 1} to {Math.min(currentPage * notificationsPerPage, totalNotifications)} of {totalNotifications} notifications
                       </div>
                       <div className="flex space-x-2">
@@ -600,10 +604,11 @@ export default function AdminNotificationsPage() {
                           size="sm"
                           onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                           disabled={currentPage === 1}
+                          className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                         >
                           Previous
                         </Button>
-                        <span className="px-3 py-2 text-sm text-gray-700">
+                        <span className="px-3 py-2 text-sm text-slate-300">
                           Page {currentPage} of {totalPages}
                         </span>
                         <Button
@@ -611,6 +616,7 @@ export default function AdminNotificationsPage() {
                           size="sm"
                           onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                           disabled={currentPage === totalPages}
+                          className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                         >
                           Next
                         </Button>

@@ -64,7 +64,7 @@ export default function AdminTransactionsPage() {
   }, []);
 
   useEffect(() => {
-    if (mounted && !loading) {
+    if (mounted && !isLoading) {
       if (!isAuthenticated) {
         router.push('/auth/signin');
         return;
@@ -73,7 +73,7 @@ export default function AdminTransactionsPage() {
       loadDepositRequests();
       loadWithdrawals();
     }
-  }, [mounted, loading, isAuthenticated]);
+  }, [mounted, isLoading, isAuthenticated]);
 
   // Reload transactions when filters change
   useEffect(() => {
@@ -389,28 +389,28 @@ export default function AdminTransactionsPage() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'COMPLETED':
-        return 'bg-green-100 text-green-800';
+        return 'bg-gradient-to-r from-emerald-500/40 to-green-500/40 text-white border border-emerald-400/60';
       case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-gradient-to-r from-amber-500/40 to-orange-500/40 text-white border border-amber-400/60';
       case 'FAILED':
-        return 'bg-red-100 text-red-800';
+        return 'bg-gradient-to-r from-red-500/40 to-rose-500/40 text-white border border-red-400/60';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gradient-to-r from-slate-500/40 to-gray-500/40 text-white border border-slate-400/60';
     }
   };
 
   const getTypeColor = (type) => {
     switch (type) {
       case 'DEPOSIT':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gradient-to-r from-cyan-500/40 to-blue-500/40 text-white border border-cyan-400/60';
       case 'WITHDRAWAL':
-        return 'bg-red-100 text-red-800';
+        return 'bg-gradient-to-r from-red-500/40 to-rose-500/40 text-white border border-red-400/60';
       case 'BUY':
-        return 'bg-green-100 text-green-800';
+        return 'bg-gradient-to-r from-emerald-500/40 to-green-500/40 text-white border border-emerald-400/60';
       case 'SELL':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-gradient-to-r from-amber-500/40 to-orange-500/40 text-white border border-amber-400/60';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gradient-to-r from-slate-500/40 to-gray-500/40 text-white border border-slate-400/60';
     }
   };
 
@@ -420,10 +420,10 @@ export default function AdminTransactionsPage() {
 
   if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading transactions...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading transactions...</p>
         </div>
       </div>
     );
@@ -431,10 +431,10 @@ export default function AdminTransactionsPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to sign in...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Redirecting to sign in...</p>
         </div>
       </div>
     );
@@ -442,19 +442,20 @@ export default function AdminTransactionsPage() {
 
   return (
     <Layout showSidebar={true}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         {/* Header */}
-        <div className="bg-white shadow-sm border-b">
+        <div className="bg-gradient-to-r from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm shadow-xl border-b border-slate-600/30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Transaction Management</h1>
-                <p className="text-gray-600">Manage all user transactions</p>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Transaction Management</h1>
+                <p className="text-slate-300">Manage all user transactions</p>
               </div>
               <div className="flex items-center space-x-4">
                 <Button
                   onClick={() => router.push('/admin/dashboard')}
                   variant="outline"
+                  className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                 >
                   Back to Dashboard
                 </Button>
@@ -467,65 +468,65 @@ export default function AdminTransactionsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
+            <Card className="bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-indigo-500/20 border border-cyan-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/20 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <span className="text-blue-600 text-lg">💰</span>
+                    <div className="w-8 h-8 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-lg flex items-center justify-center">
+                      <span className="text-cyan-200 text-lg">💰</span>
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Total Transactions</p>
-                    <p className="text-2xl font-bold text-gray-900">{totalTransactions}</p>
+                    <p className="text-sm font-medium text-cyan-200">Total Transactions</p>
+                    <p className="text-2xl font-bold text-white">{totalTransactions}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-emerald-500/20 via-green-500/20 to-teal-500/20 border border-emerald-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/20 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                      <span className="text-green-600 text-lg">✅</span>
+                    <div className="w-8 h-8 bg-gradient-to-r from-emerald-500/30 to-green-500/30 rounded-lg flex items-center justify-center">
+                      <span className="text-emerald-200 text-lg">✅</span>
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Completed</p>
-                    <p className="text-2xl font-bold text-gray-900">{completedTransactions}</p>
+                    <p className="text-sm font-medium text-emerald-200">Completed</p>
+                    <p className="text-2xl font-bold text-white">{completedTransactions}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                      <span className="text-yellow-600 text-lg">⏳</span>
+                    <div className="w-8 h-8 bg-gradient-to-r from-amber-500/30 to-orange-500/30 rounded-lg flex items-center justify-center">
+                      <span className="text-amber-200 text-lg">⏳</span>
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Pending</p>
-                    <p className="text-2xl font-bold text-gray-900">{pendingTransactions}</p>
+                    <p className="text-sm font-medium text-amber-200">Pending</p>
+                    <p className="text-2xl font-bold text-white">{pendingTransactions}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-violet-500/20 via-purple-500/20 to-indigo-500/20 border border-violet-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/20 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <span className="text-purple-600 text-lg">💵</span>
+                    <div className="w-8 h-8 bg-gradient-to-r from-violet-500/30 to-purple-500/30 rounded-lg flex items-center justify-center">
+                      <span className="text-violet-200 text-lg">💵</span>
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Total Amount</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalAmount)}</p>
+                    <p className="text-sm font-medium text-violet-200">Total Amount</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(totalAmount)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -533,11 +534,11 @@ export default function AdminTransactionsPage() {
           </div>
 
           {/* Filters and Search */}
-          <Card className="mb-6">
+          <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     Search
                   </label>
                   <Input
@@ -545,45 +546,45 @@ export default function AdminTransactionsPage() {
                     placeholder="Search transactions..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full"
+                    className="w-full bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     Type
                   </label>
                   <select
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
                   >
-                    <option value="all">All Types</option>
-                    <option value="DEPOSIT">Deposit</option>
-                    <option value="WITHDRAWAL">Withdrawal</option>
-                    <option value="BUY">Buy</option>
-                    <option value="SELL">Sell</option>
+                    <option value="all" className="bg-slate-800 text-white">All Types</option>
+                    <option value="DEPOSIT" className="bg-slate-800 text-white">Deposit</option>
+                    <option value="WITHDRAWAL" className="bg-slate-800 text-white">Withdrawal</option>
+                    <option value="BUY" className="bg-slate-800 text-white">Buy</option>
+                    <option value="SELL" className="bg-slate-800 text-white">Sell</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     Status
                   </label>
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
                   >
-                    <option value="all">All Status</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="FAILED">Failed</option>
+                    <option value="all" className="bg-slate-800 text-white">All Status</option>
+                    <option value="COMPLETED" className="bg-slate-800 text-white">Completed</option>
+                    <option value="PENDING" className="bg-slate-800 text-white">Pending</option>
+                    <option value="FAILED" className="bg-slate-800 text-white">Failed</option>
                   </select>
                 </div>
                 <div className="flex items-end">
                   <Button
                     onClick={loadTransactions}
                     disabled={loadingTransactions}
-                    className="w-full"
+                    className="w-full bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                   >
                     {loadingTransactions ? 'Loading...' : 'Refresh'}
                   </Button>
@@ -593,67 +594,69 @@ export default function AdminTransactionsPage() {
           </Card>
 
           {/* Transactions Table */}
-          <Card>
+          <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
             <CardHeader>
-              <CardTitle>All Transactions</CardTitle>
+              <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">All Transactions</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingTransactions ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-2 text-gray-600">Loading transactions...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                  <span className="ml-2 text-slate-300">Loading transactions...</span>
                 </div>
               ) : (
                 <>
                   {getCurrentPageTransactions().length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-gray-500">No transactions found</p>
+                      <div className="text-slate-400 text-4xl mb-4">💳</div>
+                      <h3 className="text-lg font-medium text-white mb-2">No Transactions Found</h3>
+                      <p className="text-slate-300">No transactions match your search criteria.</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                      <table className="min-w-full divide-y divide-slate-600/30">
+                        <thead className="bg-gradient-to-r from-slate-700/30 to-slate-800/30">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Transaction ID
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               User
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Type
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Amount
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Currency
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Status
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Date
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                               Actions
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-gradient-to-br from-slate-800/20 to-slate-900/20 divide-y divide-slate-600/20">
                           {getCurrentPageTransactions().map((transaction) => (
-                            <tr key={transaction.id} className="hover:bg-gray-50">
+                            <tr key={transaction.id} className="hover:bg-slate-700/20 transition-colors duration-150">
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-medium text-white">
                                   {transaction.id}
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900">
+                                  <div className="text-sm font-medium text-white">
                                     {transaction.user?.name || 'Unknown User'}
                                   </div>
-                                  <div className="text-sm text-gray-500">
+                                  <div className="text-sm text-slate-300">
                                     {transaction.user?.email || 'unknown@example.com'}
                                   </div>
                                 </div>
@@ -663,10 +666,10 @@ export default function AdminTransactionsPage() {
                                   {transaction.type}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">
                                 {formatCurrency(transaction.amount)}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                 {transaction.currency || 'USD'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
@@ -674,7 +677,7 @@ export default function AdminTransactionsPage() {
                                   {transaction.status}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                                 {formatDate(transaction.createdAt)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -683,6 +686,7 @@ export default function AdminTransactionsPage() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleViewTransaction(transaction)}
+                                    className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-blue-500/30 hover:text-cyan-200 border border-cyan-400/30"
                                   >
                                     View
                                   </Button>
@@ -691,6 +695,7 @@ export default function AdminTransactionsPage() {
                                     variant="outline"
                                     onClick={() => handleUpdateStatus(transaction)}
                                     disabled={actionLoading}
+                                    className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-emerald-200 border border-emerald-400/30"
                                   >
                                     Update Status
                                   </Button>
@@ -706,7 +711,7 @@ export default function AdminTransactionsPage() {
                   {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between mt-6">
-                      <div className="text-sm text-gray-700">
+                      <div className="text-sm text-slate-300">
                         Showing {((currentPage - 1) * transactionsPerPage) + 1} to {Math.min(currentPage * transactionsPerPage, totalTransactions)} of {totalTransactions} transactions
                       </div>
                       <div className="flex space-x-2">
@@ -715,10 +720,11 @@ export default function AdminTransactionsPage() {
                           size="sm"
                           onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                           disabled={currentPage === 1}
+                          className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                         >
                           Previous
                         </Button>
-                        <span className="px-3 py-2 text-sm text-gray-700">
+                        <span className="px-3 py-2 text-sm text-slate-300">
                           Page {currentPage} of {totalPages}
                         </span>
                         <Button
@@ -726,6 +732,7 @@ export default function AdminTransactionsPage() {
                           size="sm"
                           onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                           disabled={currentPage === totalPages}
+                          className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                         >
                           Next
                         </Button>
@@ -741,38 +748,39 @@ export default function AdminTransactionsPage() {
         {/* Transaction Details Modal */}
         {showTransactionModal && selectedTransaction && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">Transaction Details</h3>
+            <div className="bg-gradient-to-br from-slate-800/90 via-slate-700/90 to-slate-800/90 backdrop-blur-sm rounded-lg p-6 max-w-md w-full mx-4 border border-slate-600/30 shadow-xl">
+              <h3 className="text-lg font-semibold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-4">Transaction Details</h3>
               <div className="space-y-3">
                 <div>
-                  <span className="font-medium">ID:</span> {selectedTransaction.id}
+                  <span className="font-medium text-slate-300">ID:</span> <span className="text-white">{selectedTransaction.id}</span>
                 </div>
                 <div>
-                  <span className="font-medium">User:</span> {selectedTransaction.user?.name} ({selectedTransaction.user?.email})
+                  <span className="font-medium text-slate-300">User:</span> <span className="text-white">{selectedTransaction.user?.name} ({selectedTransaction.user?.email})</span>
                 </div>
                 <div>
-                  <span className="font-medium">Type:</span> {selectedTransaction.type}
+                  <span className="font-medium text-slate-300">Type:</span> <span className="text-white">{selectedTransaction.type}</span>
                 </div>
                 <div>
-                  <span className="font-medium">Amount:</span> {formatCurrency(selectedTransaction.amount)}
+                  <span className="font-medium text-slate-300">Amount:</span> <span className="text-white">{formatCurrency(selectedTransaction.amount)}</span>
                 </div>
                 <div>
-                  <span className="font-medium">Status:</span> {selectedTransaction.status}
+                  <span className="font-medium text-slate-300">Status:</span> <span className="text-white">{selectedTransaction.status}</span>
                 </div>
                 <div>
-                  <span className="font-medium">Gateway:</span> {selectedTransaction.gateway || 'N/A'}
+                  <span className="font-medium text-slate-300">Gateway:</span> <span className="text-white">{selectedTransaction.gateway || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="font-medium">Created:</span> {formatDate(selectedTransaction.createdAt)}
+                  <span className="font-medium text-slate-300">Created:</span> <span className="text-white">{formatDate(selectedTransaction.createdAt)}</span>
                 </div>
                 <div>
-                  <span className="font-medium">Updated:</span> {formatDate(selectedTransaction.updatedAt)}
+                  <span className="font-medium text-slate-300">Updated:</span> <span className="text-white">{formatDate(selectedTransaction.updatedAt)}</span>
                 </div>
               </div>
               <div className="flex justify-end mt-6">
                 <Button
                   onClick={() => setShowTransactionModal(false)}
                   variant="outline"
+                  className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                 >
                   Close
                 </Button>
@@ -784,26 +792,26 @@ export default function AdminTransactionsPage() {
         {/* Status Update Modal */}
         {showStatusModal && selectedTransaction && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">Update Transaction Status</h3>
+            <div className="bg-gradient-to-br from-slate-800/90 via-slate-700/90 to-slate-800/90 backdrop-blur-sm rounded-lg p-6 max-w-md w-full mx-4 border border-slate-600/30 shadow-xl">
+              <h3 className="text-lg font-semibold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-4">Update Transaction Status</h3>
               <div className="space-y-4">
                 <div>
-                  <span className="font-medium">Transaction:</span> {selectedTransaction.id}
+                  <span className="font-medium text-slate-300">Transaction:</span> <span className="text-white">{selectedTransaction.id}</span>
                 </div>
                 <div>
-                  <span className="font-medium">Current Status:</span> {selectedTransaction.status}
+                  <span className="font-medium text-slate-300">Current Status:</span> <span className="text-white">{selectedTransaction.status}</span>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     New Status
                   </label>
                   <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400"
                     defaultValue={selectedTransaction.status}
                   >
-                    <option value="PENDING">Pending</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="FAILED">Failed</option>
+                    <option value="PENDING" className="bg-slate-800 text-white">Pending</option>
+                    <option value="COMPLETED" className="bg-slate-800 text-white">Completed</option>
+                    <option value="FAILED" className="bg-slate-800 text-white">Failed</option>
                   </select>
                 </div>
               </div>
@@ -811,6 +819,7 @@ export default function AdminTransactionsPage() {
                 <Button
                   onClick={() => setShowStatusModal(false)}
                   variant="outline"
+                  className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                 >
                   Cancel
                 </Button>
@@ -820,6 +829,7 @@ export default function AdminTransactionsPage() {
                     handleStatusUpdate(select.value);
                   }}
                   disabled={actionLoading}
+                  className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
                 >
                   {actionLoading ? 'Updating...' : 'Update Status'}
                 </Button>

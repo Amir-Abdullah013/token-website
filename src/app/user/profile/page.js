@@ -18,6 +18,7 @@ export default function UserProfile() {
   const [userData, setUserData] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
   const [mounted, setMounted] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   
   // Helper variables
   const isUser = user?.role === 'user' || user?.role === 'USER';
@@ -28,18 +29,20 @@ export default function UserProfile() {
   }, []);
 
   useEffect(() => {
-    if (mounted && !authLoading) {
+    if (mounted && !authLoading && !redirecting) {
       if (!isAuthenticated || !user) {
         router.push('/auth/signin?redirect=/user/profile');
         return;
       }
       
+      // Only redirect to admin profile if user is admin and not already redirecting
       if (isAdmin) {
+        setRedirecting(true);
         router.push('/admin/profile');
         return;
       }
     }
-  }, [mounted, authLoading, isAuthenticated, user, isAdmin, router]);
+  }, [mounted, authLoading, isAuthenticated, user, isAdmin, router, redirecting]);
 
   useEffect(() => {
     if (user) {

@@ -15,31 +15,34 @@ export default function AdminProfile() {
   const router = useRouter();
   const [profileLoading, setProfileLoading] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    if (!authLoading) {
+    if (!authLoading && !redirecting) {
       if (!isAuthenticated) {
         router.push('/auth/signin');
         return;
       }
       
+      // Only redirect to user profile if user is not admin and not already redirecting
       if (!isAdmin) {
+        setRedirecting(true);
         router.push('/user/profile');
         return;
       }
     }
-  }, [authLoading, isAuthenticated, isAdmin, router]);
+  }, [authLoading, isAuthenticated, isAdmin, router, redirecting]);
 
   useEffect(() => {
-    if (user) {
+    if (adminUser) {
       // Merge user data with preferences for phone number
       const userWithPhone = {
-        ...user,
+        ...adminUser,
         phone: adminUser.prefs?.phone || ''
       };
       setUserData(userWithPhone);
     }
-  }, [user]);
+  }, [adminUser]);
 
   const handlePasswordChange = async (currentPassword, newPassword) => {
     setProfileLoading(true);

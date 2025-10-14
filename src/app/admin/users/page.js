@@ -41,14 +41,14 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    if (mounted && !loading) {
+    if (mounted && !isLoading) {
       if (!isAuthenticated) {
         router.push('/auth/signin');
         return;
       }
       loadUsers();
     }
-  }, [mounted, loading, isAuthenticated, router]);
+  }, [mounted, isLoading, isAuthenticated, router]);
 
   // Load users from API
   const loadUsers = async () => {
@@ -238,10 +238,10 @@ export default function AdminUsersPage() {
 
   if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading admin users...</p>
         </div>
       </div>
     );
@@ -253,84 +253,85 @@ export default function AdminUsersPage() {
 
   return (
     <Layout showSidebar={true}>
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-              <p className="text-gray-600 mt-1">Manage users, roles, and permissions</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="max-w-7xl mx-auto p-6">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">User Management</h1>
+                <p className="text-slate-300 mt-1">Manage users, roles, and permissions</p>
+              </div>
+              <Button
+                onClick={() => router.push('/admin/users/create')}
+                className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
+              >
+                Add New User
+              </Button>
             </div>
-            <Button
-              onClick={() => router.push('/admin/users/create')}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Add New User
-            </Button>
           </div>
-        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-indigo-500/20 border border-cyan-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/20 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <span className="text-blue-600 text-lg">👥</span>
+                  <div className="w-8 h-8 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-lg flex items-center justify-center">
+                    <span className="text-cyan-200 text-lg">👥</span>
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Users</p>
-                  <p className="text-2xl font-bold text-gray-900">{totalUsers}</p>
+                  <p className="text-sm font-medium text-cyan-200">Total Users</p>
+                  <p className="text-2xl font-bold text-white">{totalUsers}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-emerald-500/20 via-green-500/20 to-teal-500/20 border border-emerald-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/20 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                    <span className="text-green-600 text-lg">✅</span>
+                  <div className="w-8 h-8 bg-gradient-to-r from-emerald-500/30 to-green-500/30 rounded-lg flex items-center justify-center">
+                    <span className="text-emerald-200 text-lg">✅</span>
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Active Users</p>
-                  <p className="text-2xl font-bold text-gray-900">{activeUsers}</p>
+                  <p className="text-sm font-medium text-emerald-200">Active Users</p>
+                  <p className="text-2xl font-bold text-white">{activeUsers}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-violet-500/20 via-purple-500/20 to-indigo-500/20 border border-violet-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/20 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <span className="text-purple-600 text-lg">👑</span>
+                  <div className="w-8 h-8 bg-gradient-to-r from-violet-500/30 to-purple-500/30 rounded-lg flex items-center justify-center">
+                    <span className="text-violet-200 text-lg">👑</span>
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Admins</p>
-                  <p className="text-2xl font-bold text-gray-900">{adminUsers}</p>
+                  <p className="text-sm font-medium text-violet-200">Admins</p>
+                  <p className="text-2xl font-bold text-white">{adminUsers}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <span className="text-yellow-600 text-lg">💰</span>
+                  <div className="w-8 h-8 bg-gradient-to-r from-amber-500/30 to-orange-500/30 rounded-lg flex items-center justify-center">
+                    <span className="text-amber-200 text-lg">💰</span>
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Users with Balance</p>
-                  <p className="text-2xl font-bold text-gray-900">{usersWithBalance}</p>
+                  <p className="text-sm font-medium text-amber-200">Users with Balance</p>
+                  <p className="text-2xl font-bold text-white">{usersWithBalance}</p>
                 </div>
               </div>
             </CardContent>
@@ -338,11 +339,11 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Filters and Search */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
                   Search Users
                 </label>
                 <Input
@@ -350,36 +351,37 @@ export default function AdminUsersPage() {
                   placeholder="Search by name or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
                   Role
                 </label>
                 <select
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
                 >
-                  <option value="all">All Roles</option>
-                  <option value="USER">Users</option>
-                  <option value="ADMIN">Admins</option>
+                  <option value="all" className="bg-slate-800 text-white">All Roles</option>
+                  <option value="USER" className="bg-slate-800 text-white">Users</option>
+                  <option value="ADMIN" className="bg-slate-800 text-white">Admins</option>
                 </select>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
                   Status
                 </label>
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
                 >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="all" className="bg-slate-800 text-white">All Status</option>
+                  <option value="active" className="bg-slate-800 text-white">Active</option>
+                  <option value="inactive" className="bg-slate-800 text-white">Inactive</option>
                 </select>
               </div>
               
@@ -387,7 +389,7 @@ export default function AdminUsersPage() {
                 <Button
                   onClick={loadUsers}
                   variant="outline"
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                 >
                   Refresh
                 </Button>
@@ -397,89 +399,89 @@ export default function AdminUsersPage() {
         </Card>
 
         {/* Users Table */}
-        <Card>
+        <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
           <CardHeader>
-            <CardTitle>Users ({filteredUsers.length})</CardTitle>
+            <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Users ({filteredUsers.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {loadingUsers ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-2 text-gray-600">Loading users...</span>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                <span className="ml-2 text-slate-300">Loading users...</span>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-600/30">
+                  <thead className="bg-gradient-to-r from-slate-700/30 to-slate-800/30">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                         User
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                         Role
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                         Balance
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                         Last Login
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-gradient-to-br from-slate-800/20 to-slate-900/20 divide-y divide-slate-600/20">
                     {getCurrentPageUsers().map((user) => (
-                      <tr key={adminUser.id} className="hover:bg-gray-50">
+                      <tr key={user.id} className="hover:bg-slate-700/20 transition-colors duration-150">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
-                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                <span className="text-blue-600 font-medium">
-                                  {adminUser.name.charAt(0).toUpperCase()}
+                              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-cyan-500/30 to-blue-500/30 flex items-center justify-center">
+                                <span className="text-cyan-200 font-medium">
+                                  {user.name.charAt(0).toUpperCase()}
                                 </span>
                               </div>
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {adminUser.name}
+                              <div className="text-sm font-medium text-white">
+                                {user.name}
                               </div>
-                              <div className="text-sm text-gray-500">
-                                {adminUser.email}
+                              <div className="text-sm text-slate-300">
+                                {user.email}
                               </div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            adminUser.role === 'ADMIN' 
-                              ? 'bg-purple-100 text-purple-800' 
-                              : 'bg-blue-100 text-blue-800'
+                            user.role === 'ADMIN' 
+                              ? 'bg-gradient-to-r from-violet-500/40 to-purple-500/40 text-white border border-violet-400/60' 
+                              : 'bg-gradient-to-r from-cyan-500/40 to-blue-500/40 text-white border border-cyan-400/60'
                           }`}>
-                            {adminUser.role}
+                            {user.role}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            (adminUser.status || 'active') === 'active' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
+                            (user.status || 'active') === 'active' 
+                              ? 'bg-gradient-to-r from-emerald-500/40 to-green-500/40 text-white border border-emerald-400/60' 
+                              : 'bg-gradient-to-r from-red-500/40 to-rose-500/40 text-white border border-red-400/60'
                           }`}>
-                            {adminUser.status || 'active'}
+                            {user.status || 'active'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           <div>
-                            <div className="font-medium">{formatCurrency(adminUser.walletBalance)}</div>
-                            <div className="text-gray-500">{formatTiki(adminUser.tikiBalance)} TIKI</div>
+                            <div className="font-medium">{formatCurrency(user.walletBalance)}</div>
+                            <div className="text-slate-300">{formatTiki(user.tikiBalance)} TIKI</div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(adminUser.lastLogin)}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                          {formatDate(user.lastLogin)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
@@ -487,6 +489,7 @@ export default function AdminUsersPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleViewUser(user)}
+                              className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-blue-500/30 hover:text-cyan-200 border border-cyan-400/30"
                             >
                               View
                             </Button>
@@ -494,6 +497,7 @@ export default function AdminUsersPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleEditUser(user)}
+                              className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-emerald-200 border border-emerald-400/30"
                             >
                               Edit
                             </Button>
@@ -502,15 +506,18 @@ export default function AdminUsersPage() {
                               variant="outline"
                               onClick={() => handleToggleUserStatus(user)}
                               disabled={actionLoading}
-                              className={(adminUser.status || 'active') === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+                              className={(user.status || 'active') === 'active' 
+                                ? 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 hover:from-red-500/30 hover:to-rose-500/30 hover:text-red-200 border border-red-400/30' 
+                                : 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-emerald-200 border border-emerald-400/30'
+                              }
                             >
-                              {(adminUser.status || 'active') === 'active' ? 'Deactivate' : 'Activate'}
+                              {(user.status || 'active') === 'active' ? 'Deactivate' : 'Activate'}
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleDeleteUser(user)}
-                              className="text-red-600 hover:text-red-700"
+                              className="bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 hover:from-red-500/30 hover:to-rose-500/30 hover:text-red-200 border border-red-400/30"
                             >
                               Delete
                             </Button>
@@ -526,7 +533,7 @@ export default function AdminUsersPage() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-6">
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-slate-300">
                   Showing {((currentPage - 1) * usersPerPage) + 1} to {Math.min(currentPage * usersPerPage, filteredUsers.length)} of {filteredUsers.length} users
                 </div>
                 <div className="flex space-x-2">
@@ -534,16 +541,18 @@ export default function AdminUsersPage() {
                     variant="outline"
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
+                    className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                   >
                     Previous
                   </Button>
-                  <span className="px-3 py-2 text-sm text-gray-700">
+                  <span className="px-3 py-2 text-sm text-slate-300">
                     Page {currentPage} of {totalPages}
                   </span>
                   <Button
                     variant="outline"
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
+                    className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                   >
                     Next
                   </Button>
@@ -556,46 +565,47 @@ export default function AdminUsersPage() {
         {/* User Details Modal */}
         {showUserModal && selectedUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">User Details</h3>
+            <div className="bg-gradient-to-br from-slate-800/90 via-slate-700/90 to-slate-800/90 backdrop-blur-sm rounded-lg p-6 max-w-md w-full mx-4 border border-slate-600/30 shadow-xl">
+              <h3 className="text-lg font-semibold mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">User Details</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Name</label>
-                  <p className="text-gray-900">{selectedUser.name}</p>
+                  <label className="text-sm font-medium text-slate-300">Name</label>
+                  <p className="text-white">{selectedUser.name}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Email</label>
-                  <p className="text-gray-900">{selectedUser.email}</p>
+                  <label className="text-sm font-medium text-slate-300">Email</label>
+                  <p className="text-white">{selectedUser.email}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Role</label>
-                  <p className="text-gray-900">{selectedUser.role}</p>
+                  <label className="text-sm font-medium text-slate-300">Role</label>
+                  <p className="text-white">{selectedUser.role}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Status</label>
-                  <p className="text-gray-900">{selectedUser.status}</p>
+                  <label className="text-sm font-medium text-slate-300">Status</label>
+                  <p className="text-white">{selectedUser.status}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Wallet Balance</label>
-                  <p className="text-gray-900">{formatCurrency(selectedUser.walletBalance)}</p>
+                  <label className="text-sm font-medium text-slate-300">Wallet Balance</label>
+                  <p className="text-white">{formatCurrency(selectedUser.walletBalance)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">TIKI Balance</label>
-                  <p className="text-gray-900">{formatTiki(selectedUser.tikiBalance)} TIKI</p>
+                  <label className="text-sm font-medium text-slate-300">TIKI Balance</label>
+                  <p className="text-white">{formatTiki(selectedUser.tikiBalance)} TIKI</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Created</label>
-                  <p className="text-gray-900">{formatDate(selectedUser.createdAt)}</p>
+                  <label className="text-sm font-medium text-slate-300">Created</label>
+                  <p className="text-white">{formatDate(selectedUser.createdAt)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Last Login</label>
-                  <p className="text-gray-900">{formatDate(selectedUser.lastLogin)}</p>
+                  <label className="text-sm font-medium text-slate-300">Last Login</label>
+                  <p className="text-white">{formatDate(selectedUser.lastLogin)}</p>
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">
                 <Button
                   variant="outline"
                   onClick={() => setShowUserModal(false)}
+                  className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                 >
                   Close
                 </Button>
@@ -604,6 +614,7 @@ export default function AdminUsersPage() {
                     setShowUserModal(false);
                     handleEditUser(selectedUser);
                   }}
+                  className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30"
                 >
                   Edit User
                 </Button>
@@ -615,10 +626,10 @@ export default function AdminUsersPage() {
         {/* Delete Confirmation Modal */}
         {showDeleteModal && selectedUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4 text-red-600">Delete User</h3>
-              <p className="text-gray-700 mb-6">
-                Are you sure you want to delete <strong>{selectedUser.name}</strong>? 
+            <div className="bg-gradient-to-br from-slate-800/90 via-slate-700/90 to-slate-800/90 backdrop-blur-sm rounded-lg p-6 max-w-md w-full mx-4 border border-slate-600/30 shadow-xl">
+              <h3 className="text-lg font-semibold mb-4 bg-gradient-to-r from-red-400 to-rose-400 bg-clip-text text-transparent">Delete User</h3>
+              <p className="text-slate-300 mb-6">
+                Are you sure you want to delete <strong className="text-white">{selectedUser.name}</strong>? 
                 This action cannot be undone and will permanently remove the user and all their data.
               </p>
               <div className="flex justify-end space-x-3">
@@ -626,13 +637,14 @@ export default function AdminUsersPage() {
                   variant="outline"
                   onClick={() => setShowDeleteModal(false)}
                   disabled={actionLoading}
+                  className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={confirmDeleteUser}
                   disabled={actionLoading}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-gradient-to-r from-red-500 via-rose-500 to-pink-600 hover:from-red-600 hover:via-rose-600 hover:to-pink-700 text-white shadow-lg shadow-red-500/25 border border-red-400/30"
                 >
                   {actionLoading ? 'Deleting...' : 'Delete User'}
                 </Button>
@@ -643,6 +655,7 @@ export default function AdminUsersPage() {
 
         {/* Toast Container */}
         <ToastContainer toasts={toasts} removeToast={removeToast} />
+        </div>
       </div>
     </Layout>
   );
