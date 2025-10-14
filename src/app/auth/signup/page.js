@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SignUp() {
@@ -9,13 +9,26 @@ export default function SignUp() {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    referralCode: ''
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [successData, setSuccessData] = useState(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Read referral code from URL parameters
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setFormData(prev => ({
+        ...prev,
+        referralCode: refCode
+      }));
+    }
+  }, [searchParams]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -97,7 +110,8 @@ export default function SignUp() {
         body: JSON.stringify({
           name: formData.name.trim(),
           email: formData.email.trim(),
-          password: formData.password
+          password: formData.password,
+          referralCode: formData.referralCode.trim() || null
         }),
       });
 
@@ -320,6 +334,38 @@ export default function SignUp() {
                 {errors.confirmPassword && (
                   <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>
                 )}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="referralCode" className="block text-sm font-medium text-gray-700">
+                Referral Code (Optional)
+                {formData.referralCode && (
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✓ Auto-filled
+                  </span>
+                )}
+              </label>
+              <div className="mt-1">
+                <input
+                  id="referralCode"
+                  name="referralCode"
+                  type="text"
+                  placeholder="Enter referral code if you have one"
+                  value={formData.referralCode}
+                  onChange={handleChange}
+                  className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                    formData.referralCode 
+                      ? 'border-green-300 bg-green-50' 
+                      : 'border-gray-300'
+                  }`}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.referralCode 
+                    ? 'Referral code detected! You\'ll earn rewards for both you and your referrer.'
+                    : 'Enter a referral code if someone referred you to join'
+                  }
+                </p>
               </div>
             </div>
 

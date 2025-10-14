@@ -123,7 +123,7 @@ export const databaseHelpers = {
 
     async createUser(userData) {
       try {
-        const { email, password, name, emailVerified = false, role = 'USER' } = userData;
+        const { email, password, name, emailVerified = false, role = 'USER', referrerId = null } = userData;
         
         // First check if user already exists
         const existingUser = await pool.query(
@@ -139,14 +139,24 @@ export const databaseHelpers = {
         const id = randomUUID();
         
         const result = await pool.query(`
-          INSERT INTO users (id, email, password, name, "emailVerified", role, "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+          INSERT INTO users (id, email, password, name, "emailVerified", role, "referrerId", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
           RETURNING *
-        `, [id, email, password, name, emailVerified, role]);
+        `, [id, email, password, name, emailVerified, role, referrerId]);
         
         return result.rows[0];
       } catch (error) {
         console.error('Error creating user:', error);
+        throw error;
+      }
+    },
+
+    async getUserById(userId) {
+      try {
+        const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('Error getting user by ID:', error);
         throw error;
       }
     },
@@ -1516,6 +1526,145 @@ export const databaseHelpers = {
           totalStaked: 0,
           totalRewards: 0
         };
+      }
+    }
+  },
+
+  // Referral operations
+  referral: {
+    async createReferral(referralData) {
+      try {
+        const { referrerId, referredId } = referralData;
+        
+        const result = await pool.query(`
+          INSERT INTO referrals (id, "referrerId", "referredId", "createdAt")
+          VALUES ($1, $2, $3, NOW())
+          RETURNING *
+        `, [randomUUID(), referrerId, referredId]);
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error creating referral:', error);
+        throw error;
+      }
+    },
+
+    async getReferralByUsers(referrerId, referredId) {
+      try {
+        const result = await pool.query(
+          'SELECT * FROM referrals WHERE "referrerId" = $1 AND "referredId" = $2',
+          [referrerId, referredId]
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('Error getting referral by users:', error);
+        throw error;
+      }
+    },
+
+    async getUserReferrals(userId) {
+      try {
+        const result = await pool.query(`
+          SELECT r.*, u.name as referred_name, u.email as referred_email
+          FROM referrals r
+          LEFT JOIN users u ON r."referredId" = u.id
+          WHERE r."referrerId" = $1
+          ORDER BY r."createdAt" DESC
+        `, [userId]);
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting user referrals:', error);
+        throw error;
+      }
+    },
+
+    async getUserReferralEarnings(userId) {
+      try {
+        const result = await pool.query(`
+          SELECT re.*, r."referredId", u.name as referred_name, u.email as referred_email
+          FROM referral_earnings re
+          LEFT JOIN referrals r ON re."referralId" = r.id
+          LEFT JOIN users u ON r."referredId" = u.id
+          WHERE r."referrerId" = $1
+          ORDER BY re."createdAt" DESC
+        `, [userId]);
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting user referral earnings:', error);
+        throw error;
+      }
+    }
+  },
+
+  // Referral earning operations
+  referralEarning: {
+    async createReferralEarning(earningData) {
+      try {
+        const { referralId, stakingId, amount } = earningData;
+        
+        const result = await pool.query(`
+          INSERT INTO referral_earnings (id, "referralId", "stakingId", amount, "createdAt")
+          VALUES ($1, $2, $3, $4, NOW())
+          RETURNING *
+        `, [randomUUID(), referralId, stakingId, amount]);
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error creating referral earning:', error);
+        throw error;
+      }
+    },
+
+    async getReferralEarningsByReferral(referralId) {
+      try {
+        const result = await pool.query(
+          'SELECT * FROM referral_earnings WHERE "referralId" = $1 ORDER BY "createdAt" DESC',
+          [referralId]
+        );
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting referral earnings by referral:', error);
+        throw error;
+      }
+    },
+
+    async getReferralAnalytics(userId) {
+      try {
+        const result = await pool.query(`
+          WITH referral_stats AS (
+            SELECT 
+              r."referrerId",
+              r."referredId",
+              r."createdAt" as signup_date,
+              u.name as referred_name,
+              u.email as referred_email,
+              COALESCE(SUM(CASE WHEN s.status = 'CLAIMED' THEN s.profit ELSE 0 END), 0) as total_staking_profit,
+              COALESCE(SUM(re.amount), 0) as total_earnings_from_user
+            FROM referrals r
+            LEFT JOIN users u ON r."referredId" = u.id
+            LEFT JOIN staking s ON s."userId" = r."referredId"
+            LEFT JOIN referral_earnings re ON re."referralId" = r.id
+            WHERE r."referrerId" = $1
+            GROUP BY r."referrerId", r."referredId", r."createdAt", u.name, u.email
+          ),
+          total_earnings AS (
+            SELECT COALESCE(SUM(re.amount), 0) as total_referral_earnings
+            FROM referral_earnings re
+            INNER JOIN referrals r ON re."referralId" = r.id
+            WHERE r."referrerId" = $1
+          )
+          SELECT 
+            rs.*,
+            te.total_referral_earnings
+          FROM referral_stats rs
+          CROSS JOIN total_earnings te
+          ORDER BY rs.signup_date DESC
+        `, [userId]);
+        
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting referral analytics:', error);
+        throw error;
       }
     }
   }
