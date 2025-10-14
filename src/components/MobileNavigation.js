@@ -17,11 +17,11 @@ const MobileNavigation = ({ user }) => {
   
   const userNavigation = [
     { name: 'Dashboard', href: '/user/dashboard', icon: '📊' },
+    { name: 'Trading', href: '/user/trade', icon: '📈' },
     { name: 'Deposit', href: '/user/deposit', icon: '💰' },
     { name: 'Withdraw', href: '/user/withdraw', icon: '💸' },
     { name: 'Send', href: '/user/send', icon: '📤' },
     { name: 'Staking', href: '/user/staking', icon: '🏦' },
-    { name: 'Trade', href: '/user/trade', icon: '🔄' },
     { name: 'Profile', href: '/user/profile', icon: '👤' },
   ];
   

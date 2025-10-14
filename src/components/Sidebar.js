@@ -17,6 +17,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
   
   const userNavigation = [
     { name: 'Dashboard', href: '/user/dashboard', icon: '📊', category: 'main' },
+    { name: 'Trading', href: '/user/trade', icon: '📈', category: 'main' },
     { name: 'Deposit', href: '/user/deposit', icon: '💰', category: 'wallet' },
     { name: 'Withdraw', href: '/user/withdraw', icon: '💸', category: 'wallet' },
     { name: 'Send Tokens', href: '/user/send', icon: '📤', category: 'wallet' },

@@ -11,6 +11,7 @@ import Button from '../../../components/Button';
 import Input from '../../../components/Input';
 import TikiPriceChart from '../../../components/TikiPriceChart';
 import { ToastContainer, useToast } from '../../../components/Toast';
+import { AlertModal } from '../../../components/Modal';
 
 export default function TradePage() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -19,8 +20,22 @@ export default function TradePage() {
   const [mounted, setMounted] = useState(false);
   const { toasts, removeToast } = useToast();
   
+  // Modal state for trade success/error messages
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [tradeModalData, setTradeModalData] = useState({
+    type: 'success',
+    title: '',
+    message: ''
+  });
+  
   // Enable real-time price updates every 5 seconds
   usePriceUpdates(5000);
+
+  // Helper function to show trade modal
+  const showTradeModalMessage = (type, title, message) => {
+    setTradeModalData({ type, title, message });
+    setShowTradeModal(true);
+  };
 
   // Tiki trading state - only for Tiki tokens
   const [tradeType, setTradeType] = useState('buy');
@@ -133,12 +148,12 @@ export default function TradePage() {
   // Handle trade execution with API-based price calculation
   const handleTrade = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      alert('Please enter a valid amount');
+      showTradeModalMessage('error', 'Invalid Amount', 'Please enter a valid amount');
       return;
     }
 
     if (orderType === 'limit' && (!price || parseFloat(price) <= 0)) {
-      alert('Please enter a valid price for limit order');
+      showTradeModalMessage('error', 'Invalid Price', 'Please enter a valid price for limit order');
       return;
     }
 
@@ -150,7 +165,11 @@ export default function TradePage() {
         // BUYING TIKI TOKENS LOGIC
         // Check if user has sufficient USD balance
         if (amountValue > usdBalance) {
-          alert(`Insufficient USD balance. Available: ${formatCurrency(usdBalance, 'USD')}`);
+          showTradeModalMessage(
+            'error',
+            'Insufficient Balance',
+            `You don't have enough USD balance. Available: ${formatCurrency(usdBalance, 'USD')}`
+          );
           return;
         }
         
@@ -158,19 +177,24 @@ export default function TradePage() {
         const result = await buyTiki(amountValue);
         
         if (result.success) {
-          alert(`Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`);
+          let message = `Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`;
           if (result.newPrice !== result.oldPrice) {
-            alert(`Price updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`);
+            message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
           }
+          showTradeModalMessage('success', 'Buy Successful! 🎉', message);
         } else {
-          alert(`Buy failed: ${result.error}`);
+          showTradeModalMessage('error', 'Buy Failed', result.error || 'Unknown error occurred');
         }
         
       } else {
         // SELLING TIKI TOKENS LOGIC
         // Check if user has sufficient Tiki balance
         if (amountValue > tikiBalance) {
-          alert(`Insufficient Tiki balance. Available: ${formatTiki(tikiBalance)} TIKI`);
+          showTradeModalMessage(
+            'error',
+            'Insufficient Balance',
+            `You don't have enough Tiki balance. Available: ${formatTiki(tikiBalance)} TIKI`
+          );
           return;
         }
         
@@ -178,12 +202,13 @@ export default function TradePage() {
         const result = await sellTiki(amountValue);
         
         if (result.success) {
-          alert(`Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`);
+          let message = `Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`;
           if (result.newPrice !== result.oldPrice) {
-            alert(`Price updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`);
+            message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
           }
+          showTradeModalMessage('success', 'Sell Successful! 🎉', message);
         } else {
-          alert(`Sell failed: ${result.error}`);
+          showTradeModalMessage('error', 'Sell Failed', result.error || 'Unknown error occurred');
         }
       }
       
@@ -192,7 +217,7 @@ export default function TradePage() {
       setPrice('');
     } catch (error) {
       console.error('Trade error:', error);
-      alert('Trade failed. Please try again.');
+      showTradeModalMessage('error', 'Trade Failed', 'An unexpected error occurred. Please try again.');
     } finally {
       setIsTrading(false);
     }
@@ -588,6 +613,16 @@ export default function TradePage() {
 
       {/* Toast Container */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      
+      {/* Trade Success/Error Modal */}
+      <AlertModal
+        isOpen={showTradeModal}
+        onClose={() => setShowTradeModal(false)}
+        title={tradeModalData.title}
+        message={tradeModalData.message}
+        type={tradeModalData.type}
+        buttonText="OK"
+      />
     </Layout>
   );
 }

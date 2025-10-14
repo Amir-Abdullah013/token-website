@@ -1,14 +1,45 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from '../../../../lib/session';
 
 export async function POST(request) {
   try {
-    const { userId, usdAmount } = await request.json();
+    const session = await getServerSession();
+    if (!session?.id) {
+      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    }
+
+    const { usdAmount } = await request.json();
     
-    if (!userId || !usdAmount || usdAmount <= 0) {
+    if (!usdAmount || usdAmount <= 0) {
       return NextResponse.json(
-        { success: false, error: 'Invalid user ID or amount' },
+        { success: false, error: 'Invalid amount' },
         { status: 400 }
       );
+    }
+
+    // Ensure a real DB user exists; resolve by id or email, else create
+    let userId = session.id;
+    try {
+      const { databaseHelpers } = await import('../../../../lib/database.js');
+      let dbUser = await databaseHelpers.user.getUserById(session.id);
+      if (!dbUser && session.email) {
+        dbUser = await databaseHelpers.user.getUserByEmail(session.email);
+      }
+      if (!dbUser) {
+        const name = session.name || (session.email ? session.email.split('@')[0] : 'User');
+        const password = `oauth_${Date.now()}`;
+        dbUser = await databaseHelpers.user.createUser({
+          email: session.email || `user_${Date.now()}@example.com`,
+          password,
+          name,
+          emailVerified: true,
+          role: 'USER'
+        });
+      }
+      userId = dbUser.id;
+    } catch (resolveErr) {
+      console.error('Error resolving/creating DB user for buy:', resolveErr);
+      return NextResponse.json({ success: false, error: 'Failed to resolve user for buy' }, { status: 500 });
     }
 
     // Get current price and stats
@@ -48,28 +79,46 @@ export async function POST(request) {
       };
     }
 
-    // Create mock transaction record (skip database for testing)
-    const transaction = {
-      id: Date.now().toString(),
-      userId,
-      type: 'BUY',
-      amount: usdAmount,
-      status: 'COMPLETED',
-      createdAt: new Date()
-    };
+    // Update user's TIKI balance and create real transaction
+    let updatedWallet;
+    try {
+      const { databaseHelpers } = await import('../../../../lib/database.js');
+      // Ensure wallet exists
+      let wallet = await databaseHelpers.wallet.getWalletByUserId(userId);
+      if (!wallet) {
+        wallet = await databaseHelpers.wallet.createWallet(userId);
+      }
+      // Increase tiki balance by tokensToBuy
+      updatedWallet = await databaseHelpers.wallet.updateTikiBalance(userId, tokensToBuy);
+      // Create transaction record (BUY, USD amount)
+      await databaseHelpers.transaction.createTransaction({
+        userId: userId,
+        type: 'BUY',
+        amount: usdAmount,
+        currency: 'USD',
+        status: 'COMPLETED',
+        gateway: 'TikiMarket',
+        description: `Bought ${tokensToBuy.toFixed(2)} TIKI at ${currentPrice} USD`
+      });
+    } catch (txErr) {
+      console.error('Error updating wallet/creating transaction for buy:', txErr);
+      return NextResponse.json({ success: false, error: 'Failed to update wallet for buy' }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,
       transaction: {
-        id: transaction.id,
-        userId,
+        userId: userId,
         type: 'BUY',
         amount: usdAmount,
         tokensReceived: tokensToBuy,
         pricePerToken: currentPrice,
         newPrice: updatedStats.currentPrice,
         status: 'COMPLETED',
-        createdAt: transaction.createdAt || new Date()
+        createdAt: new Date()
+      },
+      newWallet: {
+        tikiBalance: updatedWallet?.tikiBalance ?? null
       },
       priceUpdate: {
         oldPrice: currentPrice,

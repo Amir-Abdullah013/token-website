@@ -62,12 +62,21 @@ export const AuthProvider = ({ children }) => {
           
           // Validate the session data - be more lenient for OAuth users
           if (userData.email && (userData.name || userData.email)) {
+            // Generate TIKI ID based on user data
+            const generateTikiId = (userData) => {
+              if (!userData || !userData.email || !userData.id) return null;
+              const emailHash = userData.email.split('@')[0].toUpperCase();
+              const idSuffix = (userData.id || userData.$id || 'user-id').substring(0, 8).toUpperCase();
+              return `TIKI-${emailHash.substring(0, 4)}-${idSuffix}`;
+            };
+
             // Use the actual user data from session without hardcoded fallbacks
             const correctedUserData = {
               ...userData,
               name: userData.name || 'User',
               email: userData.email, // Use actual email from session
               id: userData.id || userData.$id || 'user-id',
+              tikiId: generateTikiId(userData),
               createdAt: userData.createdAt || new Date().toISOString()
             };
             
@@ -104,12 +113,21 @@ export const AuthProvider = ({ children }) => {
             const userData = JSON.parse(userSession);
             console.log('Found OAuth user session:', userData);
             
+            // Generate TIKI ID for OAuth user
+            const generateTikiId = (userData) => {
+              if (!userData || !userData.email || !userData.id) return null;
+              const emailHash = userData.email.split('@')[0].toUpperCase();
+              const idSuffix = (userData.id || userData.$id || 'user-id').substring(0, 8).toUpperCase();
+              return `TIKI-${emailHash.substring(0, 4)}-${idSuffix}`;
+            };
+
             // Ensure we have the correct user data
           const correctedUserData = {
             ...userData,
             name: userData.name || (userData.email ? userData.email.split('@')[0] : 'User'),
             email: userData.email,
             id: userData.id || userData.$id || 'user-id',
+            tikiId: generateTikiId(userData),
             status: userData.status || 'active',
             createdAt: userData.createdAt || new Date().toISOString()
           };
@@ -512,3 +530,8 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+
+
+
+
+export { AuthProvider, useAuth };

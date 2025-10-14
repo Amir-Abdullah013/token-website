@@ -36,8 +36,14 @@ export async function GET(request) {
       });
     }
 
-    // Get current TIKI price
-    const tikiPrice = await databaseHelpers.tokenStats.getCurrentPrice();
+    // Get current TIKI price with fallback
+    let tikiPrice = 0.0035; // Default price
+    try {
+      tikiPrice = await databaseHelpers.tokenStats.getCurrentPrice();
+    } catch (priceError) {
+      console.log('⚠️ Using default TIKI price due to TokenStats table error:', priceError.message);
+      // Use default price if TokenStats table doesn't exist
+    }
 
     return NextResponse.json({
       success: true,

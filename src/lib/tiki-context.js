@@ -103,6 +103,28 @@ export const TikiProvider = ({ children }) => {
     }).format(amount);
   };
 
+  // Fetch user wallet data
+  const fetchUserWallet = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await fetch(`/api/wallet/balance?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUsdBalance(data.usdBalance || 0);
+        setTikiBalance(data.tikiBalance || 0);
+        setTikiPrice(data.tikiPrice || 0.0035);
+        console.log('✅ Wallet data refreshed:', data);
+      } else {
+        console.log('⚠️ Wallet API failed, using current state');
+        // Keep current state if API fails
+      }
+    } catch (error) {
+      console.error('Error fetching wallet data:', error);
+      // Keep current state if API fails
+    }
+  };
+
   // Update database via API
   const updateDatabaseBalances = async (newUsdBalance, newTikiBalance) => {
     if (!user?.id) return;
@@ -379,6 +401,7 @@ export const TikiProvider = ({ children }) => {
     formatTiki,
     getCurrencies,
     fetchCurrentPrice,
+    fetchUserWallet,
     currencyRates
   };
 

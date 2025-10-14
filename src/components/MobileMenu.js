@@ -18,9 +18,9 @@ const MobileMenu = ({ user, isOpen, onClose }) => {
   
   const navigation = [
     { name: 'Dashboard', href: '/user/dashboard', icon: '📊' },
+    { name: 'Trading', href: '/user/trade', icon: '📈' },
     { name: 'Deposit', href: '/user/deposit', icon: '💰' },
     { name: 'Withdraw', href: '/user/withdraw', icon: '💸' },
-    { name: 'Trade', href: '/user/trade', icon: '🔄' },
     { name: 'Transactions', href: '/user/transactions', icon: '📋' },
     { name: 'Profile', href: '/user/profile', icon: '👤' },
     { name: 'Security', href: '/user/security', icon: '🔒' },

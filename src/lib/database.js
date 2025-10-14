@@ -124,6 +124,18 @@ export const databaseHelpers = {
     async createUser(userData) {
       try {
         const { email, password, name, emailVerified = false, role = 'USER' } = userData;
+        
+        // First check if user already exists
+        const existingUser = await pool.query(
+          'SELECT * FROM users WHERE email = $1',
+          [email]
+        );
+        
+        if (existingUser.rows.length > 0) {
+          console.log('👤 User already exists, returning existing user:', email);
+          return existingUser.rows[0];
+        }
+        
         const id = randomUUID();
         
         const result = await pool.query(`
@@ -244,7 +256,7 @@ export const databaseHelpers = {
           createdAt: new Date()
         };
       } catch (error) {
-        console.error('Error getting token stats:', error);
+        console.log('⚠️ TokenStats table not found, using default values:', error.message);
         return {
           totalTokens: 100000000,
           totalInvestment: 350000,
@@ -477,14 +489,33 @@ export const databaseHelpers = {
 
         client = await pool.connect();
         
-        const result = await client.query(`
-          INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", screenshot, "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
-          RETURNING *
-        `, [id, userId, type, amount, currency, status, description, gateway, binanceAddress, screenshot]);
-        
-        console.log('✅ Transaction created:', id);
-        return result.rows[0];
+        // Normalize enum-like fields to uppercase by default
+        const txTypePrimary = typeof type === 'string' ? type.toUpperCase() : type;
+        const txStatusPrimary = typeof status === 'string' ? status.toUpperCase() : status;
+
+        try {
+          const result = await client.query(`
+            INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", screenshot, "createdAt", "updatedAt")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+            RETURNING *
+          `, [id, userId, txTypePrimary, amount, currency, txStatusPrimary, description, gateway, binanceAddress, screenshot]);
+          console.log('✅ Transaction created:', id);
+          return result.rows[0];
+        } catch (enumErr) {
+          if (enumErr && enumErr.code === '22P02') {
+            // Fallback to lowercase variants if enum casing mismatches
+            const txTypeFallback = typeof type === 'string' ? type.toLowerCase() : type;
+            const txStatusFallback = typeof status === 'string' ? status.toLowerCase() : status;
+            const result = await client.query(`
+              INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", screenshot, "createdAt", "updatedAt")
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+              RETURNING *
+            `, [id, userId, txTypeFallback, amount, currency, txStatusFallback, description, gateway, binanceAddress, screenshot]);
+            console.log('✅ Transaction created with fallback enum casing:', id);
+            return result.rows[0];
+          }
+          throw enumErr;
+        }
       } catch (error) {
         console.error('Error creating transaction:', error);
         
@@ -767,14 +798,31 @@ export const databaseHelpers = {
         const { userId, title, message, type, isGlobal = false, createdBy } = notificationData;
         const id = randomUUID();
         
-        const result = await pool.query(`
-          INSERT INTO notifications (id, "userId", title, message, type, "isGlobal", "createdBy", "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-          RETURNING *
-        `, [id, userId, title, message, type, isGlobal, createdBy]);
-        
-        console.log('✅ Notification created:', id);
-        return result.rows[0];
+        // Normalize type casing to maximize compatibility across enum variants
+        const primaryType = typeof type === 'string' ? type.toUpperCase() : type;
+        try {
+          const result = await pool.query(`
+            INSERT INTO notifications (id, "userId", title, message, type, "isGlobal", "createdBy", "createdAt", "updatedAt")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+            RETURNING *
+          `, [id, userId, title, message, primaryType, isGlobal, createdBy]);
+          
+          console.log('✅ Notification created:', id);
+          return result.rows[0];
+        } catch (enumErr) {
+          // Fallback for enum mismatch (lowercase variant)
+          if (enumErr && enumErr.code === '22P02') {
+            const fallbackType = typeof type === 'string' ? type.toLowerCase() : type;
+            const result = await pool.query(`
+              INSERT INTO notifications (id, "userId", title, message, type, "isGlobal", "createdBy", "createdAt", "updatedAt")
+              VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+              RETURNING *
+            `, [id, userId, title, message, fallbackType, isGlobal, createdBy]);
+            console.log('✅ Notification created with fallback type casing:', id, fallbackType);
+            return result.rows[0];
+          }
+          throw enumErr;
+        }
       } catch (error) {
         console.error('Error creating notification:', error);
         throw error;

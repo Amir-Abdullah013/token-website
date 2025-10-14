@@ -10,6 +10,39 @@ import Button from '../../../components/Button';
 import Input from '../../../components/Input';
 import { useToast, ToastContainer } from '../../../components/Toast';
 
+// Utility function to safely parse response
+const parseResponse = async (response) => {
+  const contentType = response.headers.get('content-type');
+  
+  // Check if response has any content
+  const contentLength = response.headers.get('content-length');
+  if (contentLength === '0' || (!contentLength && !contentType)) {
+    throw new Error('Server returned empty response');
+  }
+  
+  if (contentType && contentType.includes('application/json')) {
+    try {
+      const jsonData = await response.json();
+      return jsonData;
+    } catch (error) {
+      console.error('JSON parsing error:', error);
+      throw new Error('Invalid JSON response from server');
+    }
+  } else {
+    try {
+      const text = await response.text();
+      console.error('Non-JSON response received:', text);
+      if (text.trim() === '') {
+        throw new Error('Server returned empty response');
+      }
+      throw new Error('Server returned non-JSON response');
+    } catch (error) {
+      console.error('Text parsing error:', error);
+      throw new Error('Failed to parse server response');
+    }
+  }
+};
+
 const StatusBadge = ({ status }) => {
   const getStatusStyles = () => {
     switch (status) {
@@ -59,7 +92,7 @@ const TransferRow = ({ transfer, type }) => {
         </span>
       </td>
       <td className="px-4 py-3 text-sm text-gray-900">
-        {type === 'sent' ? transfer.recipientEmail : transfer.senderEmail}
+        {type === 'sent' ? transfer.recipientTikiId : transfer.senderTikiId}
       </td>
       <td className="px-4 py-3 text-sm text-gray-900 font-medium">
         {formatTiki(transfer.amount)} TIKI
@@ -79,13 +112,13 @@ const TransferRow = ({ transfer, type }) => {
 
 export default function SendTokensPage() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { tikiBalance, formatTiki, fetchUserWallet } = useTiki();
+  const { tikiBalance, formatTiki, fetchUserWallet, setTikiBalance } = useTiki();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
 
   const [formData, setFormData] = useState({
-    recipientEmail: '',
+    recipientTikiId: '',
     amount: '',
     note: ''
   });
@@ -114,12 +147,23 @@ export default function SendTokensPage() {
     setIsLoadingTransfers(true);
     try {
       const response = await fetch('/api/transfer');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch transfers: ${response.status}`);
+      
+      // Parse response safely
+      let data;
+      try {
+        data = await parseResponse(response);
+      } catch (parseError) {
+        console.error('Response parsing error:', parseError);
+        throw new Error(parseError.message);
       }
-      const data = await response.json();
+
+      // Check if response indicates success
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to fetch transfers: ${response.status}`);
+      }
+
       if (data.success) {
-        setTransfers(data.transfers.all);
+        setTransfers(data.transfers || []);
       } else {
         error(data.error || 'Failed to load transfers');
       }
@@ -150,10 +194,10 @@ export default function SendTokensPage() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.recipientEmail) {
-      newErrors.recipientEmail = 'Recipient email is required';
-    } else if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(formData.recipientEmail)) {
-      newErrors.recipientEmail = 'Please enter a valid Gmail address';
+    if (!formData.recipientTikiId) {
+      newErrors.recipientTikiId = 'Recipient TIKI ID is required';
+    } else if (!/^TIKI-[A-Z0-9]{4}-[A-Z0-9]{8}$/.test(formData.recipientTikiId.toUpperCase())) {
+      newErrors.recipientTikiId = 'Please enter a valid TIKI ID (format: TIKI-XXXX-XXXXXXXX)';
     }
 
     if (!formData.amount) {
@@ -181,25 +225,48 @@ export default function SendTokensPage() {
     setShowConfirm(false);
 
     try {
-      const response = await fetch('/api/transfer', {
+      const response = await fetch('/api/transfer-simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          recipientEmail: formData.recipientEmail,
+          recipientTikiId: formData.recipientTikiId.toUpperCase(),
           amount: parseFloat(formData.amount),
           note: formData.note || null
         })
       });
 
-      const data = await response.json();
+      // Parse response safely
+      let data;
+      try {
+        data = await parseResponse(response);
+      } catch (parseError) {
+        console.error('Response parsing error:', parseError);
+        error(parseError.message);
+        return;
+      }
 
-      if (response.ok) {
-        success(`🎉 Transfer successful! You sent ${formatTiki(parseFloat(formData.amount))} TIKI to ${formData.recipientEmail}`);
-        setFormData({ recipientEmail: '', amount: '', note: '' });
-        fetchTransfers(); // Refresh transfers list
-        fetchUserWallet(); // Refresh user balance
+      // Check if response indicates success
+      if (!response.ok) {
+        error(data.error || `Transfer failed with status ${response.status}`);
+        return;
+      }
+
+      if (data.success) {
+        success(`🎉 Transfer successful! You sent ${formatTiki(parseFloat(formData.amount))} TIKI to ${formData.recipientTikiId}`);
+        setFormData({ recipientTikiId: '', amount: '', note: '' });
+        
+        // Update balance immediately if provided in response
+        if (data.newBalance !== undefined) {
+          console.log('🔄 Updating balance from transfer response:', data.newBalance);
+          // Update the Tiki context balance directly
+          setTikiBalance(data.newBalance);
+        }
+        
+        // Only refresh after successful transfer
+        await fetchTransfers(); // Refresh transfers list
+        await fetchUserWallet(); // Refresh user balance
       } else {
         error(data.error || 'Transfer failed');
       }
@@ -251,24 +318,24 @@ export default function SendTokensPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="recipientEmail" className="block text-sm font-medium text-gray-700 mb-2">
-                  Recipient Gmail Address *
+                <label htmlFor="recipientTikiId" className="block text-sm font-medium text-gray-700 mb-2">
+                  Recipient TIKI ID *
                 </label>
                 <Input
-                  id="recipientEmail"
-                  name="recipientEmail"
-                  type="email"
-                  value={formData.recipientEmail}
+                  id="recipientTikiId"
+                  name="recipientTikiId"
+                  type="text"
+                  value={formData.recipientTikiId}
                   onChange={handleInputChange}
-                  placeholder="Enter recipient's Gmail address"
-                  className={errors.recipientEmail ? 'border-red-500' : ''}
+                  placeholder="Enter recipient's TIKI ID (e.g., TIKI-USER-12345678)"
+                  className={errors.recipientTikiId ? 'border-red-500' : ''}
                   disabled={isSubmitting}
                 />
-                {errors.recipientEmail && (
-                  <p className="mt-1 text-sm text-red-600">{errors.recipientEmail}</p>
+                {errors.recipientTikiId && (
+                  <p className="mt-1 text-sm text-red-600">{errors.recipientTikiId}</p>
                 )}
                 <p className="mt-1 text-sm text-gray-500">
-                  The recipient must be registered on Tiki with this Gmail address
+                  The recipient must be registered on Tiki with this TIKI ID
                 </p>
               </div>
 
@@ -317,7 +384,7 @@ export default function SendTokensPage() {
               <Button
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={isSubmitting || !formData.recipientEmail || !formData.amount}
+                disabled={isSubmitting || !formData.recipientTikiId || !formData.amount}
               >
                 {isSubmitting ? 'Processing...' : 'Send Tokens'}
               </Button>
@@ -335,7 +402,7 @@ export default function SendTokensPage() {
               <div className="flex justify-center items-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-            ) : transfers.length === 0 ? (
+            ) : !transfers || transfers.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No transfers yet</p>
             ) : (
               <div className="overflow-x-auto">
@@ -386,7 +453,7 @@ export default function SendTokensPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Recipient:</span>
-                      <span className="font-semibold text-gray-900">{formData.recipientEmail}</span>
+                      <span className="font-semibold text-gray-900">{formData.recipientTikiId}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Amount:</span>

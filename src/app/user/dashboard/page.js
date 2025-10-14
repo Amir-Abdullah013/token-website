@@ -10,7 +10,9 @@ import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Ca
 import Button from '../../../components/Button';
 import WalletOverview from '../../../components/WalletOverview';
 import PriceChart from '../../../components/PriceChart';
+import UserIdDisplay from '../../../components/UserIdDisplay';
 import { ToastContainer, useToast } from '../../../components/Toast';
+import { AlertModal } from '../../../components/Modal';
 import Link from 'next/link';
 
 export default function UserDashboard() {
@@ -22,6 +24,14 @@ export default function UserDashboard() {
   const [showStakeConfirm, setShowStakeConfirm] = useState(false);
   const [pendingStake, setPendingStake] = useState(null);
   const { success, error, toasts, removeToast } = useToast();
+  
+  // Modal state for trade success/error messages
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [tradeModalData, setTradeModalData] = useState({
+    type: 'success',
+    title: '',
+    message: ''
+  });
   
   // Enable real-time price updates every 5 seconds
   usePriceUpdates(5000);
@@ -56,6 +66,12 @@ export default function UserDashboard() {
 
   // Calculate total value using Tiki price
   const totalValue = parseFloat(tradeAmount) * tikiPrice || 0;
+
+  // Helper function to show trade modal
+  const showTradeModalMessage = (type, title, message) => {
+    setTradeModalData({ type, title, message });
+    setShowTradeModal(true);
+  };
 
   // Fetch dashboard stats
   const fetchDashboardStats = async () => {
@@ -108,7 +124,11 @@ export default function UserDashboard() {
         // BUYING TIKI TOKENS LOGIC
         // Check if user has sufficient USD balance
         if (amountValue > usdBalance) {
-          alert(`Insufficient USD balance. Available: ${formatCurrency(usdBalance, 'USD')}`);
+          showTradeModalMessage(
+            'error',
+            'Insufficient Balance',
+            `You don't have enough USD balance. Available: ${formatCurrency(usdBalance, 'USD')}`
+          );
           return;
         }
         
@@ -116,19 +136,24 @@ export default function UserDashboard() {
         const result = await buyTiki(amountValue);
         
         if (result.success) {
-          alert(`Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`);
+          let message = `Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`;
           if (result.newPrice !== result.oldPrice) {
-            alert(`Price updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`);
+            message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
           }
+          showTradeModalMessage('success', 'Buy Successful! 🎉', message);
         } else {
-          alert(`Buy failed: ${result.error}`);
+          showTradeModalMessage('error', 'Buy Failed', result.error || 'Unknown error occurred');
         }
         
       } else {
         // SELLING TIKI TOKENS LOGIC
         // Check if user has sufficient Tiki balance
         if (amountValue > tikiBalance) {
-          alert(`Insufficient Tiki balance. Available: ${formatTiki(tikiBalance)} TIKI`);
+          showTradeModalMessage(
+            'error',
+            'Insufficient Balance',
+            `You don't have enough Tiki balance. Available: ${formatTiki(tikiBalance)} TIKI`
+          );
           return;
         }
         
@@ -136,12 +161,13 @@ export default function UserDashboard() {
         const result = await sellTiki(amountValue);
         
         if (result.success) {
-          alert(`Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`);
+          let message = `Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`;
           if (result.newPrice !== result.oldPrice) {
-            alert(`Price updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`);
+            message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
           }
+          showTradeModalMessage('success', 'Sell Successful! 🎉', message);
         } else {
-          alert(`Sell failed: ${result.error}`);
+          showTradeModalMessage('error', 'Sell Failed', result.error || 'Unknown error occurred');
         }
       }
       
@@ -149,7 +175,7 @@ export default function UserDashboard() {
       setTradeAmount('');
     } catch (error) {
       console.error('Trade error:', error);
-      alert('Trade failed. Please try again.');
+      showTradeModalMessage('error', 'Trade Failed', 'An unexpected error occurred. Please try again.');
     } finally {
       setIsTrading(false);
     }
@@ -277,13 +303,21 @@ export default function UserDashboard() {
         {/* Welcome Header */}
         <div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/10">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold text-white">
                 Welcome back, {user?.name || 'Trader'}! 👋
               </h1>
               <p className="text-gray-300 text-sm">
                 Ready to trade? Your portfolio is looking great today.
               </p>
+              {/* User ID Display */}
+              <div className="mt-3">
+                <UserIdDisplay 
+                  userId={user?.tikiId || user?.id} 
+                  showFull={false}
+                  className="text-white"
+                />
+              </div>
             </div>
             <div className="text-right">
               <div className="text-xl font-bold text-white">
@@ -531,6 +565,16 @@ export default function UserDashboard() {
 
         {/* Toast Container */}
         <ToastContainer toasts={toasts} removeToast={removeToast} />
+        
+        {/* Trade Success/Error Modal */}
+        <AlertModal
+          isOpen={showTradeModal}
+          onClose={() => setShowTradeModal(false)}
+          title={tradeModalData.title}
+          message={tradeModalData.message}
+          type={tradeModalData.type}
+          buttonText="OK"
+        />
     </Layout>
   );
 }
