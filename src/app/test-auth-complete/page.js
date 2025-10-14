@@ -203,4 +203,8 @@ export default function TestAuthComplete() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 

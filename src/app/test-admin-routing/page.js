@@ -72,6 +72,9 @@ export default function TestAdminRoutingPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
 
 
 

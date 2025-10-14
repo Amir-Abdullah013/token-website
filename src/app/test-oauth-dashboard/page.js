@@ -145,3 +145,7 @@ export default function TestOAuthDashboard() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

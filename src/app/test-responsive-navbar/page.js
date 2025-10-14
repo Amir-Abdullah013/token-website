@@ -179,3 +179,7 @@ export default function TestResponsiveNavbar() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

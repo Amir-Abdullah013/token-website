@@ -305,3 +305,7 @@ export default function TestOAuthVercel() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

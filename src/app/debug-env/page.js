@@ -80,3 +80,6 @@ export default function DebugEnv() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

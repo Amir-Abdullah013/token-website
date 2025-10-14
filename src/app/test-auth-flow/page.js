@@ -306,3 +306,6 @@ export default function TestAuthFlow() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

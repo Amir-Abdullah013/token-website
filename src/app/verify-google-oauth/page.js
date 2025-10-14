@@ -222,3 +222,7 @@ export default function VerifyGoogleOAuth() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

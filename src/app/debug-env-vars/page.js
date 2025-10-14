@@ -229,3 +229,7 @@ export default function DebugEnvVars() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

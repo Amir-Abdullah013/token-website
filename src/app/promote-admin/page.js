@@ -111,6 +111,10 @@ export default function PromoteAdminPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 
 
 

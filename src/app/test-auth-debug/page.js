@@ -343,4 +343,8 @@ Last Login: ${data.user.lastLogin ? new Date(data.user.lastLogin).toLocaleString
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 

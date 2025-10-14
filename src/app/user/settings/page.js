@@ -833,3 +833,7 @@ export default function SettingsPage() {
     </Layout>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

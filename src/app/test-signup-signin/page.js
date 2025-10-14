@@ -259,4 +259,8 @@ ${data.users.map((user, index) =>
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 

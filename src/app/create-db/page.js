@@ -100,6 +100,10 @@ export default function CreateDatabase() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 
 
 

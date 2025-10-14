@@ -461,3 +461,6 @@ export default function WithdrawPage() {
     </Layout>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

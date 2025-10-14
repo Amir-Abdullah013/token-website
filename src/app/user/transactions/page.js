@@ -467,3 +467,7 @@ export default function TransactionsPage() {
     </Layout>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

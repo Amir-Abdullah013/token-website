@@ -604,3 +604,7 @@ export default function DepositPage() {
     </Layout>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

@@ -122,6 +122,9 @@ export default function TestWalletPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
 
 
 

@@ -433,6 +433,10 @@ export default function SendTokensPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 
 
 

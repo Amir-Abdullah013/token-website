@@ -162,3 +162,7 @@ export default function TestEnvSimple() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

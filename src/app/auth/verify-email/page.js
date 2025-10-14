@@ -155,4 +155,9 @@ export default function VerifyEmailPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+export const ssr = false;
+
+
 

@@ -122,3 +122,7 @@ export default function TestAdminUsers() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+

@@ -247,3 +247,6 @@ export default function TestOAuthConfig() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

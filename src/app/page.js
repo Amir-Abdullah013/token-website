@@ -300,3 +300,6 @@ export default function Home() {
     </>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

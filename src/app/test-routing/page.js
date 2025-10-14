@@ -83,6 +83,9 @@ export default function TestRoutingPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
 
 
 

@@ -122,6 +122,10 @@ export default function AccessDeniedPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 
 
 

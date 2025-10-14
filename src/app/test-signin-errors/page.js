@@ -166,3 +166,7 @@ export default function TestSignInErrors() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

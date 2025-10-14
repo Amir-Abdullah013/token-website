@@ -126,6 +126,9 @@ export default function TestWithdrawPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
 
 
 

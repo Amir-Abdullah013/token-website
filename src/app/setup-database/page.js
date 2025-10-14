@@ -112,3 +112,6 @@ export default function SetupDatabase() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

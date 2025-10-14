@@ -210,3 +210,7 @@ export default function TestManifest() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

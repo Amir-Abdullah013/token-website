@@ -61,6 +61,10 @@ DATABASE_URL=postgresql://postgres:password@db.your-project.supabase.co:5432/pos
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 
 
 

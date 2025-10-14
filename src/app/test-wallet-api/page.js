@@ -144,3 +144,8 @@ export default function TestWalletAPI() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+export const ssr = false;
+
+

@@ -1,5 +1,4 @@
 import { getServerSession } from '@/lib/session';
-import { databaseHelpers } from '@/lib/database';
 
 export default async function DebugUserDeposit() {
   const session = await getServerSession();
@@ -20,8 +19,20 @@ export default async function DebugUserDeposit() {
   let error = null;
 
   try {
-    dbUser = await databaseHelpers.user.getUserById(session.id);
-    userExists = !!dbUser;
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/user/profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (response.ok) {
+      const userData = await response.json();
+      dbUser = userData.user;
+      userExists = !!dbUser;
+    } else {
+      error = 'Failed to fetch user data';
+    }
   } catch (err) {
     error = err.message;
   }

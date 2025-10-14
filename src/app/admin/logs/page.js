@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-// Removed direct database import - using API calls instead
-import { authHelpers } from '@/lib/supabase';;
+import { authHelpers } from '@/lib/supabase';
 import { Button, Card, Input, Loader, Toast } from '@/components';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -37,10 +36,19 @@ export default function AdminLogsPage() {
 
       setUser(currentUser);
       
-      // Load admin logs and stats
+      // Load admin logs and stats via API
+      const [logsResponse, statsResponse] = await Promise.all([
+        fetch('/api/admin/logs?limit=50&offset=0'),
+        fetch('/api/admin/logs/stats')
+      ]);
+      
+      if (!logsResponse.ok || !statsResponse.ok) {
+        throw new Error('Failed to fetch admin logs');
+      }
+      
       const [adminLogs, logStats] = await Promise.all([
-        databaseHelpers.admin.getAdminLogs(50, 0),
-        databaseHelpers.admin.getAdminLogStats()
+        logsResponse.json(),
+        statsResponse.json()
       ]);
       
       setLogs(adminLogs);
@@ -69,7 +77,13 @@ export default function AdminLogsPage() {
 
     try {
       setSearching(true);
-      const searchResults = await databaseHelpers.admin.searchAdminLogs(searchTerm, 50, 0);
+      const response = await fetch(`/api/admin/logs/search?q=${encodeURIComponent(searchTerm)}&limit=50&offset=0`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to search admin logs');
+      }
+      
+      const searchResults = await response.json();
       setLogs(searchResults);
     } catch (error) {
       console.error('Error searching admin logs:', error);
@@ -92,7 +106,13 @@ export default function AdminLogsPage() {
 
     try {
       setLoading(true);
-      const adminLogs = await databaseHelpers.admin.getAdminLogsByAdmin(adminId, 50, 0);
+      const response = await fetch(`/api/admin/logs/admin/${adminId}?limit=50&offset=0`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to filter admin logs');
+      }
+      
+      const adminLogs = await response.json();
       setLogs(adminLogs);
     } catch (error) {
       console.error('Error filtering by admin:', error);
@@ -371,6 +391,10 @@ export default function AdminLogsPage() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
 
 
 

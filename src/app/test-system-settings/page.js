@@ -450,3 +450,6 @@ export default function TestSystemSettingsPage() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

@@ -216,3 +216,7 @@ export default function AdminLoginPage() {
     </Layout>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

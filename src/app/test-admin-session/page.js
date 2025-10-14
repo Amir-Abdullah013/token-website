@@ -136,3 +136,7 @@ export default function TestAdminSession() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

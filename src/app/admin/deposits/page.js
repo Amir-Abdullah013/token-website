@@ -522,3 +522,6 @@ export default function AdminDepositsPage() {
     </AdminRoute>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

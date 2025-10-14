@@ -188,4 +188,9 @@ User Details:
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+export const ssr = false;
+
+
 

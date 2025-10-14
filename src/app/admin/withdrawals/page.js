@@ -566,3 +566,6 @@ export default function AdminWithdrawalsPage() {
     </Layout>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

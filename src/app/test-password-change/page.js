@@ -163,4 +163,8 @@ export default function TestPasswordChange() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 

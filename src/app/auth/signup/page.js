@@ -338,3 +338,6 @@ export default function SignUp() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

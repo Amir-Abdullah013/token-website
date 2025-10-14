@@ -332,4 +332,8 @@ export default function DesignSystemPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 

@@ -407,3 +407,7 @@ export default function SecuritySettingsPage() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

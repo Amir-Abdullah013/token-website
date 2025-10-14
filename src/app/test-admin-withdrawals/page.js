@@ -139,6 +139,9 @@ export default function TestAdminWithdrawalsPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
 
 
 

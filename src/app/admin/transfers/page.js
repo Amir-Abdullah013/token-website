@@ -338,3 +338,7 @@ export default function AdminTransfersPage() {
     </Layout>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

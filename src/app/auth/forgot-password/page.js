@@ -193,3 +193,7 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

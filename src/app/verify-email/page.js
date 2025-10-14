@@ -108,3 +108,7 @@ export default function VerifyEmail() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

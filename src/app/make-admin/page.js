@@ -113,6 +113,10 @@ export default function MakeAdminPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 
 
 

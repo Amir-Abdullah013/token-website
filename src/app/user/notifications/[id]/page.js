@@ -267,6 +267,10 @@ export default function NotificationDetailPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 
 
 

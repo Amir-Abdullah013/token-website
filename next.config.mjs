@@ -28,8 +28,17 @@ const nextConfig = {
         querystring: false,
         net: false,
         tls: false,
+        dns: false,
         child_process: false,
       };
+      
+      // Exclude problematic modules from client bundle
+      config.externals = config.externals || [];
+      config.externals.push({
+        'pg': 'commonjs pg',
+        'pg-connection-string': 'commonjs pg-connection-string',
+        'pgpass': 'commonjs pgpass',
+      });
       
       // Add bundle analyzer if ANALYZE is true
       if (process.env.ANALYZE === 'true') {

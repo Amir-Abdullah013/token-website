@@ -121,3 +121,7 @@ export default function OAuthSuccess() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

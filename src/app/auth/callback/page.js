@@ -105,3 +105,6 @@ export default function AuthCallback() {
 
   return null;
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

@@ -303,3 +303,7 @@ export default function CreateUserPage() {
     </Layout>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

@@ -569,3 +569,6 @@ export default function StakingPage() {
     </Layout>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

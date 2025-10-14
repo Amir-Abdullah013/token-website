@@ -173,3 +173,7 @@ export default function TestOAuthUrls() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+

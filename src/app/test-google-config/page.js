@@ -254,3 +254,6 @@ export default function TestGoogleConfig() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

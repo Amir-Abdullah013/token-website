@@ -254,3 +254,7 @@ export default function TestPriceAPI() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+

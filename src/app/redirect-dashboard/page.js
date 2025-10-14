@@ -81,3 +81,6 @@ export default function RedirectDashboard() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';

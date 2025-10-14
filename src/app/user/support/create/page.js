@@ -280,6 +280,10 @@ export default function CreateTicketPage() {
   );
 }
 
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
+
 
 
 

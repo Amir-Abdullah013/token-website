@@ -180,3 +180,7 @@ export default function DebugOAuthVercel() {
     </div>
   );
 }
+
+// Disable prerendering for this page
+export const dynamic = 'force-dynamic';
+
