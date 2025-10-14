@@ -300,17 +300,17 @@ export default function UserDashboard() {
     <Layout showSidebar={true}>
       {/* Professional Dashboard */}
       <div className="space-y-6">
-        {/* Welcome Header */}
-        <div className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-md rounded-xl p-4 border border-slate-600/30 shadow-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+        {/* Premium Welcome Header */}
+        <div className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-md rounded-xl p-4 sm:p-6 border border-slate-600/30 shadow-xl">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
+            <div className="flex-1 w-full lg:w-auto">
+              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
                 Welcome back, {user?.name || 'Trader'}! 👋
               </h1>
-              <p className="text-slate-300 text-sm font-medium">
+              <p className="text-slate-300 text-sm font-medium mt-1">
                 Ready to trade? Your portfolio is looking great today.
               </p>
-              {/* User ID Display */}
+              {/* Premium User ID Display */}
               <div className="mt-3">
                 <UserIdDisplay 
                   userId={user?.tikiId || user?.id} 
@@ -319,8 +319,8 @@ export default function UserDashboard() {
                 />
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-xl font-bold text-white">
+            <div className="text-left lg:text-right w-full lg:w-auto">
+              <div className="text-lg sm:text-xl font-bold text-white">
                 {formatCurrency(usdBalance + (tikiBalance * tikiPrice), 'USD')}
               </div>
               <div className="text-emerald-400 text-xs font-medium">+2.5% today</div>
