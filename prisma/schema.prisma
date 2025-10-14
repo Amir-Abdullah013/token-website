@@ -20,6 +20,7 @@ model User {
   emailVerified Boolean  @default(false)
   role          Role     @default(USER)
   status        String   @default("active")
+  isAdmin       Boolean  @default(false)  // Admin flag for token management
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   lastLogin     DateTime?
@@ -56,6 +57,8 @@ model User {
   stakings       Staking[]
   sentTransfers     Transfer[] @relation("SentTransfers")
   receivedTransfers Transfer[] @relation("ReceivedTransfers")
+  tokenMintings     TokenMinting[]  // Admin token minting operations
+  mintHistory       MintHistory[]   // Admin mint history
   
   // Referral relations
   referrer       User?   @relation("UserReferrals", fields: [referrerId], references: [id], onDelete: SetNull)
@@ -335,5 +338,47 @@ model ReferralEarning {
   staking     Staking? @relation(fields: [stakingId], references: [id], onDelete: SetNull)
 
   @@map("referral_earnings")
+}
+
+model TokenSupply {
+  id              Int      @id @default(autoincrement())
+  totalSupply     BigInt   @default(10000000)    // 10,000,000 tokens initially
+  remainingSupply BigInt   @default(10000000)    // 10,000,000 tokens initially
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  tokenMintings   TokenMinting[]
+
+  @@map("token_supply")
+}
+
+model TokenMinting {
+  id            String   @id @default(cuid())
+  adminId       String   // Admin who performed the minting
+  tokenSupplyId Int      // Reference to token supply record
+  amount        BigInt   // Amount of tokens minted
+  reason        String?  // Reason for minting (optional)
+  totalSupply   BigInt   // Total supply after minting
+  remainingSupply BigInt // Remaining supply after minting
+  createdAt     DateTime @default(now())
+
+  // Relations
+  admin         User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  tokenSupply   TokenSupply @relation(fields: [tokenSupplyId], references: [id], onDelete: Cascade)
+
+  @@map("token_minting")
+}
+
+model MintHistory {
+  id        String   @id @default(cuid())
+  adminId   String   // Admin who performed the minting
+  amount    BigInt   // Amount of tokens minted
+  createdAt DateTime @default(now())
+
+  // Relations
+  admin     User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@map("mint_history")
 }
 

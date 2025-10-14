@@ -1667,6 +1667,314 @@ export const databaseHelpers = {
         throw error;
       }
     }
+  },
+
+  // TokenSupply operations
+  tokenSupply: {
+    async getTokenSupply() {
+      try {
+        const result = await pool.query('SELECT * FROM token_supply ORDER BY id DESC LIMIT 1');
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('Error getting token supply:', error);
+        throw error;
+      }
+    },
+
+    async createTokenSupply(totalSupply = 10000000, remainingSupply = 10000000) {
+      try {
+        const result = await pool.query(`
+          INSERT INTO token_supply ("totalSupply", "remainingSupply", "createdAt", "updatedAt")
+          VALUES ($1, $2, NOW(), NOW())
+          RETURNING *
+        `, [totalSupply, remainingSupply]);
+        
+        console.log('✅ TokenSupply created:', result.rows[0]);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error creating token supply:', error);
+        throw error;
+      }
+    },
+
+    async updateRemainingSupply(amount, operation = 'deduct') {
+      try {
+        // Get current token supply
+        const currentSupply = await this.getTokenSupply();
+        if (!currentSupply) {
+          throw new Error('TokenSupply record not found');
+        }
+
+        const currentRemaining = Number(currentSupply.remainingSupply);
+        let newRemaining;
+
+        if (operation === 'deduct') {
+          if (currentRemaining < amount) {
+            throw new Error('Insufficient token supply');
+          }
+          newRemaining = currentRemaining - amount;
+        } else if (operation === 'add') {
+          newRemaining = currentRemaining + amount;
+        } else {
+          throw new Error('Invalid operation. Use "deduct" or "add"');
+        }
+
+        const result = await pool.query(`
+          UPDATE token_supply 
+          SET "remainingSupply" = $1, "updatedAt" = NOW()
+          WHERE id = $2
+          RETURNING *
+        `, [newRemaining, currentSupply.id]);
+
+        console.log(`✅ TokenSupply updated: ${operation} ${amount}, new remaining: ${newRemaining}`);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating token supply:', error);
+        throw error;
+      }
+    },
+
+    async deductTokens(amount) {
+      return this.updateRemainingSupply(amount, 'deduct');
+    },
+
+    async addTokens(amount) {
+      return this.updateRemainingSupply(amount, 'add');
+    }
+  },
+
+  // Minting operations
+  minting: {
+    async mintTokens(adminId, amount) {
+      try {
+        const client = await pool.connect();
+        await client.query('BEGIN');
+
+        try {
+          // Get current token supply
+          const currentSupply = await client.query('SELECT * FROM token_supply ORDER BY id DESC LIMIT 1');
+          if (currentSupply.rows.length === 0) {
+            throw new Error('TokenSupply record not found');
+          }
+
+          const supply = currentSupply.rows[0];
+          const newTotalSupply = Number(supply.totalSupply) + amount;
+          const newRemainingSupply = Number(supply.remainingSupply) + amount;
+
+          // Update token supply
+          const updatedSupply = await client.query(`
+            UPDATE token_supply 
+            SET "totalSupply" = $1, "remainingSupply" = $2, "updatedAt" = NOW()
+            WHERE id = $3
+            RETURNING *
+          `, [newTotalSupply, newRemainingSupply, supply.id]);
+
+          // Record mint history
+          const mintHistory = await client.query(`
+            INSERT INTO mint_history (id, "adminId", amount, "createdAt")
+            VALUES ($1, $2, $3, NOW())
+            RETURNING *
+          `, [require('crypto').randomUUID(), adminId, amount]);
+
+          await client.query('COMMIT');
+
+          console.log('✅ Tokens minted successfully:', {
+            adminId,
+            amount,
+            newTotalSupply,
+            newRemainingSupply
+          });
+
+          return {
+            success: true,
+            totalSupply: newTotalSupply,
+            remainingSupply: newRemainingSupply,
+            mintHistory: mintHistory.rows[0]
+          };
+
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+
+      } catch (error) {
+        console.error('Error minting tokens:', error);
+        throw error;
+      }
+    },
+
+    async getMintHistory(adminId = null, limit = 50) {
+      try {
+        let query = `
+          SELECT mh.*, u.name as admin_name, u.email as admin_email
+          FROM mint_history mh
+          LEFT JOIN users u ON mh."adminId" = u.id
+        `;
+        const params = [];
+
+        if (adminId) {
+          query += ' WHERE mh."adminId" = $1';
+          params.push(adminId);
+        }
+
+        query += ' ORDER BY mh."createdAt" DESC LIMIT $' + (params.length + 1);
+        params.push(limit);
+
+        const result = await pool.query(query, params);
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting mint history:', error);
+        throw error;
+      }
+    }
+  },
+
+  // Token value and inflation calculations
+  tokenValue: {
+    async getCurrentTokenValue() {
+      try {
+        // Get base value from system settings
+        const baseValueSetting = await databaseHelpers.system.getSetting('token_base_value');
+        const baseValue = baseValueSetting ? parseFloat(baseValueSetting.value) : 0.0035; // Default to $0.0035 USD
+
+        // Get current token supply
+        const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
+        if (!tokenSupply) {
+          throw new Error('TokenSupply record not found');
+        }
+
+        const totalSupply = Number(tokenSupply.totalSupply);
+        const remainingSupply = Number(tokenSupply.remainingSupply);
+
+        // Calculate inflation factor
+        const inflationFactor = totalSupply / remainingSupply;
+        const currentTokenValue = baseValue * inflationFactor;
+
+        return {
+          baseValue,
+          totalSupply,
+          remainingSupply,
+          inflationFactor,
+          currentTokenValue,
+          calculatedAt: new Date()
+        };
+      } catch (error) {
+        console.error('Error calculating token value:', error);
+        // Return default values if calculation fails
+        return {
+          baseValue: 0.0035,
+          totalSupply: 10000000,
+          remainingSupply: 10000000,
+          inflationFactor: 1.0,
+          currentTokenValue: 0.0035,
+          calculatedAt: new Date(),
+          error: error.message
+        };
+      }
+    },
+
+    async setBaseValue(baseValue, adminId = null) {
+      try {
+        // Update system setting
+        await databaseHelpers.system.setSetting(
+          'token_base_value', 
+          baseValue.toString(), 
+          'Base token value in USD for inflation calculations'
+        );
+
+        // Log admin action if adminId provided
+        if (adminId) {
+          await databaseHelpers.adminLog.createAdminLog({
+            adminId,
+            action: 'UPDATE_BASE_VALUE',
+            targetType: 'SYSTEM_SETTING',
+            targetId: 'token_base_value',
+            details: `Updated base token value to $${baseValue}`
+          });
+        }
+
+        console.log('✅ Base token value updated:', baseValue);
+        return { success: true, baseValue };
+      } catch (error) {
+        console.error('Error setting base value:', error);
+        throw error;
+      }
+    },
+
+    async calculateInflationImpact(amount) {
+      try {
+        const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+        const usdValue = amount * tokenValue.currentTokenValue;
+        
+        return {
+          tokenAmount: amount,
+          usdValue,
+          tokenValue: tokenValue.currentTokenValue,
+          inflationFactor: tokenValue.inflationFactor
+        };
+      } catch (error) {
+        console.error('Error calculating inflation impact:', error);
+        throw error;
+      }
+    }
+  },
+
+  // Admin Log Helper
+  adminLog: {
+    async createAdminLog(logData) {
+      try {
+        const { adminId, action, targetType, targetId, details, ipAddress, userAgent } = logData;
+        
+        const result = await pool.query(`
+          INSERT INTO admin_logs (id, "adminId", action, "targetType", "targetId", details, "ipAddress", "userAgent", "createdAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+          RETURNING *
+        `, [
+          require('crypto').randomUUID(),
+          adminId,
+          action,
+          targetType,
+          targetId,
+          details,
+          ipAddress,
+          userAgent
+        ]);
+
+        console.log('✅ Admin log created:', { action, adminId, targetType });
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error creating admin log:', error);
+        // Don't throw error - admin logging should not break the main operation
+        return null;
+      }
+    },
+
+    async getAdminLogs(adminId = null, limit = 50) {
+      try {
+        let query = `
+          SELECT al.*, u.name as admin_name, u.email as admin_email
+          FROM admin_logs al
+          LEFT JOIN users u ON al."adminId" = u.id
+        `;
+        const params = [];
+        
+        if (adminId) {
+          query += ` WHERE al."adminId" = $1`;
+          params.push(adminId);
+        }
+        
+        query += ` ORDER BY al."createdAt" DESC LIMIT $${params.length + 1}`;
+        params.push(limit);
+
+        const result = await pool.query(query, params);
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting admin logs:', error);
+        throw error;
+      }
+    }
   }
 };
 

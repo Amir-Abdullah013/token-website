@@ -52,6 +52,16 @@ export async function POST(request, { params }) {
     const profit = rewardAmount; // The profit is the reward amount
     const totalAmount = staking.amountStaked + rewardAmount;
 
+    // Get current token value for inflation calculations
+    const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+    console.log('💰 Current token value calculation:', {
+      baseValue: tokenValue.baseValue,
+      totalSupply: tokenValue.totalSupply,
+      remainingSupply: tokenValue.remainingSupply,
+      inflationFactor: tokenValue.inflationFactor,
+      currentTokenValue: tokenValue.currentTokenValue
+    });
+
     // Get user's wallet
     const userWallet = await databaseHelpers.wallet.getWalletByUserId(session.id);
     if (!userWallet) {
@@ -70,15 +80,65 @@ export async function POST(request, { params }) {
       );
     }
 
+    // Check token supply before processing
+    const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
+    if (!tokenSupply) {
+      return NextResponse.json(
+        { success: false, error: 'Token supply not initialized' },
+        { status: 500 }
+      );
+    }
+
+    // Calculate total tokens needed (profit + referral bonus if applicable)
+    let totalTokensNeeded = profit;
+    let referrerBonus = 0;
+    
+    if (user.referrerId) {
+      referrerBonus = (profit * 10) / 100; // 10% of staking profit
+      totalTokensNeeded += referrerBonus;
+    }
+
+    // Check if sufficient tokens are available
+    if (Number(tokenSupply.remainingSupply) < totalTokensNeeded) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Insufficient token supply',
+          details: {
+            required: totalTokensNeeded,
+            available: Number(tokenSupply.remainingSupply),
+            shortfall: totalTokensNeeded - Number(tokenSupply.remainingSupply)
+          }
+        },
+        { status: 400 }
+      );
+    }
+
     // Start transaction for referral profit distribution
     let client;
     let referralEarning = null;
     let referrerWallet = null;
     let referrerNewBalance = null;
+    let updatedTokenSupply = null;
 
     try {
       client = await databaseHelpers.pool.connect();
       await client.query('BEGIN');
+
+      // Deduct tokens from supply first
+      await client.query(`
+        UPDATE token_supply 
+        SET "remainingSupply" = "remainingSupply" - $1, "updatedAt" = NOW()
+        WHERE id = $2
+        RETURNING *
+      `, [totalTokensNeeded, tokenSupply.id]);
+
+      // Get updated token supply
+      const updatedSupplyResult = await client.query(
+        'SELECT * FROM token_supply WHERE id = $1',
+        [tokenSupply.id]
+      );
+      updatedTokenSupply = updatedSupplyResult.rows[0];
 
       // Add staked amount + reward back to user's wallet
       const newTikiBalance = userWallet.tikiBalance + totalAmount;
@@ -88,8 +148,8 @@ export async function POST(request, { params }) {
       );
 
       // Check if user has a referrer and distribute referral profit
-      if (user.referrerId) {
-        console.log('🔗 User has referrer, calculating referral profit...');
+      if (user.referrerId && referrerBonus > 0) {
+        console.log('🔗 User has referrer, distributing referral profit...');
         
         // Get the referral record
         const referral = await client.query(
@@ -99,9 +159,6 @@ export async function POST(request, { params }) {
 
         if (referral.rows.length > 0) {
           const referralRecord = referral.rows[0];
-          
-          // Calculate referrer's bonus (10% of staking profit)
-          const referrerBonus = (profit * 10) / 100;
           
           // Get referrer's wallet
           const referrerWalletResult = await client.query(
@@ -207,6 +264,18 @@ export async function POST(request, { params }) {
         profit: profit,
         totalAmount: totalAmount,
         newBalance: userWallet.tikiBalance + totalAmount
+      },
+      tokenSupply: {
+        totalSupply: Number(updatedTokenSupply.totalSupply),
+        remainingSupply: Number(updatedTokenSupply.remainingSupply),
+        tokensDeducted: totalTokensNeeded
+      },
+      tokenValue: {
+        baseValue: tokenValue.baseValue,
+        currentValue: tokenValue.currentTokenValue,
+        inflationFactor: tokenValue.inflationFactor,
+        profitUSDValue: profit * tokenValue.currentTokenValue,
+        totalUSDValue: totalAmount * tokenValue.currentTokenValue
       }
     };
 
@@ -216,7 +285,8 @@ export async function POST(request, { params }) {
         referrerId: user.referrerId,
         referralBonus: referralEarning.amount,
         newBalance: referrerNewBalance,
-        referralEarningId: referralEarning.id
+        referralEarningId: referralEarning.id,
+        referralBonusUSDValue: referralEarning.amount * tokenValue.currentTokenValue
       };
       responseData.message += ' Referral bonus distributed to referrer.';
     }

@@ -11,27 +11,31 @@ import Button from '../../../components/Button';
 import Loader from '../../../components/Loader';
 
 export default function AdminProfile() {
-  const { adminUser, isLoading: authLoading, isAuthenticated, isAdmin } = useAdminAuth();
+  const { adminUser, isLoading: authLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
   const [profileLoading, setProfileLoading] = useState(false);
   const [userData, setUserData] = useState(null);
   const [redirecting, setRedirecting] = useState(false);
+  const [redirectTimeout, setRedirectTimeout] = useState(null);
+
+  const isAdminRole = !!(adminUser && typeof adminUser.role === 'string' && ['admin', 'administrator'].includes(adminUser.role.toLowerCase()));
 
   useEffect(() => {
-    if (!authLoading && !redirecting) {
+    if (!authLoading) {
       if (!isAuthenticated) {
         router.push('/auth/signin');
-        return;
-      }
-      
-      // Only redirect to user profile if user is not admin and not already redirecting
-      if (!isAdmin) {
-        setRedirecting(true);
-        router.push('/user/profile');
-        return;
       }
     }
-  }, [authLoading, isAuthenticated, isAdmin, router, redirecting]);
+  }, [authLoading, isAuthenticated, router]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (redirectTimeout) {
+        clearTimeout(redirectTimeout);
+      }
+    };
+  }, [redirectTimeout]);
 
   useEffect(() => {
     if (adminUser) {
@@ -59,34 +63,77 @@ export default function AdminProfile() {
   if (authLoading || profileLoading) {
     return (
       <Layout showSidebar={true}>
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
           <Loader />
         </div>
       </Layout>
     );
   }
 
-  if (!isAuthenticated || !isAdmin) {
-    return null;
+  if (!isAuthenticated) {
+    return (
+      <Layout showSidebar={true}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+            <p className="text-slate-300">Redirecting to sign in...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Wait until we can reliably determine admin state
+  if (isAuthenticated && !isAdminRole && !adminUser) {
+    return (
+      <Layout showSidebar={true}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+          <Loader />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Non-admins viewing admin profile: show access message instead of implying redirect
+  if (isAuthenticated && !isAdminRole) {
+    return (
+      <Layout showSidebar={true}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center px-4">
+          <div className="max-w-md w-full text-center bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm rounded-lg p-6 border border-slate-600/30 shadow-xl">
+            <h2 className="text-xl font-semibold mb-2 bg-gradient-to-r from-red-400 to-rose-400 bg-clip-text text-transparent">Access restricted</h2>
+            <p className="text-slate-300 mb-4">This page is only available to administrators.</p>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/user/profile')}
+              className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
+            >
+              Go to your profile
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   return (
     <Layout showSidebar={true}>
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Profile</h1>
-              <p className="text-gray-600 mt-2">Manage your administrator account</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Admin Profile</h1>
+                <p className="text-slate-300 mt-2">Manage your administrator account</p>
+              </div>
+              <Button 
+                variant="outline"
+                onClick={() => router.push('/admin/dashboard')}
+                className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
+              >
+                Back to Dashboard
+              </Button>
             </div>
-            <Button 
-              variant="outline"
-              onClick={() => router.push('/admin/dashboard')}
-            >
-              Back to Dashboard
-            </Button>
           </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Profile Section */}
@@ -102,44 +149,44 @@ export default function AdminProfile() {
 
           {/* Additional Information */}
           <div className="space-y-6">
-            <Card>
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
               <CardHeader>
-                <CardTitle>Administrator Information</CardTitle>
+                <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Administrator Information</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-200 mb-2">
                       Admin ID
                     </label>
-                    <p className="text-sm text-gray-900 font-mono break-all">
+                    <p className="text-sm text-white font-mono break-all bg-slate-800/30 px-3 py-2 rounded-lg border border-slate-600/30">
                       {userData?.$id || 'N/A'}
                     </p>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-200 mb-2">
                       Role Level
                     </label>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-red-500/50 to-rose-500/50 text-white border border-red-400/70 shadow-lg">
                       Administrator
                     </span>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-200 mb-2">
                       Last Login
                     </label>
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-white bg-slate-800/30 px-3 py-2 rounded-lg border border-slate-600/30">
                       {userData?.$updatedAt ? new Date(userData.$updatedAt).toLocaleString() : 'Unknown'}
                     </p>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-200 mb-2">
                       Account Created
                     </label>
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-white bg-slate-800/30 px-3 py-2 rounded-lg border border-slate-600/30">
                       {userData?.$createdAt ? new Date(userData.$createdAt).toLocaleDateString() : 'Unknown'}
                     </p>
                   </div>
@@ -147,34 +194,34 @@ export default function AdminProfile() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
               <CardHeader>
-                <CardTitle>Security Status</CardTitle>
+                <CardTitle className="text-lg bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Security Status</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-3 bg-slate-800/20 rounded-lg border border-slate-600/20">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Email Verification</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm font-medium text-slate-200">Email Verification</p>
+                      <p className="text-xs text-slate-300">
                         {userData?.emailVerification ? 'Verified' : 'Not verified'}
                       </p>
                     </div>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
                       userData?.emailVerification ? 
-                        'bg-green-100 text-green-800' : 
-                        'bg-yellow-100 text-yellow-800'
+                        'bg-gradient-to-r from-emerald-500/50 to-green-500/50 text-white border border-emerald-400/70 shadow-lg' : 
+                        'bg-gradient-to-r from-amber-500/50 to-orange-500/50 text-white border border-amber-400/70 shadow-lg'
                     }`}>
                       {userData?.emailVerification ? 'Verified' : 'Pending'}
                     </span>
                   </div>
                   
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-3 bg-slate-800/20 rounded-lg border border-slate-600/20">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Admin Privileges</p>
-                      <p className="text-xs text-gray-500">Full system access</p>
+                      <p className="text-sm font-medium text-slate-200">Admin Privileges</p>
+                      <p className="text-xs text-slate-300">Full system access</p>
                     </div>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-red-500/50 to-rose-500/50 text-white border border-red-400/70 shadow-lg">
                       Active
                     </span>
                   </div>
@@ -185,6 +232,7 @@ export default function AdminProfile() {
                       size="sm" 
                       fullWidth
                       onClick={() => router.push('/auth/verify-email')}
+                      className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-blue-500/30 hover:text-cyan-200 border border-cyan-400/30"
                     >
                       Verify Email
                     </Button>
@@ -193,9 +241,9 @@ export default function AdminProfile() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle className="text-lg bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -204,6 +252,7 @@ export default function AdminProfile() {
                     size="sm" 
                     fullWidth
                     onClick={() => router.push('/admin/dashboard')}
+                    className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-blue-500/30 hover:text-cyan-200 border border-cyan-400/30"
                   >
                     Admin Dashboard
                   </Button>
@@ -212,6 +261,7 @@ export default function AdminProfile() {
                     size="sm" 
                     fullWidth
                     onClick={() => router.push('/admin/users')}
+                    className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-emerald-200 border border-emerald-400/30"
                   >
                     Manage Users
                   </Button>
@@ -220,6 +270,7 @@ export default function AdminProfile() {
                     size="sm" 
                     fullWidth
                     onClick={() => router.push('/admin/settings')}
+                    className="bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 hover:from-violet-500/30 hover:to-purple-500/30 hover:text-violet-200 border border-violet-400/30"
                   >
                     System Settings
                   </Button>
@@ -227,6 +278,7 @@ export default function AdminProfile() {
               </CardContent>
             </Card>
           </div>
+        </div>
         </div>
       </div>
     </Layout>

@@ -316,10 +316,10 @@ export default function SettingsPage() {
   if (!mounted || loading) {
     return (
       <Layout showSidebar={true}>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading settings...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+            <p className="text-slate-300">Loading settings...</p>
           </div>
         </div>
       </Layout>
@@ -330,10 +330,10 @@ export default function SettingsPage() {
   if (!isAuthenticated || !user) {
     return (
       <Layout showSidebar={true}>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Redirecting to sign in...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+            <p className="text-slate-300">Redirecting to sign in...</p>
           </div>
         </div>
       </Layout>
@@ -342,19 +342,19 @@ export default function SettingsPage() {
 
   return (
     <Layout showSidebar={true}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         {/* Header */}
-        <div className="bg-white shadow-sm border-b">
+        <div className="bg-gradient-to-r from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm shadow-xl border-b border-slate-600/30">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-                <p className="text-gray-600 mt-2">Manage your account preferences and security</p>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Settings</h1>
+                <p className="text-slate-300 mt-2">Manage your account preferences and security</p>
               </div>
                <Button 
                  variant="outline"
                  onClick={() => router.push('/user/dashboard')}
-                 className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-md font-medium"
+                 className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
                >
                  Back to Dashboard
                </Button>
@@ -363,16 +363,16 @@ export default function SettingsPage() {
         </div>
 
         {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b">
+        <div className="lg:hidden bg-gradient-to-r from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm border-b border-slate-600/30">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Settings</h1>
-                <p className="text-xs text-gray-600">Account preferences</p>
+                <h1 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Settings</h1>
+                <p className="text-xs text-slate-300">Account preferences</p>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-blue-600">
+                <div className="w-8 h-8 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-cyan-200">
                     {user?.name?.charAt(0) || 'U'}
                   </span>
                 </div>
@@ -388,34 +388,25 @@ export default function SettingsPage() {
             <nav className="flex space-x-8 overflow-x-auto">
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-all duration-200 ${
                   activeTab === 'profile'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-cyan-400 text-cyan-400'
+                    : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-500'
                 }`}
               >
                 Profile
               </button>
               <button
                 onClick={() => setActiveTab('security')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-all duration-200 ${
                   activeTab === 'security'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-cyan-400 text-cyan-400'
+                    : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-500'
                 }`}
               >
                 Security
               </button>
-              <button
-                onClick={() => setActiveTab('notifications')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'notifications'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Notifications
-              </button>
+              
             </nav>
           </div>
 
@@ -423,15 +414,15 @@ export default function SettingsPage() {
           {activeTab === 'profile' && (
             <div className="space-y-6">
               {/* Profile Information */}
-              <Card>
+              <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
                 <CardHeader>
-                  <CardTitle>Profile Information</CardTitle>
+                  <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Profile Information</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleProfileUpdate} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-slate-300 mb-1">
                           Full Name
                         </label>
                         <Input
@@ -439,24 +430,25 @@ export default function SettingsPage() {
                           value={profileData.name}
                           onChange={(e) => setProfileData({...profileData, name: e.target.value})}
                           placeholder="Enter your full name"
+                          className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-slate-300 mb-1">
                           Email Address
                         </label>
                         <Input
                           type="email"
                           value={profileData.email}
                           disabled
-                          className="bg-gray-50"
+                          className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 border border-slate-500/20 text-slate-400"
                         />
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-slate-400 mt-1">
                           Email cannot be changed. Contact support if needed.
                         </p>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-slate-300 mb-1">
                           Phone Number
                         </label>
                         <Input
@@ -464,6 +456,7 @@ export default function SettingsPage() {
                           value={profileData.phone}
                           onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
                           placeholder="Enter your phone number"
+                          className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
                         />
                       </div>
                       <div>
@@ -474,7 +467,7 @@ export default function SettingsPage() {
                        <Button 
                          type="submit" 
                          loading={isLoading}
-                         className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium"
+                         className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30"
                        >
                          Save Changes
                        </Button>
@@ -484,43 +477,27 @@ export default function SettingsPage() {
               </Card>
 
               {/* Account Information */}
-              <Card>
+              <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
                 <CardHeader>
-                  <CardTitle>Account Information</CardTitle>
+                  <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Account Information</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-300 mb-1">
                         User ID
                       </label>
-                      <p className="text-sm text-gray-900 font-mono break-all">
+                      <p className="text-sm text-white font-mono break-all">
                         {user?.$id || user?.id || 'N/A'}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-300 mb-1">
                         Account Type
                       </label>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-cyan-500/40 to-blue-500/40 text-white border border-cyan-400/60">
                         {user?.role || 'user'}
                       </span>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Member Since
-                      </label>
-                      <p className="text-sm text-gray-900">
-                        {user?.$createdAt ? new Date(user.$createdAt).toLocaleDateString() : 'Unknown'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Last Updated
-                      </label>
-                      <p className="text-sm text-gray-900">
-                        {user?.$updatedAt ? new Date(user.$updatedAt).toLocaleDateString() : 'Unknown'}
-                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -531,14 +508,14 @@ export default function SettingsPage() {
           {activeTab === 'security' && (
             <div className="space-y-6">
               {/* Password Change */}
-              <Card>
+              <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
                 <CardHeader>
-                  <CardTitle>Change Password</CardTitle>
+                  <CardTitle className="text-lg bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Change Password</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handlePasswordChange} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-300 mb-1">
                         Current Password
                       </label>
                       <Input
@@ -546,15 +523,15 @@ export default function SettingsPage() {
                         placeholder="Enter your current password"
                         value={passwordData.currentPassword}
                         onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
-                        className={passwordErrors.currentPassword ? 'border-red-500' : ''}
+                        className={`bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 ${passwordErrors.currentPassword ? 'border-red-400 focus:ring-red-400/50 focus:border-red-400' : ''}`}
                         required
                       />
                       {passwordErrors.currentPassword && (
-                        <p className="text-xs text-red-500 mt-1">{passwordErrors.currentPassword}</p>
+                        <p className="text-xs text-red-400 mt-1">{passwordErrors.currentPassword}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-300 mb-1">
                         New Password
                       </label>
                       <Input
@@ -562,19 +539,19 @@ export default function SettingsPage() {
                         placeholder="Enter your new password"
                         value={passwordData.newPassword}
                         onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-                        className={passwordErrors.newPassword ? 'border-red-500' : ''}
+                        className={`bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 ${passwordErrors.newPassword ? 'border-red-400 focus:ring-red-400/50 focus:border-red-400' : ''}`}
                         required
                         minLength={8}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-slate-400 mt-1">
                         Password must be at least 8 characters long with uppercase, lowercase, and number
                       </p>
                       {passwordErrors.newPassword && (
-                        <p className="text-xs text-red-500 mt-1">{passwordErrors.newPassword}</p>
+                        <p className="text-xs text-red-400 mt-1">{passwordErrors.newPassword}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-300 mb-1">
                         Confirm New Password
                       </label>
                       <Input
@@ -582,19 +559,19 @@ export default function SettingsPage() {
                         placeholder="Confirm your new password"
                         value={passwordData.confirmPassword}
                         onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-                        className={passwordErrors.confirmPassword ? 'border-red-500' : ''}
+                        className={`bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 ${passwordErrors.confirmPassword ? 'border-red-400 focus:ring-red-400/50 focus:border-red-400' : ''}`}
                         required
                         minLength={8}
                       />
                       {passwordErrors.confirmPassword && (
-                        <p className="text-xs text-red-500 mt-1">{passwordErrors.confirmPassword}</p>
+                        <p className="text-xs text-red-400 mt-1">{passwordErrors.confirmPassword}</p>
                       )}
                     </div>
                      <div className="flex justify-end">
                        <Button 
                          type="submit" 
                          loading={isLoading}
-                         className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium"
+                         className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
                        >
                          Change Password
                        </Button>
@@ -603,220 +580,23 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
 
-              {/* Security Settings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Security Settings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSecurityUpdate} className="space-y-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Two-Factor Authentication</h3>
-                          <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={securityData.twoFactorEnabled}
-                            onChange={(e) => setSecurityData({...securityData, twoFactorEnabled: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Email Notifications</h3>
-                          <p className="text-sm text-gray-500">Receive security alerts via email</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={securityData.emailNotifications}
-                            onChange={(e) => setSecurityData({...securityData, emailNotifications: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">SMS Notifications</h3>
-                          <p className="text-sm text-gray-500">Receive security alerts via SMS</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={securityData.smsNotifications}
-                            onChange={(e) => setSecurityData({...securityData, smsNotifications: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Login Alerts</h3>
-                          <p className="text-sm text-gray-500">Get notified of new login attempts</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={securityData.loginAlerts}
-                            onChange={(e) => setSecurityData({...securityData, loginAlerts: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-                    </div>
-                     <div className="flex justify-end">
-                       <Button 
-                         type="submit" 
-                         loading={isLoading}
-                         className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium"
-                       >
-                         Save Security Settings
-                       </Button>
-                     </div>
-                  </form>
-                </CardContent>
-              </Card>
+              
             </div>
           )}
 
           {activeTab === 'notifications' && (
             <div className="space-y-6">
               {/* Trading Notifications */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Trading Notifications</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleNotificationUpdate} className="space-y-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Price Alerts</h3>
-                          <p className="text-sm text-gray-500">Get notified when prices reach your targets</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={notificationData.priceAlerts}
-                            onChange={(e) => setNotificationData({...notificationData, priceAlerts: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Trade Notifications</h3>
-                          <p className="text-sm text-gray-500">Get notified when your trades are executed</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={notificationData.tradeNotifications}
-                            onChange={(e) => setNotificationData({...notificationData, tradeNotifications: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Deposit Notifications</h3>
-                          <p className="text-sm text-gray-500">Get notified when deposits are received</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={notificationData.depositNotifications}
-                            onChange={(e) => setNotificationData({...notificationData, depositNotifications: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Withdrawal Notifications</h3>
-                          <p className="text-sm text-gray-500">Get notified when withdrawals are processed</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={notificationData.withdrawalNotifications}
-                            onChange={(e) => setNotificationData({...notificationData, withdrawalNotifications: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Security Alerts</h3>
-                          <p className="text-sm text-gray-500">Get notified of security-related events</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={notificationData.securityAlerts}
-                            onChange={(e) => setNotificationData({...notificationData, securityAlerts: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Marketing Emails</h3>
-                          <p className="text-sm text-gray-500">Receive promotional content and updates</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={notificationData.marketingEmails}
-                            onChange={(e) => setNotificationData({...notificationData, marketingEmails: e.target.checked})}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-                    </div>
-                     <div className="flex justify-end">
-                       <Button 
-                         type="submit" 
-                         loading={isLoading}
-                         className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium"
-                       >
-                         Save Notification Settings
-                       </Button>
-                     </div>
-                  </form>
-                </CardContent>
-              </Card>
+             
             </div>
           )}
 
           {/* Save Status */}
           {saveStatus && (
-            <div className={`p-4 rounded-lg ${
+            <div className={`p-4 rounded-lg backdrop-blur-sm shadow-lg ${
               saveStatus.includes('successfully') 
-                ? 'bg-green-50 border border-green-200 text-green-800' 
-                : 'bg-red-50 border border-red-200 text-red-800'
+                ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-emerald-400/30 text-emerald-200' 
+                : 'bg-gradient-to-r from-red-500/20 to-rose-500/20 border border-red-400/30 text-red-200'
             }`}>
               {saveStatus}
             </div>
