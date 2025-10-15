@@ -6,6 +6,7 @@ import { useAdminAuth } from '../../../lib/admin-auth';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
+import Modal from '../../../components/Modal';
 import { useToast, ToastContainer } from '../../../components/Toast';
 
 // Status badge component
@@ -69,7 +70,7 @@ const UserDetails = ({ user, userId }) => {
 };
 
 // Transaction row component
-const TransactionRow = ({ transaction, onApprove, onReject, isProcessing }) => {
+const TransactionRow = ({ transaction, onApprove, onReject, isProcessing, onViewAddress }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -121,11 +122,32 @@ const TransactionRow = ({ transaction, onApprove, onReject, isProcessing }) => {
       </td>
       <td className="px-4 py-3 text-sm text-slate-300">
         {transaction.binanceAddress ? (
-          <div className="max-w-xs truncate" title={transaction.binanceAddress}>
-            {transaction.binanceAddress}
+          <div className="flex items-center space-x-2">
+            <div className="max-w-xs truncate" title={transaction.binanceAddress}>
+              {transaction.binanceAddress}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onViewAddress(transaction)}
+              className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-blue-500/30 hover:text-white border border-cyan-400/30 text-xs px-2 py-1"
+            >
+              👁️ View
+            </Button>
           </div>
         ) : (
           'N/A'
+        )}
+      </td>
+      <td className="px-4 py-3 text-sm text-slate-300">
+        {transaction.network ? (
+          <span className={`inline-flex px-2 py-1 rounded text-white text-xs font-medium ${
+            transaction.network === 'BEP20' ? 'bg-yellow-500' : 'bg-red-500'
+          }`}>
+            {transaction.network}
+          </span>
+        ) : (
+          <span className="text-slate-400 text-xs">N/A</span>
         )}
       </td>
       <td className="px-4 py-3">
@@ -201,6 +223,28 @@ export default function AdminWithdrawalsPage() {
   const [errorState, setErrorState] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal state for viewing Binance address
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  // Handle viewing Binance address
+  const handleViewAddress = (transaction) => {
+    setSelectedAddress(transaction.binanceAddress || '');
+    setSelectedUser(transaction.user);
+    setShowAddressModal(true);
+  };
+
+  // Handle copying address to clipboard
+  const handleCopyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(selectedAddress);
+      success('Binance address copied to clipboard!');
+    } catch (err) {
+      error('Failed to copy address to clipboard');
+    }
+  };
 
   useEffect(() => {
     console.log('Admin Withdrawals Page: Component mounted');
@@ -380,31 +424,105 @@ export default function AdminWithdrawalsPage() {
   return (
     <Layout showSidebar={true}>
       <div className="max-w-7xl mx-auto">
-        {/* Premium Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-rose-400 via-pink-400 to-red-400 bg-clip-text text-transparent">Withdrawal Requests</h1>
-              <p className="text-slate-300 mt-1">Manage user withdrawal requests</p>
-              <p className="text-sm text-emerald-400 mt-1">✅ Page loaded successfully</p>
+        {/* Premium Mobile-Responsive Header */}
+        <div className="mb-6 sm:mb-8">
+          {/* Mobile-First Header Layout */}
+          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+            {/* Title Section - Mobile Optimized */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-rose-500 via-pink-500 to-red-600 rounded-lg flex items-center justify-center shadow-lg shadow-rose-500/25">
+                    <span className="text-lg sm:text-xl font-bold text-white">💸</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-rose-400 via-pink-400 to-red-400 bg-clip-text text-transparent leading-tight">
+                    Withdrawal Requests
+                  </h1>
+                  <p className="text-slate-300 text-sm sm:text-base mt-1 leading-relaxed">
+                    Manage user withdrawal requests and transactions
+                  </p>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className="text-xs text-emerald-400">✅</span>
+                    <span className="text-xs text-emerald-400">Page loaded successfully</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex space-x-4">
-              <Button
-                onClick={handleRefresh}
-                variant="outline"
-                disabled={isLoading}
-                className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
-              >
-                <span className="mr-2">🔄</span>
-                Refresh
-              </Button>
-              <Button
-                onClick={() => router.push('/admin/transactions')}
-                variant="outline"
-                className="bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 hover:from-violet-500/30 hover:to-purple-500/30 hover:text-white border border-violet-400/30"
-              >
-                View All Transactions
-              </Button>
+
+            {/* Action Buttons - Mobile Responsive */}
+            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 sm:flex-shrink-0">
+              {/* Mobile: Stack buttons vertically, Desktop: Horizontal */}
+              <div className="flex space-x-2 sm:space-x-3">
+                {/* Refresh Button - Mobile Optimized */}
+                <Button
+                  onClick={handleRefresh}
+                  variant="outline"
+                  disabled={isLoading}
+                  className="flex-1 sm:flex-none bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 py-2.5 px-4 text-sm font-medium"
+                >
+                  <span className="flex items-center justify-center">
+                    <span className="mr-2 text-base">
+                      {isLoading ? (
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        '🔄'
+                      )}
+                    </span>
+                    <span className="hidden sm:inline">Refresh</span>
+                    <span className="sm:hidden">Refresh</span>
+                  </span>
+                </Button>
+
+                {/* View All Transactions Button - Mobile Optimized */}
+                <Button
+                  onClick={() => router.push('/admin/transactions')}
+                  variant="outline"
+                  className="flex-1 sm:flex-none bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 hover:from-violet-500/30 hover:to-purple-500/30 hover:text-white border border-violet-400/30 transition-all duration-200 py-2.5 px-4 text-sm font-medium"
+                >
+                  <span className="flex items-center justify-center">
+                    <span className="mr-2 text-base">📊</span>
+                    <span className="hidden sm:inline">View All Transactions</span>
+                    <span className="sm:hidden">All Transactions</span>
+                  </span>
+                </Button>
+              </div>
+
+              {/* Mobile: Additional Info */}
+              <div className="sm:hidden text-center">
+                <div className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-slate-700/50 to-slate-800/50 rounded-lg border border-slate-600/30">
+                  <span className="text-xs text-slate-400 mr-2">📈</span>
+                  <span className="text-xs text-slate-300">
+                    {filteredTransactions.length} requests
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile: Quick Stats Bar */}
+          <div className="mt-4 sm:hidden">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg p-3 border border-slate-600/30">
+                <div className="text-xs text-slate-400 mb-1">Total Requests</div>
+                <div className="text-lg font-bold text-white">{filteredTransactions.length}</div>
+              </div>
+              <div className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg p-3 border border-slate-600/30">
+                <div className="text-xs text-slate-400 mb-1">Pending</div>
+                <div className="text-lg font-bold text-amber-400">
+                  {filteredTransactions.filter(t => t.status === 'PENDING').length}
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg p-3 border border-slate-600/30">
+                <div className="text-xs text-slate-400 mb-1">Approved</div>
+                <div className="text-lg font-bold text-emerald-400">
+                  {filteredTransactions.filter(t => t.status === 'APPROVED').length}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -528,6 +646,9 @@ export default function AdminWithdrawalsPage() {
                         Binance Address
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                        Network
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
@@ -540,7 +661,7 @@ export default function AdminWithdrawalsPage() {
                       <LoadingSkeleton />
                     ) : filteredTransactions.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="px-4 py-8 text-center text-slate-400">
+                        <td colSpan="7" className="px-4 py-8 text-center text-slate-400">
                           {searchTerm ? 'No withdrawal requests match your search' : 'No withdrawal requests found'}
                         </td>
                       </tr>
@@ -552,6 +673,7 @@ export default function AdminWithdrawalsPage() {
                           onApprove={handleApprove}
                           onReject={handleReject}
                           isProcessing={isProcessing}
+                          onViewAddress={handleViewAddress}
                         />
                       ))
                     )}
@@ -562,6 +684,61 @@ export default function AdminWithdrawalsPage() {
           </CardContent>
         </Card>
         
+        {/* Binance Address Modal */}
+        <Modal
+          isOpen={showAddressModal}
+          onClose={() => setShowAddressModal(false)}
+          title="Binance Address Details"
+        >
+          <div className="space-y-4">
+            {selectedUser && (
+              <div className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg p-4 border border-slate-600/30">
+                <h3 className="text-lg font-semibold text-white mb-2">User Information</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-300">Name:</span>
+                    <span className="text-white">{selectedUser.name || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-300">Email:</span>
+                    <span className="text-white">{selectedUser.email || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-lg p-4 border border-cyan-400/30">
+              <h3 className="text-lg font-semibold text-cyan-300 mb-3">Binance Address</h3>
+              <div className="space-y-3">
+                <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-600/30">
+                  <div className="text-xs text-slate-400 mb-1">Full Address:</div>
+                  <div className="text-white font-mono text-sm break-all">
+                    {selectedAddress || 'No address provided'}
+                  </div>
+                </div>
+                
+                {selectedAddress && (
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={handleCopyAddress}
+                      className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-white border border-emerald-400/30"
+                    >
+                      📋 Copy Address
+                    </Button>
+                    <Button
+                      onClick={() => setShowAddressModal(false)}
+                      variant="outline"
+                      className="bg-gradient-to-r from-slate-600/20 to-slate-700/20 text-slate-300 hover:from-slate-500/30 hover:to-slate-600/30 hover:text-white border border-slate-500/30"
+                    >
+                      Close
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
+
         {/* Toast Container */}
         <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>

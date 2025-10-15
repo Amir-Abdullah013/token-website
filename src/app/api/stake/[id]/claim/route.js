@@ -57,7 +57,7 @@ export async function POST(request, { params }) {
     console.log('💰 Current token value calculation:', {
       baseValue: tokenValue.baseValue,
       totalSupply: tokenValue.totalSupply,
-      remainingSupply: tokenValue.remainingSupply,
+      userSupplyRemaining: tokenValue.userSupplyRemaining,
       inflationFactor: tokenValue.inflationFactor,
       currentTokenValue: tokenValue.currentTokenValue
     });
@@ -99,15 +99,16 @@ export async function POST(request, { params }) {
     }
 
     // Check if sufficient tokens are available
-    if (Number(tokenSupply.remainingSupply) < totalTokensNeeded) {
+    if (Number(tokenSupply.userSupplyRemaining) < totalTokensNeeded) {
       return NextResponse.json(
         { 
           success: false, 
           error: 'Insufficient token supply',
           details: {
             required: totalTokensNeeded,
-            available: Number(tokenSupply.remainingSupply),
-            shortfall: totalTokensNeeded - Number(tokenSupply.remainingSupply)
+            available: Number(tokenSupply.userSupplyRemaining),
+            shortfall: totalTokensNeeded - Number(tokenSupply.userSupplyRemaining),
+            message: 'User supply limit reached. Admin needs to unlock tokens from reserve.'
           }
         },
         { status: 400 }
@@ -128,7 +129,7 @@ export async function POST(request, { params }) {
       // Deduct tokens from supply first
       await client.query(`
         UPDATE token_supply 
-        SET "remainingSupply" = "remainingSupply" - $1, "updatedAt" = NOW()
+        SET "userSupplyRemaining" = "userSupplyRemaining" - $1, "updatedAt" = NOW()
         WHERE id = $2
         RETURNING *
       `, [totalTokensNeeded, tokenSupply.id]);
@@ -237,12 +238,12 @@ export async function POST(request, { params }) {
     // Create transaction record
     await databaseHelpers.transaction.createTransaction({
       userId: session.id,
-      type: 'UNSTAKE',
+      type: 'BUY',
       amount: totalAmount,
       currency: 'TIKI',
       status: 'COMPLETED',
       gateway: 'Staking',
-      description: `Claimed staking rewards: ${staking.amountStaked} TIKI + ${rewardAmount} TIKI reward`
+      description: `Auto-claimed staking rewards: ${staking.amountStaked} TIKI + ${rewardAmount} TIKI reward`
     });
 
     // Send notification
@@ -267,7 +268,7 @@ export async function POST(request, { params }) {
       },
       tokenSupply: {
         totalSupply: Number(updatedTokenSupply.totalSupply),
-        remainingSupply: Number(updatedTokenSupply.remainingSupply),
+        userSupplyRemaining: Number(updatedTokenSupply.userSupplyRemaining),
         tokensDeducted: totalTokensNeeded
       },
       tokenValue: {

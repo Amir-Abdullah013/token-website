@@ -59,6 +59,7 @@ model User {
   receivedTransfers Transfer[] @relation("ReceivedTransfers")
   tokenMintings     TokenMinting[]  // Admin token minting operations
   mintHistory       MintHistory[]   // Admin mint history
+  supplyTransfers   AdminSupplyTransfer[] @relation("AdminSupplyTransfers")
   
   // Referral relations
   referrer       User?   @relation("UserReferrals", fields: [referrerId], references: [id], onDelete: SetNull)
@@ -96,6 +97,14 @@ model Transaction {
   description String?         // Optional description
   screenshot String?          // Path to uploaded screenshot
   binanceAddress String?      // Binance address for manual deposits/withdrawals
+  network   String?            // Network type for withdrawals (BEP20, TRC20)
+  
+  // Transaction fee fields
+  feeAmount        Float   @default(0)     // Fee amount charged
+  feeReceiverId    String? @default("ADMIN_WALLET") // Who receives the fee
+  transactionType  String?                 // Additional transaction type info
+  netAmount        Float   @default(0)     // Amount after fees (amount - feeAmount)
+  
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
@@ -177,6 +186,18 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+// Fee configuration model for transaction fees
+model FeeConfig {
+  id                String   @id @default(cuid())
+  transactionFeeRate Float    @default(0.05)    // 5% default fee rate
+  feeReceiverId      String   @default("ADMIN_WALLET") // Admin wallet ID for fees
+  isActive           Boolean  @default(true)     // Enable/disable fee system
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("fee_config")
 }
 
 model DepositRequest {
@@ -341,16 +362,36 @@ model ReferralEarning {
 }
 
 model TokenSupply {
-  id              Int      @id @default(autoincrement())
-  totalSupply     BigInt   @default(10000000)    // 10,000,000 tokens initially
-  remainingSupply BigInt   @default(10000000)    // 10,000,000 tokens initially
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                    Int      @id @default(autoincrement())
+  totalSupply           BigInt   @default(10000000)    // 10,000,000 tokens total
+  remainingSupply       BigInt   @default(10000000)    // Legacy field (kept for compatibility)
+  userSupplyRemaining   BigInt   @default(2000000)     // 20% user-available tokens (2M)
+  adminReserve          BigInt   @default(8000000)     // 80% admin-locked tokens (8M)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   // Relations
-  tokenMintings   TokenMinting[]
+  tokenMintings         TokenMinting[]
+  supplyTransfers       AdminSupplyTransfer[]
 
   @@map("token_supply")
+}
+
+model AdminSupplyTransfer {
+  id              String   @id @default(cuid())
+  adminId         String   // Admin who performed the transfer
+  tokenSupplyId   Int      // TokenSupply record
+  amount          BigInt   // Amount transferred from admin reserve to user supply
+  fromReserve     BigInt   // Admin reserve before transfer
+  toUserSupply    BigInt   // User supply after transfer
+  reason          String?  // Optional reason for transfer
+  createdAt       DateTime @default(now())
+
+  // Relations
+  admin           User @relation("AdminSupplyTransfers", fields: [adminId], references: [id], onDelete: Cascade)
+  tokenSupply     TokenSupply @relation(fields: [tokenSupplyId], references: [id], onDelete: Cascade)
+
+  @@map("admin_supply_transfers")
 }
 
 model TokenMinting {
@@ -380,5 +421,25 @@ model MintHistory {
   admin     User @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@map("mint_history")
+}
+
+model FeeSettings {
+  id        Int      @id @default(autoincrement())
+  type      String   @unique // transfer, withdraw, buy, sell
+  rate      Float    // Fee rate as decimal (0.05 = 5%)
+  isActive  Boolean  @default(true) // Enable/disable this fee type
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("fee_settings")
+}
+
+model DepositAddresses {
+  id        Int      @id @default(autoincrement())
+  bep20     String?  // BEP20 deposit address
+  trc20     String?  // TRC20 deposit address
+  updatedAt DateTime @updatedAt
+
+  @@map("deposit_addresses")
 }
 

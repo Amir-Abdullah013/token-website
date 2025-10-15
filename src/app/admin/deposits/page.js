@@ -8,6 +8,7 @@ import Layout from '../../../components/Layout';
 import AdminRoute from '../../../components/AdminRoute';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
+import Input from '../../../components/Input';
 import { useToast, ToastContainer } from '../../../components/Toast';
 
 // Status badge component
@@ -196,6 +197,10 @@ export default function AdminDepositsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorState, setErrorState] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Deposit addresses management state
+  const [depositAddresses, setDepositAddresses] = useState({ bep20: '', trc20: '' });
+  const [isSavingAddresses, setIsSavingAddresses] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -233,8 +238,52 @@ export default function AdminDepositsPage() {
   useEffect(() => {
     if (adminUser?.id) {
       fetchDeposits();
+      fetchDepositAddresses();
     }
   }, [adminUser?.id]);
+
+  // Fetch deposit addresses
+  const fetchDepositAddresses = async () => {
+    try {
+      const response = await fetch('/api/deposit-addresses');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setDepositAddresses(data.data);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching deposit addresses:', err);
+    }
+  };
+
+  // Save deposit addresses
+  const saveDepositAddresses = async () => {
+    try {
+      setIsSavingAddresses(true);
+      const response = await fetch('/api/deposit-addresses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(depositAddresses),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          success('Deposit addresses updated successfully');
+        } else {
+          error(data.error || 'Failed to update addresses');
+        }
+      } else {
+        error('Failed to update deposit addresses');
+      }
+    } catch (err) {
+      console.error('Error saving deposit addresses:', err);
+      error('Failed to update deposit addresses');
+    } finally {
+      setIsSavingAddresses(false);
+    }
+  };
 
   // Handle approve
   const handleApprove = async (transactionId) => {
@@ -356,33 +405,153 @@ export default function AdminDepositsPage() {
     <AdminRoute>
       <Layout showSidebar={true}>
         <div className="max-w-7xl mx-auto">
-          {/* Premium Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Deposit Requests</h1>
-                <p className="text-slate-300 mt-1">Manage user deposit requests</p>
+          {/* Premium Mobile-Responsive Header */}
+          <div className="mb-6 sm:mb-8">
+            {/* Mobile-First Header Layout */}
+            <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+              {/* Title Section - Mobile Optimized */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-3 mb-2">
+                  <div className="flex-shrink-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/25">
+                      <span className="text-lg sm:text-xl font-bold text-white">💰</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent leading-tight">
+                      Deposit Requests
+                    </h1>
+                    <p className="text-slate-300 text-sm sm:text-base mt-1 leading-relaxed">
+                      Manage user deposit requests and transactions
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="flex space-x-4">
-                <Button
-                  onClick={handleRefresh}
-                  variant="outline"
-                  disabled={isLoading}
-                  className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
-                >
-                  <span className="mr-2">🔄</span>
-                  Refresh
-                </Button>
-                <Button
-                  onClick={() => router.push('/admin/withdrawals')}
-                  variant="outline"
-                  className="bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 hover:from-violet-500/30 hover:to-purple-500/30 hover:text-white border border-violet-400/30"
-                >
-                  View Withdrawals
-                </Button>
+
+              {/* Action Buttons - Mobile Responsive */}
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 sm:flex-shrink-0">
+                {/* Mobile: Stack buttons vertically, Desktop: Horizontal */}
+                <div className="flex space-x-2 sm:space-x-3">
+                  {/* Refresh Button - Mobile Optimized */}
+                  <Button
+                    onClick={handleRefresh}
+                    variant="outline"
+                    disabled={isLoading}
+                    className="flex-1 sm:flex-none bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 py-2.5 px-4 text-sm font-medium"
+                  >
+                    <span className="flex items-center justify-center">
+                      <span className="mr-2 text-base">
+                        {isLoading ? (
+                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          '🔄'
+                        )}
+                      </span>
+                      <span className="hidden sm:inline">Refresh</span>
+                      <span className="sm:hidden">Refresh</span>
+                    </span>
+                  </Button>
+
+                  {/* View Withdrawals Button - Mobile Optimized */}
+                  <Button
+                    onClick={() => router.push('/admin/withdrawals')}
+                    variant="outline"
+                    className="flex-1 sm:flex-none bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 hover:from-violet-500/30 hover:to-purple-500/30 hover:text-white border border-violet-400/30 transition-all duration-200 py-2.5 px-4 text-sm font-medium"
+                  >
+                    <span className="flex items-center justify-center">
+                      <span className="mr-2 text-base">💸</span>
+                      <span className="hidden sm:inline">View Withdrawals</span>
+                      <span className="sm:hidden">Withdrawals</span>
+                    </span>
+                  </Button>
+                </div>
+
+                {/* Mobile: Additional Info */}
+                <div className="sm:hidden text-center">
+                  <div className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-slate-700/50 to-slate-800/50 rounded-lg border border-slate-600/30">
+                    <span className="text-xs text-slate-400 mr-2">📊</span>
+                    <span className="text-xs text-slate-300">
+                      {filteredTransactions.length} requests
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile: Quick Stats Bar */}
+            <div className="mt-4 sm:hidden">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg p-3 border border-slate-600/30">
+                  <div className="text-xs text-slate-400 mb-1">Total Requests</div>
+                  <div className="text-lg font-bold text-white">{filteredTransactions.length}</div>
+                </div>
+                <div className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg p-3 border border-slate-600/30">
+                  <div className="text-xs text-slate-400 mb-1">Pending</div>
+                  <div className="text-lg font-bold text-amber-400">
+                    {filteredTransactions.filter(t => t.status === 'PENDING').length}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Premium Deposit Addresses Management */}
+          <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">🏦 Manage Deposit Addresses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    BEP20 Address (BSC Network)
+                  </label>
+                  <Input
+                    type="text"
+                    value={depositAddresses.bep20}
+                    onChange={(e) => setDepositAddresses(prev => ({ ...prev, bep20: e.target.value }))}
+                    placeholder="Enter BEP20 deposit address"
+                    className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">BSC network address for BEP20 tokens</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    TRC20 Address (Tron Network)
+                  </label>
+                  <Input
+                    type="text"
+                    value={depositAddresses.trc20}
+                    onChange={(e) => setDepositAddresses(prev => ({ ...prev, trc20: e.target.value }))}
+                    placeholder="Enter TRC20 deposit address"
+                    className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Tron network address for TRC20 tokens</p>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end">
+                <Button
+                  onClick={saveDepositAddresses}
+                  disabled={isSavingAddresses}
+                  className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/25 border border-violet-400/30"
+                >
+                  {isSavingAddresses ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Premium Summary Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

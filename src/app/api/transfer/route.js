@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from '../../../lib/session';
 import { databaseHelpers } from '../../../lib/database';
+import { calculateFee, creditFeeToAdmin } from '../../../lib/fees';
 import { randomUUID } from 'crypto';
 
 export async function GET(request) {
@@ -94,11 +95,15 @@ export async function POST(request) {
       senderWallet = await databaseHelpers.wallet.createWallet(session.id);
     }
 
-    // Check sufficient balance
-    if (senderWallet.tikiBalance < numericAmount) {
+    // Calculate transfer fee (5% for transfers)
+    const { fee, net } = await calculateFee(numericAmount, "transfer");
+    
+    // Check sufficient balance (user needs to have the full amount + fee)
+    const totalRequired = numericAmount + fee;
+    if (senderWallet.tikiBalance < totalRequired) {
       return NextResponse.json({
         success: false,
-        error: 'Insufficient TIKI balance'
+        error: `Insufficient TIKI balance. Required: ${totalRequired.toFixed(2)} TIKI (${numericAmount.toFixed(2)} + ${fee.toFixed(2)} fee)`
       }, { status: 400 });
     }
 
@@ -139,10 +144,14 @@ export async function POST(request) {
       tikiBalance: recipientWallet.tikiBalance 
     });
     
-    // Update sender's wallet (decrease TIKI balance)
-    const newSenderTikiBalance = senderWallet.tikiBalance - numericAmount;
+    // Update sender's wallet (decrease TIKI balance by full amount + fee)
+    const totalDeducted = numericAmount + fee;
+    const newSenderTikiBalance = senderWallet.tikiBalance - totalDeducted;
     console.log('🔽 Transfer API: Updating sender wallet...', { 
       userId: session.id, 
+      amount: numericAmount,
+      fee: fee,
+      totalDeducted: totalDeducted,
       newTikiBalance: newSenderTikiBalance 
     });
     
@@ -154,10 +163,11 @@ export async function POST(request) {
     `, [newSenderTikiBalance, session.id]);
     console.log('✅ Transfer API: Sender wallet updated via direct SQL');
     
-    // Update recipient's wallet (increase TIKI balance)
-    const newRecipientTikiBalance = recipientWallet.tikiBalance + numericAmount;
+    // Update recipient's wallet (increase TIKI balance by net amount)
+    const newRecipientTikiBalance = recipientWallet.tikiBalance + net;
     console.log('🔼 Transfer API: Updating recipient wallet...', { 
       userId: recipient.id, 
+      netAmount: net,
       newTikiBalance: newRecipientTikiBalance 
     });
     
@@ -168,6 +178,12 @@ export async function POST(request) {
         WHERE "userId" = $2
     `, [newRecipientTikiBalance, recipient.id]);
     console.log('✅ Transfer API: Recipient wallet updated via direct SQL');
+    
+    // Credit fee to admin wallet
+    if (fee > 0) {
+      await creditFeeToAdmin(databaseHelpers.pool, fee);
+      console.log('💰 Transfer API: Fee credited to admin wallet:', fee);
+    }
 
       // Create transfer record
     const transferId = randomUUID();
@@ -178,6 +194,8 @@ export async function POST(request) {
         senderEmail: session.email,
         recipientEmail: recipientEmail,
       amount: numericAmount,
+      fee: fee,
+      netAmount: net,
       note: note || null,
         status: 'COMPLETED',
       createdAt: new Date().toISOString()
@@ -205,6 +223,8 @@ export async function POST(request) {
         transfer: {
           id: transfer.id,
           amount: transfer.amount,
+          fee: transfer.fee,
+          netAmount: transfer.netAmount,
           recipientEmail: transfer.recipientEmail,
           note: transfer.note,
           createdAt: transfer.createdAt

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession, getUserRole } from '../../../../../lib/session';
 import { databaseHelpers } from '../../../../../lib/database';
+import { calculateFee, creditFeeToAdmin } from '../../../../../lib/fees';
 
 export async function GET(request, { params }) {
   try {
@@ -94,11 +95,32 @@ export async function PATCH(request, { params }) {
     await databaseHelpers.transaction.updateTransactionStatus(withdrawalId, newStatus);
 
     if (action === 'approve') {
+      // Apply fee calculation for withdrawal
+      const { fee, net } = await calculateFee(transaction.amount, "withdraw");
+      
+      // Update transaction with fee information
+      await databaseHelpers.pool.query(`
+        UPDATE transactions 
+        SET 
+          "feeAmount" = $1,
+          "netAmount" = $2,
+          "feeReceiverId" = $3,
+          "transactionType" = $4,
+          "updatedAt" = NOW()
+        WHERE id = $5
+      `, [fee, net, 'ADMIN_WALLET', 'withdraw', withdrawalId]);
+      
+      // Credit fee to admin wallet
+      if (fee > 0) {
+        await creditFeeToAdmin(databaseHelpers.pool, fee);
+        console.log('💰 Admin withdrawal approval: Fee credited to admin wallet:', fee);
+      }
+      
       // Create success notification for user
       await databaseHelpers.notification.createNotification({
         userId: transaction.userId,
         title: 'Withdrawal Approved',
-        message: `Your withdrawal of $${transaction.amount} has been successfully deposited to your Binance account.`,
+        message: `Your withdrawal of $${transaction.amount} has been successfully deposited to your Binance account. Fee: $${fee.toFixed(2)} (${(fee/transaction.amount*100).toFixed(1)}%)`,
         type: 'SUCCESS'
       });
     } else {

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { authHelpers } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -12,10 +13,24 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
+  const [mounted, setMounted] = useState(false);
+  const [buttonPosition, setButtonPosition] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef(null);
 
   useEffect(() => {
+    setMounted(true);
     loadUserAndNotifications();
   }, []);
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setButtonPosition({
+        top: rect.bottom + window.scrollY + 8,
+        right: window.innerWidth - rect.right - window.scrollX
+      });
+    }
+  }, [isOpen]);
 
   const loadUserAndNotifications = async () => {
     try {
@@ -131,17 +146,19 @@ export default function NotificationBell() {
     }
   };
 
-  if (!user) {
+  if (!user || !mounted) {
     return null;
   }
 
   return (
-    <div className="relative">
-      {/* Premium Bell Icon */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-slate-300 hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 rounded-full transition-colors"
-      >
+    <>
+      <div className="relative">
+        {/* Premium Bell Icon */}
+        <button
+          ref={buttonRef}
+          onClick={() => setIsOpen(!isOpen)}
+          className="relative p-2 text-slate-300 hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 rounded-full transition-colors"
+        >
         <svg
           className="w-6 h-6"
           fill="none"
@@ -164,17 +181,23 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          
-          {/* Premium Dropdown Content */}
-          <div className="absolute right-0 mt-2 w-80 bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-sm rounded-lg shadow-2xl shadow-slate-900/50 border border-slate-600/30 z-20">
+        {/* Dropdown Portal */}
+        {isOpen && mounted && createPortal(
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-[99998]"
+              onClick={() => setIsOpen(false)}
+            />
+            
+            {/* Premium Dropdown Content */}
+            <div 
+              className="fixed w-80 bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-sm rounded-lg shadow-2xl shadow-slate-900/50 border border-slate-600/30 z-[99999]"
+              style={{
+                top: `${buttonPosition.top}px`,
+                right: `${buttonPosition.right}px`
+              }}
+            >
             {/* Premium Header */}
             <div className="px-4 py-3 border-b border-slate-600/30">
               <div className="flex items-center justify-between">
@@ -268,10 +291,12 @@ export default function NotificationBell() {
                 </button>
               </div>
             )}
-          </div>
-        </>
-      )}
-    </div>
+            </div>
+          </>,
+          document.body
+        )}
+      </div>
+    </>
   );
 }
 

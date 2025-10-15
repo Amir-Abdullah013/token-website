@@ -551,34 +551,54 @@ export default function AdminTransactionsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Type
+                    Transaction Type
                   </label>
-                  <select
-                    value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
-                    className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-                  >
-                    <option value="all" className="bg-slate-800 text-white">All Types</option>
-                    <option value="DEPOSIT" className="bg-slate-800 text-white">Deposit</option>
-                    <option value="WITHDRAWAL" className="bg-slate-800 text-white">Withdrawal</option>
-                    <option value="BUY" className="bg-slate-800 text-white">Buy</option>
-                    <option value="SELL" className="bg-slate-800 text-white">Sell</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={selectedType}
+                      onChange={(e) => setSelectedType(e.target.value)}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 transition-all duration-200 hover:border-slate-400/50 appearance-none cursor-pointer"
+                    >
+                      <option value="all" className="bg-slate-800 text-white py-2">All Transaction Types</option>
+                      <option value="DEPOSIT" className="bg-slate-800 text-white py-2">💰 Deposit</option>
+                      <option value="WITHDRAWAL" className="bg-slate-800 text-white py-2">💸 Withdrawal</option>
+                      <option value="BUY" className="bg-slate-800 text-white py-2">📈 Buy TIKI</option>
+                      <option value="SELL" className="bg-slate-800 text-white py-2">📉 Sell TIKI</option>
+                      <option value="TRANSFER" className="bg-slate-800 text-white py-2">🔄 Transfer</option>
+                      <option value="STAKE" className="bg-slate-800 text-white py-2">🔒 Stake</option>
+                      <option value="UNSTAKE" className="bg-slate-800 text-white py-2">🔓 Unstake</option>
+                      <option value="REWARD" className="bg-slate-800 text-white py-2">🎁 Reward</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Status
+                    Transaction Status
                   </label>
-                  <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-                  >
-                    <option value="all" className="bg-slate-800 text-white">All Status</option>
-                    <option value="COMPLETED" className="bg-slate-800 text-white">Completed</option>
-                    <option value="PENDING" className="bg-slate-800 text-white">Pending</option>
-                    <option value="FAILED" className="bg-slate-800 text-white">Failed</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 transition-all duration-200 hover:border-slate-400/50 appearance-none cursor-pointer"
+                    >
+                      <option value="all" className="bg-slate-800 text-white py-2">All Status</option>
+                      <option value="COMPLETED" className="bg-slate-800 text-white py-2">✅ Completed</option>
+                      <option value="PENDING" className="bg-slate-800 text-white py-2">⏳ Pending</option>
+                      <option value="FAILED" className="bg-slate-800 text-white py-2">❌ Failed</option>
+                      <option value="CANCELLED" className="bg-slate-800 text-white py-2">🚫 Cancelled</option>
+                      <option value="PROCESSING" className="bg-slate-800 text-white py-2">⚙️ Processing</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-end">
                   <Button
@@ -690,15 +710,7 @@ export default function AdminTransactionsPage() {
                                   >
                                     View
                                   </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleUpdateStatus(transaction)}
-                                    disabled={actionLoading}
-                                    className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-emerald-200 border border-emerald-400/30"
-                                  >
-                                    Update Status
-                                  </Button>
+                                 
                                 </div>
                               </td>
                             </tr>

@@ -138,13 +138,13 @@ export default function SignUp() {
   // Show success page if signup was successful
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <div className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm border border-slate-600/30 shadow-2xl py-8 px-4 sm:rounded-lg sm:px-10">
             {/* Success Icon */}
             <div className="flex justify-center mb-6">
-              <div className="rounded-full bg-green-100 p-3">
-                <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="rounded-full bg-gradient-to-r from-emerald-500/20 to-green-500/20 p-4 border border-emerald-400/30">
+                <svg className="h-10 w-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
@@ -152,22 +152,22 @@ export default function SignUp() {
 
             {/* Success Message */}
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Welcome to Token Website!
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-2">
+                🎉 Welcome to TIKI Platform!
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-slate-300 mb-6">
                 Your account has been created successfully.
               </p>
               
               {/* User Details */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-emerald-400/30 rounded-lg p-4 mb-6">
                 <div className="flex items-center mb-2">
-                  <svg className="h-5 w-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="h-5 w-5 text-emerald-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                   </svg>
-                  <span className="font-medium text-green-800">Account Details:</span>
+                  <span className="font-medium text-emerald-300">Account Details:</span>
                 </div>
-                <div className="ml-7 text-sm text-green-700">
+                <div className="ml-7 text-sm text-emerald-200">
                   <p><strong>Name:</strong> {successData.name}</p>
                   <p><strong>Email:</strong> {successData.email}</p>
                 </div>
@@ -175,33 +175,33 @@ export default function SignUp() {
 
               {/* Next Steps */}
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-slate-300">
                   You can now sign in to your account and start using all the features.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={handleSignInClick}
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md text-center font-medium hover:bg-blue-700 transition-colors"
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white px-4 py-3 rounded-lg text-center font-medium shadow-lg shadow-cyan-500/25 border border-cyan-400/30 transition-all duration-300 hover:scale-105"
                   >
-                    Sign In Now
+                    🚀 Sign In Now
                   </button>
                   <Link
                     href="/"
-                    className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-center font-medium hover:bg-gray-200 transition-colors"
+                    className="flex-1 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white px-4 py-3 rounded-lg text-center font-medium border border-slate-400/30 transition-all duration-300 hover:scale-105"
                   >
-                    Go to Home
+                    🏠 Go to Home
                   </Link>
                 </div>
               </div>
 
               {/* Additional Info */}
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="mt-6 p-4 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30 rounded-lg">
                 <div className="flex items-start">
-                  <svg className="h-5 w-5 text-blue-400 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="h-5 w-5 text-cyan-400 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
-                  <div className="text-sm text-blue-700">
+                  <div className="text-sm text-cyan-200">
                     <p className="font-medium mb-1">What's next?</p>
                     <ul className="list-disc list-inside space-y-1">
                       <li>Sign in to access your dashboard</li>
@@ -219,30 +219,36 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Create your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link href="/auth/signin" className="font-medium text-blue-600 hover:text-blue-500">
-            sign in to your existing account
-          </Link>
-        </p>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-full border border-cyan-400/30 mb-4">
+            <span className="text-2xl">🚀</span>
+          </div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+            Create your account
+          </h2>
+          <p className="mt-2 text-sm text-slate-300">
+            Or{' '}
+            <Link href="/auth/signin" className="font-medium text-cyan-400 hover:text-cyan-300 transition-colors">
+              sign in to your existing account
+            </Link>
+          </p>
+        </div>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm border border-slate-600/30 shadow-2xl py-8 px-4 sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+              <div className="bg-gradient-to-r from-red-500/20 to-rose-500/20 border border-red-400/30 text-red-300 px-4 py-3 rounded-lg">
                 {errors.general}
               </div>
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="name" className="text-sm font-semibold text-slate-200 mb-2 flex items-center">
+                <span className="mr-2">👤</span>
                 Full Name
               </label>
               <div className="mt-1">
@@ -254,19 +260,20 @@ export default function SignUp() {
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                    errors.name ? 'border-red-300' : 'border-gray-300'
+                  className={`appearance-none block w-full px-4 py-3 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border rounded-lg shadow-sm placeholder-slate-200 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 transition-all duration-200 sm:text-sm ${
+                    errors.name ? 'border-red-400' : 'border-slate-500/30'
                   }`}
                   placeholder="Enter your full name"
                 />
                 {errors.name && (
-                  <p className="mt-2 text-sm text-red-600">{errors.name}</p>
+                  <p className="mt-2 text-sm text-red-300">{errors.name}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="text-sm font-semibold text-slate-200 mb-2 flex items-center">
+                <span className="mr-2">📧</span>
                 Email address
               </label>
               <div className="mt-1">
@@ -278,19 +285,20 @@ export default function SignUp() {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
+                  className={`appearance-none block w-full px-4 py-3 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border rounded-lg shadow-sm placeholder-slate-200 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 transition-all duration-200 sm:text-sm ${
+                    errors.email ? 'border-red-400' : 'border-slate-500/30'
                   }`}
                   placeholder="Enter your email"
                 />
                 {errors.email && (
-                  <p className="mt-2 text-sm text-red-600">{errors.email}</p>
+                  <p className="mt-2 text-sm text-red-300">{errors.email}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="text-sm font-semibold text-slate-200 mb-2 flex items-center">
+                <span className="mr-2">🔒</span>
                 Password
               </label>
               <div className="mt-1">
@@ -302,19 +310,20 @@ export default function SignUp() {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
+                  className={`appearance-none block w-full px-4 py-3 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border rounded-lg shadow-sm placeholder-slate-200 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 transition-all duration-200 sm:text-sm ${
+                    errors.password ? 'border-red-400' : 'border-slate-500/30'
                   }`}
                   placeholder="Enter your password"
                 />
                 {errors.password && (
-                  <p className="mt-2 text-sm text-red-600">{errors.password}</p>
+                  <p className="mt-2 text-sm text-red-300">{errors.password}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="confirmPassword" className="text-sm font-semibold text-slate-200 mb-2 flex items-center">
+                <span className="mr-2">🔐</span>
                 Confirm Password
               </label>
               <div className="mt-1">
@@ -326,22 +335,23 @@ export default function SignUp() {
                   required
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                  className={`appearance-none block w-full px-4 py-3 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border rounded-lg shadow-sm placeholder-slate-200 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 transition-all duration-200 sm:text-sm ${
+                    errors.confirmPassword ? 'border-red-400' : 'border-slate-500/30'
                   }`}
                   placeholder="Confirm your password"
                 />
                 {errors.confirmPassword && (
-                  <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>
+                  <p className="mt-2 text-sm text-red-300">{errors.confirmPassword}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="referralCode" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="referralCode" className="text-sm font-semibold text-slate-200 mb-2 flex items-center">
+                <span className="mr-2">🎁</span>
                 Referral Code (Optional)
                 {formData.referralCode && (
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30">
                     ✓ Auto-filled
                   </span>
                 )}
@@ -354,13 +364,13 @@ export default function SignUp() {
                   placeholder="Enter referral code if you have one"
                   value={formData.referralCode}
                   onChange={handleChange}
-                  className={`appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                  className={`appearance-none block w-full px-4 py-3 border rounded-lg shadow-sm placeholder-slate-200 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 transition-all duration-200 sm:text-sm ${
                     formData.referralCode 
-                      ? 'border-green-300 bg-green-50' 
-                      : 'border-gray-300'
+                      ? 'border-emerald-400 bg-gradient-to-r from-emerald-500/20 to-green-500/20' 
+                      : 'border-slate-500/30 bg-gradient-to-r from-slate-700/50 to-slate-800/50'
                   }`}
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-slate-400">
                   {formData.referralCode 
                     ? 'Referral code detected! You\'ll earn rewards for both you and your referrer.'
                     : 'Enter a referral code if someone referred you to join'
@@ -373,9 +383,19 @@ export default function SignUp() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105"
               >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
+                {isLoading ? (
+                  <span className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creating Account...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <span className="mr-2">🚀</span>
+                    Create Account
+                  </span>
+                )}
               </button>
             </div>
           </form>

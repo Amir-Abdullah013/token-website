@@ -19,6 +19,9 @@ const AdminSidebar = ({ user, isOpen, onClose }) => {
     { name: 'Withdrawals', href: '/admin/withdrawals', icon: '💸', description: 'Withdrawal requests', category: 'financial' },
     { name: 'Transfers', href: '/admin/transfers', icon: '📤', description: 'User transfers', category: 'financial' },
     { name: 'Stakings', href: '/admin/stakings', icon: '🏦', description: 'Staking management', category: 'financial' },
+    { name: 'Token Supply', href: '/admin/token-supply', icon: '🪙', description: 'Token supply & minting', category: 'financial' },
+    { name: 'Fee Settings', href: '/admin/settings/fees', icon: '⚙️', description: 'Manage fee rates', category: 'settings' },
+    { name: 'Fees', href: '/admin/fees', icon: '💳', description: 'Fee analytics', category: 'reports' },
     { name: 'Transactions', href: '/admin/transactions', icon: '📋', description: 'All transactions', category: 'reports' },
   ];
   

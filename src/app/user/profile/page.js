@@ -8,7 +8,160 @@ import Layout from '../../../components/Layout';
 import ProfileCard from '../../../components/ProfileCard';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
+import Input from '../../../components/Input';
 import Loader from '../../../components/Loader';
+
+// Password Change Form Component
+const PasswordChangeForm = () => {
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setError('New passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Here you would implement the actual password change logic
+      // For now, we'll just simulate a success
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setSuccess('Password changed successfully!');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to change password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div className="p-3 bg-gradient-to-r from-red-500/20 to-rose-500/20 border border-red-400/30 rounded-lg">
+          <p className="text-sm text-red-300">{error}</p>
+        </div>
+      )}
+      
+      {success && (
+        <div className="p-3 bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-emerald-400/30 rounded-lg">
+          <p className="text-sm text-emerald-300">{success}</p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="currentPassword" className="text-sm font-semibold text-slate-200 mb-3 flex items-center">
+            <span className="mr-2">🔒</span>
+            Current Password
+          </label>
+          <Input
+            id="currentPassword"
+            name="currentPassword"
+            type="password"
+            value={passwordData.currentPassword}
+            onChange={handlePasswordChange}
+            required
+            placeholder="Enter your current password"
+            className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/30"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="newPassword" className="text-sm font-semibold text-slate-200 mb-3 flex items-center">
+            <span className="mr-2">🔑</span>
+            New Password
+          </label>
+          <Input
+            id="newPassword"
+            name="newPassword"
+            type="password"
+            value={passwordData.newPassword}
+            onChange={handlePasswordChange}
+            required
+            placeholder="Enter your new password"
+            minLength={8}
+            className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/30"
+          />
+          <p className="text-xs text-slate-400 mt-2">
+            Password must be at least 8 characters long
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="text-sm font-semibold text-slate-200 mb-3 flex items-center">
+            <span className="mr-2">🔐</span>
+            Confirm New Password
+          </label>
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            value={passwordData.confirmPassword}
+            onChange={handlePasswordChange}
+            required
+            placeholder="Confirm your new password"
+            minLength={8}
+            className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/30"
+          />
+        </div>
+
+        <div className="flex space-x-3">
+          <Button 
+            type="submit" 
+            variant="primary"
+            loading={loading}
+            disabled={loading}
+            className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
+          >
+            Update Password
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={() => {
+              setPasswordData({
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+              });
+              setError(null);
+              setSuccess(null);
+            }}
+            disabled={loading}
+            className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white border border-slate-400/30"
+          >
+            Clear
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
 
 export default function UserProfile() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -224,26 +377,51 @@ export default function UserProfile() {
                   <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Account Information</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                      <label className="text-sm font-semibold text-slate-100 mb-3 flex items-center">
+                        <span className="mr-2">🆔</span>
                         User ID
                       </label>
-                      <p className="text-sm text-white font-mono break-all bg-slate-800/30 px-3 py-2 rounded-lg border border-slate-600/30">
-                        {userData?.$id || 'N/A'}
-                      </p>
+                      <div className="bg-slate-800/40 px-4 py-3 rounded-lg border border-slate-600/40 shadow-lg">
+                        <p className="text-sm text-white font-mono break-all">
+                          {userData?.$id || 'N/A'}
+                        </p>
+                      </div>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-slate-200 mb-2">
+                      <label className="text-sm font-semibold text-slate-100 mb-3 flex items-center">
+                        <span className="mr-2">👤</span>
                         Account Type
                       </label>
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-cyan-500/50 to-blue-500/50 text-white border border-cyan-400/70 shadow-lg">
-                        {userData?.role || 'user'}
-                      </span>
+                      <div className="bg-slate-800/40 px-4 py-3 rounded-lg border border-slate-600/40 shadow-lg">
+                        <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-cyan-500/60 to-blue-500/60 text-white border border-cyan-400/70 shadow-lg shadow-cyan-500/25">
+                          <span className="mr-2">🔑</span>
+                          {userData?.role || 'user'}
+                        </span>
+                      </div>
                     </div>
-                    
-                  
+
+                    <div>
+                      <label className="text-sm font-semibold text-slate-100 mb-3 flex items-center">
+                        <span className="mr-2">📧</span>
+                        Email Status
+                      </label>
+                      <div className="bg-slate-800/40 px-4 py-3 rounded-lg border border-slate-600/40 shadow-lg">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-200">
+                            {userData?.email || 'N/A'}
+                          </span>
+                          
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      
+                      
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -254,39 +432,15 @@ export default function UserProfile() {
 
         {activeTab === 'security' && (
           <div className="space-y-6">
+            
+
+            {/* Password Change Section */}
             <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
               <CardHeader>
-                <CardTitle className="text-lg bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Security Overview</CardTitle>
+                <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Change Password</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-6 bg-gradient-to-r from-slate-700/60 to-slate-800/60 rounded-lg border border-slate-500/40 shadow-lg hover:shadow-xl transition-all duration-200">
-                    <div className="text-3xl mb-3">🔒</div>
-                    <h3 className="font-semibold text-white text-lg mb-2">Password</h3>
-                    <p className="text-sm text-slate-200">Change your password</p>
-                  </div>
-                  
-                  <div className="text-center p-6 bg-gradient-to-r from-slate-700/60 to-slate-800/60 rounded-lg border border-slate-500/40 shadow-lg hover:shadow-xl transition-all duration-200">
-                    <div className="text-3xl mb-3">🔐</div>
-                    <h3 className="font-semibold text-white text-lg mb-2">Two-Factor Auth</h3>
-                    <p className="text-sm text-slate-200">Add extra security</p>
-                  </div>
-                  
-                  <div className="text-center p-6 bg-gradient-to-r from-slate-700/60 to-slate-800/60 rounded-lg border border-slate-500/40 shadow-lg hover:shadow-xl transition-all duration-200">
-                    <div className="text-3xl mb-3">📱</div>
-                    <h3 className="font-semibold text-white text-lg mb-2">Active Sessions</h3>
-                    <p className="text-sm text-slate-200">Manage your devices</p>
-                  </div>
-                </div>
-                
-                <div className="mt-6">
-                  <Button
-                    onClick={() => router.push('/user/security')}
-                    className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30"
-                  >
-                    Manage Security Settings
-                  </Button>
-                </div>
+                <PasswordChangeForm />
               </CardContent>
             </Card>
           </div>

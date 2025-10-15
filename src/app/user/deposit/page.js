@@ -22,6 +22,7 @@ export default function DepositPage() {
   const [formData, setFormData] = useState({
     amount: '',
     currency: 'USD',
+    network: '',
     screenshot: null
   });
   const [errors, setErrors] = useState({});
@@ -29,6 +30,7 @@ export default function DepositPage() {
   const [binanceAddress, setBinanceAddress] = useState('');
   const [exchangeRates, setExchangeRates] = useState({});
   const [convertedAmount, setConvertedAmount] = useState(0);
+  const [depositAddresses, setDepositAddresses] = useState({ bep20: '', trc20: '' });
 
   // Validation rules
   const MIN_AMOUNT = 10;
@@ -51,6 +53,27 @@ export default function DepositPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch deposit addresses
+  useEffect(() => {
+    const fetchDepositAddresses = async () => {
+      try {
+        const response = await fetch('/api/deposit-addresses');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setDepositAddresses(data.data);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching deposit addresses:', err);
+      }
+    };
+
+    if (mounted) {
+      fetchDepositAddresses();
+    }
+  }, [mounted]);
 
   useEffect(() => {
     if (mounted && !loading) {
@@ -230,6 +253,11 @@ export default function DepositPage() {
       }
     }
 
+    // Network validation
+    if (!formData.network || formData.network.trim() === '') {
+      newErrors.network = 'Network type is required';
+    }
+
     // Screenshot validation
     if (!formData.screenshot) {
       newErrors.screenshot = 'Screenshot is required';
@@ -389,6 +417,54 @@ export default function DepositPage() {
           </Card>
         </div>
 
+        {/* Premium Deposit Addresses */}
+        <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">🏦 Deposit Addresses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 p-4 rounded-lg border border-yellow-400/30">
+                <h3 className="font-semibold text-yellow-200 mb-2">BEP20 Address (BSC Network)</h3>
+                <div className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 p-3 rounded border border-slate-500/30 flex items-center justify-between">
+                  <code className="text-sm font-mono break-all flex-1 mr-3 text-slate-300">
+                    {depositAddresses.bep20 || 'Address not configured'}
+                  </code>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => navigator.clipboard.writeText(depositAddresses.bep20 || '')}
+                    disabled={!depositAddresses.bep20}
+                    className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-3 py-1 text-xs shadow-lg shadow-yellow-500/25 disabled:opacity-50"
+                  >
+                    📋 Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-yellow-300 mt-2">Use this address for BEP20 tokens on BSC network</p>
+              </div>
+              
+              <div className="bg-gradient-to-r from-red-500/20 to-pink-500/20 p-4 rounded-lg border border-red-400/30">
+                <h3 className="font-semibold text-red-200 mb-2">TRC20 Address (Tron Network)</h3>
+                <div className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 p-3 rounded border border-slate-500/30 flex items-center justify-between">
+                  <code className="text-sm font-mono break-all flex-1 mr-3 text-slate-300">
+                    {depositAddresses.trc20 || 'Address not configured'}
+                  </code>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => navigator.clipboard.writeText(depositAddresses.trc20 || '')}
+                    disabled={!depositAddresses.trc20}
+                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-3 py-1 text-xs shadow-lg shadow-red-500/25 disabled:opacity-50"
+                  >
+                    📋 Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-red-300 mt-2">Use this address for TRC20 tokens on Tron network</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Premium Binance Deposit Instructions */}
         <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
           <CardHeader>
@@ -399,19 +475,9 @@ export default function DepositPage() {
               <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-4 rounded-lg border border-cyan-400/30">
                 <h3 className="font-semibold text-cyan-200 mb-2">Step 1: Send Amount to Binance</h3>
                 <p className="text-cyan-300 text-sm mb-3">
-                  Send your amount to the Binance address below:
+                  Send your amount to either of the  Binance addresses (BEP20 or TRC20) :
                 </p>
-                <div className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 p-3 rounded border border-slate-500/30 flex items-center justify-between">
-                  <code className="text-sm font-mono break-all flex-1 mr-3 text-slate-300">{binanceAddress}</code>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={copyBinanceAddress}
-                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white px-3 py-1 text-xs shadow-lg shadow-cyan-500/25"
-                  >
-                    📋 Copy
-                  </Button>
-                </div>
+                
               </div>
               
               <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 p-4 rounded-lg border border-emerald-400/30">
@@ -457,6 +523,61 @@ export default function DepositPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Premium Network Selection - Mobile Responsive */}
+              <div>
+                <label htmlFor="network" className="block text-sm font-medium text-slate-200 mb-3">
+                  <span className="flex items-center">
+                    <span className="mr-2">🌐</span>
+                    Network Type *
+                  </span>
+                </label>
+                <div className="relative">
+                  <select
+                    id="network"
+                    name="network"
+                    value={formData.network}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400 transition-all duration-200 hover:border-slate-400/50 appearance-none cursor-pointer text-sm sm:text-base ${errors.network ? 'border-red-500' : ''}`}
+                    disabled={isSubmitting}
+                  >
+                    <option value="" className="bg-slate-800 text-white py-2">🌐 Select Network</option>
+                    <option value="BEP20" className="bg-slate-800 text-white py-2">🟡 BSC (BNB Smart Chain) - BEP20</option>
+                    <option value="TRC20" className="bg-slate-800 text-white py-2">🔴 TRX (Tron Network) - TRC20</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+                {errors.network && (
+                  <p className="mt-2 text-sm text-red-400 flex items-center">
+                    <span className="mr-1">⚠️</span>
+                    {errors.network}
+                  </p>
+                )}
+                
+                {/* Premium Network Information */}
+                <div className="mt-3 p-3 bg-gradient-to-r from-slate-800/30 to-slate-700/30 rounded-lg border border-slate-600/30">
+                  <div className="text-xs text-slate-300">
+                    <div className="flex items-center mb-1">
+                      <span className="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>
+                      <span className="font-medium">BEP20:</span>
+                      <span className="ml-1 text-slate-400">Lower fees, faster transactions</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-2 h-2 bg-red-400 rounded-full mr-2"></span>
+                      <span className="font-medium">TRC20:</span>
+                      <span className="ml-1 text-slate-400">Widely supported, stable network</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="mt-2 text-xs sm:text-sm text-slate-400">
+                  Choose the network type for your deposit transaction
+                </p>
               </div>
 
               {/* Premium Amount Input */}

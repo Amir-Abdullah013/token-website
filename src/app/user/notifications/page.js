@@ -168,34 +168,67 @@ export default function UserNotificationsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Premium Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Notifications</h1>
-              <p className="text-slate-300 mt-2">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {/* Premium Header - Mobile Responsive */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="text-center sm:text-left">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                🔔 Notifications
+              </h1>
+              <p className="text-slate-300 mt-2 text-sm sm:text-base">
                 {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'All caught up!'}
               </p>
             </div>
             {unreadCount > 0 && (
-              <Button
-                onClick={handleMarkAllAsRead}
-                disabled={loading}
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30"
-              >
-                Mark All as Read
-              </Button>
+              <div className="flex justify-center sm:justify-end">
+                <Button
+                  onClick={handleMarkAllAsRead}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30 px-4 py-2 text-sm sm:text-base"
+                >
+                  <span className="mr-2">✅</span>
+                  Mark All as Read
+                </Button>
+              </div>
             )}
           </div>
         </div>
 
         {/* Premium Notifications List */}
-        {notifications.length === 0 ? (
-          <Card className="text-center py-12 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, index) => (
+              <Card key={index} className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
+                <div className="p-4 sm:p-6">
+                  <div className="animate-pulse">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-10 h-10 bg-slate-700/50 rounded-full"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-slate-700/50 rounded w-3/4"></div>
+                        <div className="h-3 bg-slate-700/50 rounded w-1/2"></div>
+                        <div className="h-3 bg-slate-700/50 rounded w-1/4"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : notifications.length === 0 ? (
+          <Card className="text-center py-12 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
             <div className="text-slate-400 text-6xl mb-4">🔔</div>
-            <h3 className="text-xl font-semibold text-white mb-2">No notifications yet</h3>
-            <p className="text-slate-300">You'll see important updates and announcements here.</p>
+            <h3 className="text-xl font-semibold text-slate-200 mb-2">No notifications yet</h3>
+            <p className="text-slate-400 text-sm sm:text-base">You'll see important updates and announcements here.</p>
+            <div className="mt-6">
+              <Button
+                onClick={() => router.push('/user/dashboard')}
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30"
+              >
+                <span className="mr-2">🏠</span>
+                Back to Dashboard
+              </Button>
+            </div>
           </Card>
         ) : (
           <div className="space-y-4">
@@ -207,72 +240,84 @@ export default function UserNotificationsPage() {
                 }`}
                 onClick={() => handleViewNotification(notification.$id)}
               >
-                <div className="flex items-start space-x-4">
-                  <div className="text-2xl">
-                    {getNotificationIcon(notification.type)}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className={`text-lg font-semibold ${
-                        notification.status === 'unread' ? 'text-white' : 'text-slate-300'
-                      }`}>
-                        {notification.title}
-                      </h3>
-                      <div className="flex items-center space-x-2">
-                        {notification.status === 'unread' && (
-                          <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
-                        )}
-                        <span className="text-sm text-slate-400">
-                          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                        </span>
-                      </div>
+                <div className="p-4 sm:p-6">
+                  <div className="flex items-start space-x-3 sm:space-x-4">
+                    <div className="text-xl sm:text-2xl flex-shrink-0">
+                      {getNotificationIcon(notification.type)}
                     </div>
                     
-                    <p className={`mt-2 ${
-                      notification.status === 'unread' ? 'text-slate-200' : 'text-slate-400'
-                    }`}>
-                      {notification.message.length > 150 
-                        ? `${notification.message.substring(0, 150)}...` 
-                        : notification.message
-                      }
-                    </p>
-                    
-                    <div className="mt-3 flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          notification.type === 'success' ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30' :
-                          notification.type === 'warning' ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-400/30' :
-                          notification.type === 'alert' ? 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 border border-red-400/30' :
-                          'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-400/30'
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <h3 className={`text-base sm:text-lg font-semibold ${
+                          notification.status === 'unread' ? 'text-white' : 'text-slate-300'
                         }`}>
-                          {notification.type}
-                        </span>
-                        {notification.userId && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 border border-violet-400/30">
-                            Personal
+                          {notification.title}
+                        </h3>
+                        <div className="flex items-center space-x-2">
+                          {notification.status === 'unread' && (
+                            <div className="w-2 h-2 bg-cyan-400 rounded-full flex-shrink-0"></div>
+                          )}
+                          <span className="text-xs sm:text-sm text-slate-400">
+                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                           </span>
-                        )}
-                        {!notification.userId && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-slate-500/20 to-gray-500/20 text-slate-300 border border-slate-400/30">
-                            Global
-                          </span>
-                        )}
+                        </div>
                       </div>
                       
-                      {notification.status === 'unread' && (
-                        <Button
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMarkAsRead(notification.$id);
-                          }}
-                          disabled={markingAsRead === notification.$id}
-                          className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-sm shadow-lg shadow-cyan-500/25 border border-cyan-400/30"
-                        >
-                          {markingAsRead === notification.$id ? 'Marking...' : 'Mark as Read'}
-                        </Button>
-                      )}
+                      <p className={`mt-2 text-sm sm:text-base ${
+                        notification.status === 'unread' ? 'text-slate-200' : 'text-slate-400'
+                      }`}>
+                        {notification.message.length > 150 
+                          ? `${notification.message.substring(0, 150)}...` 
+                          : notification.message
+                        }
+                      </p>
+                    
+                      <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center space-x-2 flex-wrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            notification.type === 'success' ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30' :
+                            notification.type === 'warning' ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-400/30' :
+                            notification.type === 'alert' ? 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 border border-red-400/30' :
+                            'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-400/30'
+                          }`}>
+                            {notification.type}
+                          </span>
+                          {notification.userId && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 border border-violet-400/30">
+                              Personal
+                            </span>
+                          )}
+                          {!notification.userId && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-slate-500/20 to-gray-500/20 text-slate-300 border border-slate-400/30">
+                              Global
+                            </span>
+                          )}
+                        </div>
+                        
+                        {notification.status === 'unread' && (
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAsRead(notification.$id);
+                            }}
+                            disabled={markingAsRead === notification.$id}
+                            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-xs sm:text-sm shadow-lg shadow-cyan-500/25 border border-cyan-400/30 px-3 py-1.5"
+                          >
+                            {markingAsRead === notification.$id ? (
+                              <span className="flex items-center">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                                Marking...
+                              </span>
+                            ) : (
+                              <span className="flex items-center">
+                                <span className="mr-1">✅</span>
+                                Mark as Read
+                              </span>
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -281,14 +326,27 @@ export default function UserNotificationsPage() {
           </div>
         )}
 
-        {/* Premium Back Button */}
-        <div className="mt-8">
-          <Button
-            onClick={() => router.push('/user/dashboard')}
-            className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white shadow-lg shadow-slate-500/25 border border-slate-400/30"
-          >
-            ← Back to Dashboard
-          </Button>
+        {/* Premium Back Button - Mobile Responsive */}
+        <div className="mt-6 sm:mt-8">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={() => router.push('/user/dashboard')}
+              className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white shadow-lg shadow-slate-500/25 border border-slate-400/30 px-4 py-2 text-sm sm:text-base"
+            >
+              <span className="mr-2">🏠</span>
+              Back to Dashboard
+            </Button>
+            {notifications.length > 0 && (
+              <Button
+                onClick={loadNotifications}
+                disabled={loading}
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30 px-4 py-2 text-sm sm:text-base"
+              >
+                <span className="mr-2">🔄</span>
+                Refresh Notifications
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

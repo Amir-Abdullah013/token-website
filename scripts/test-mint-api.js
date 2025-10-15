@@ -211,3 +211,6 @@ const testMintFunctionality = async () => {
 
 // Run the test
 testMintFunctionality().catch(console.error);
+
+
+

@@ -222,16 +222,16 @@ export const TikiProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Buy API error:', error);
-      // Fallback to local calculation
+      // Fallback to local calculation (NO price increase - supply-based only)
       const tokensToBuy = usdAmount / tikiPrice;
-      const priceIncrease = usdAmount / 1000000;
       
       const newUsdBalance = usdBalance - usdAmount;
       const newTikiBalance = tikiBalance + tokensToBuy;
       
       setUsdBalance(newUsdBalance);
       setTikiBalance(newTikiBalance);
-      setTikiPrice(Math.min(1, tikiPrice + priceIncrease));
+      // Price is now controlled by supply-based calculation, not buy volume
+      console.warn('⚠️ Using fallback buy calculation. Price not updated (supply-based economy).');
       
       // Update database
       await updateDatabaseBalances(newUsdBalance, newTikiBalance);
@@ -285,16 +285,16 @@ export const TikiProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Sell API error:', error);
-      // Fallback to local calculation
+      // Fallback to local calculation (NO price decrease - supply-based only)
       const usdReceived = tokenAmount * tikiPrice;
-      const priceDecrease = usdReceived / 1000000;
       
       const newTikiBalance = tikiBalance - tokenAmount;
       const newUsdBalance = usdBalance + usdReceived;
       
       setTikiBalance(newTikiBalance);
       setUsdBalance(newUsdBalance);
-      setTikiPrice(Math.max(0.0001, tikiPrice - priceDecrease));
+      // Price is now controlled by supply-based calculation, not sell volume
+      console.warn('⚠️ Using fallback sell calculation. Price not updated (supply-based economy).');
       
       // Update database
       await updateDatabaseBalances(newUsdBalance, newTikiBalance);

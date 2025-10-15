@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession, getUserRole } from '../../../lib/session';
 import { databaseHelpers } from '../../../lib/database';
+import { calculateFee, creditFeeToAdmin } from '../../../lib/fees';
 import { handleApiError, handleValidationError, handleAuthError } from '../error-handler';
 
 export async function POST(request) {
@@ -33,7 +34,7 @@ export async function POST(request) {
       return handleValidationError('Invalid request data', parseError.message);
     }
 
-    const { amount, binanceAddress } = requestData;
+    const { amount, binanceAddress, network } = requestData;
 
     // Validation
     if (!amount || amount <= 0) {
@@ -42,6 +43,10 @@ export async function POST(request) {
 
     if (!binanceAddress || binanceAddress.length < 20) {
       return handleValidationError('Valid Binance address is required (minimum 20 characters)');
+    }
+
+    if (!network) {
+      return handleValidationError('Network selection is required');
     }
 
     // Simple approach - just proceed with session ID
@@ -83,19 +88,31 @@ export async function POST(request) {
       }
     }
 
-    if (amount > userWallet.balance) {
-      return handleValidationError('Insufficient balance');
+    // Calculate withdrawal fee (10% for withdrawals)
+    const { fee, net } = await calculateFee(amount, "withdraw");
+    
+    // Check sufficient balance (user needs to have the full amount + fee)
+    const totalRequired = amount + fee;
+    if (totalRequired > userWallet.balance) {
+      return handleValidationError(`Insufficient balance. Required: $${totalRequired.toFixed(2)} ($${amount.toFixed(2)} + $${fee.toFixed(2)} fee)`);
     }
 
-    // Deduct amount from user's balance immediately (freeze it)
+    // Deduct full amount + fee from user's balance immediately (freeze it)
+    const totalDeducted = amount + fee;
     try {
-      await databaseHelpers.wallet.updateBalance(session.id, -amount);
+      await databaseHelpers.wallet.updateBalance(session.id, -totalDeducted);
     } catch (balanceError) {
       console.error('Error updating balance:', balanceError);
       return handleApiError(balanceError, 'Balance update');
     }
+    
+    // Credit fee to admin wallet immediately
+    if (fee > 0) {
+      await creditFeeToAdmin(databaseHelpers.pool, fee);
+      console.log('💰 Withdrawal API: Fee credited to admin wallet:', fee);
+    }
 
-    // Create withdrawal transaction
+    // Create withdrawal transaction with fee information
     let transaction;
     try {
       transaction = await databaseHelpers.transaction.createTransaction({
@@ -106,13 +123,18 @@ export async function POST(request) {
         status: 'PENDING',
         gateway: 'Binance',
         binanceAddress,
-        description: `Withdrawal request to ${binanceAddress}`
+        network,
+        description: `Withdrawal request to ${binanceAddress} (${network})`,
+        feeAmount: fee,
+        netAmount: net,
+        feeReceiverId: 'ADMIN_WALLET',
+        transactionType: 'withdraw'
       });
     } catch (transactionError) {
       console.error('Error creating transaction:', transactionError);
       // Refund the balance if transaction creation fails
       try {
-        await databaseHelpers.wallet.updateBalance(session.id, amount);
+        await databaseHelpers.wallet.updateBalance(session.id, totalDeducted);
       } catch (refundError) {
         console.error('Failed to refund balance:', refundError);
       }
@@ -145,6 +167,8 @@ export async function POST(request) {
       transaction: {
         id: transaction.id,
         amount,
+        fee,
+        netAmount: net,
         status: 'PENDING',
         binanceAddress
       }

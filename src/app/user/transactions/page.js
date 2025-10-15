@@ -47,40 +47,52 @@ const StatusBadge = ({ status }) => {
 
 // Transaction type badge component
 const TypeBadge = ({ type }) => {
+  const normalizedType = type.toLowerCase();
+  
   const getTypeStyles = () => {
-    switch (type) {
+    switch (normalizedType) {
       case 'deposit':
         return 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30';
       case 'withdraw':
+      case 'withdrawal':
         return 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 border border-red-400/30';
       case 'buy':
+      case 'purchase':
         return 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-400/30';
       case 'sell':
         return 'bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 border border-violet-400/30';
+      case 'transfer':
+        return 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-400/30';
       default:
         return 'bg-gradient-to-r from-slate-500/20 to-gray-500/20 text-slate-300 border border-slate-400/30';
     }
   };
 
   const getTypeIcon = () => {
-    switch (type) {
+    switch (normalizedType) {
       case 'deposit':
         return '💰';
       case 'withdraw':
+      case 'withdrawal':
         return '💸';
       case 'buy':
+      case 'purchase':
         return '📈';
       case 'sell':
         return '📉';
+      case 'transfer':
+        return '🔄';
       default:
         return '❓';
     }
   };
 
+  const displayType = normalizedType === 'withdrawal' ? 'withdraw' : normalizedType;
+
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getTypeStyles()}`}>
       <span className="mr-1">{getTypeIcon()}</span>
-      {type.charAt(0).toUpperCase() + type.slice(1)}
+      {displayType.charAt(0).toUpperCase() + displayType.slice(1)}
     </span>
   );
 };
@@ -98,8 +110,8 @@ const TransactionRow = ({ transaction }) => {
     });
   };
 
-  const formatAmount = (amount, currency = 'PKR') => {
-    const symbol = currency === 'PKR' ? '₨' : currency === 'USD' ? '$' : currency;
+  const formatAmount = (amount, currency = 'USD') => {
+    const symbol = currency === 'USD' ? '$' : currency === 'PKR' ? '₨' : currency;
     return `${symbol}${parseFloat(amount).toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2

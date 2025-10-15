@@ -250,12 +250,25 @@ export const databaseHelpers = {
         console.error('Error updating user status:', error);
         throw error;
       }
+    },
+
+    async getAdminUser() {
+      try {
+        const result = await pool.query('SELECT * FROM users WHERE role = $1 OR "isAdmin" = $2 LIMIT 1', ['ADMIN', true]);
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('Error getting admin user:', error);
+        return null;
+      }
     }
   },
 
   // Token stats operations
+  // Token stats operations (DEPRECATED - Buy-based inflation removed)
+  // Now using supply-based economy with tokenValue.getCurrentTokenValue()
   tokenStats: {
     async getTokenStats() {
+      console.warn('⚠️ tokenStats.getTokenStats() is deprecated. Use tokenValue.getCurrentTokenValue() instead.');
       try {
         const result = await pool.query('SELECT * FROM "TokenStats" ORDER BY "createdAt" DESC LIMIT 1');
         return result.rows[0] || {
@@ -278,29 +291,41 @@ export const databaseHelpers = {
     },
 
     async getCurrentPrice() {
+      console.warn('⚠️ tokenStats.getCurrentPrice() is deprecated. Use tokenValue.getCurrentTokenValue() instead.');
       try {
-        const stats = await this.getTokenStats();
-        return stats.currentPrice;
+        // Return supply-based price instead
+        const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+        return tokenValue.currentTokenValue;
       } catch (error) {
         console.error('Error getting current price:', error);
         return 0.0035;
       }
     },
 
+    // DISABLED: Buy-based inflation removed
     async updateTokenStats(investmentChange) {
+      console.warn('⚠️ updateTokenStats() is disabled. Buy-based inflation has been removed.');
+      console.log('📊 Token price now uses supply-based calculation only.');
+      // Return current supply-based value instead
       try {
-        const result = await pool.query(`
-          UPDATE "TokenStats" 
-          SET "totalInvestment" = "totalInvestment" + $1,
-              "currentPrice" = ("totalInvestment" + $1) / "totalTokens",
-              "lastUpdated" = NOW()
-          RETURNING *
-        `, [investmentChange]);
-        
-        return result.rows[0];
+        const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+        return {
+          totalTokens: 10000000,
+          totalInvestment: 0,
+          currentPrice: tokenValue.currentTokenValue,
+          lastUpdated: new Date(),
+          _deprecated: true,
+          _message: 'Buy-based inflation removed. Using supply-based economy.'
+        };
       } catch (error) {
-        console.error('Error updating token stats:', error);
-        throw error;
+        console.error('Error:', error);
+        return {
+          totalTokens: 10000000,
+          totalInvestment: 0,
+          currentPrice: 0.0035,
+          lastUpdated: new Date(),
+          _deprecated: true
+        };
       }
     }
   },
@@ -484,7 +509,11 @@ export const databaseHelpers = {
     async createTransaction(transactionData) {
       let client;
       try {
-        const { userId, type, amount, currency = 'USD', status = 'PENDING', description = null, gateway = null, binanceAddress = null, screenshot = null } = transactionData;
+        const { 
+          userId, type, amount, currency = 'USD', status = 'PENDING', description = null, 
+          gateway = null, binanceAddress = null, screenshot = null,
+          feeAmount = null, netAmount = null, feeReceiverId = null, transactionType = null
+        } = transactionData;
         const id = randomUUID();
         
         // Validate required fields
@@ -505,10 +534,10 @@ export const databaseHelpers = {
 
         try {
           const result = await client.query(`
-            INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", screenshot, "createdAt", "updatedAt")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+            INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", screenshot, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
             RETURNING *
-          `, [id, userId, txTypePrimary, amount, currency, txStatusPrimary, description, gateway, binanceAddress, screenshot]);
+          `, [id, userId, txTypePrimary, amount, currency, txStatusPrimary, description, gateway, binanceAddress, screenshot, feeAmount, netAmount, feeReceiverId, transactionType]);
           console.log('✅ Transaction created:', id);
           return result.rows[0];
         } catch (enumErr) {
@@ -517,10 +546,10 @@ export const databaseHelpers = {
             const txTypeFallback = typeof type === 'string' ? type.toLowerCase() : type;
             const txStatusFallback = typeof status === 'string' ? status.toLowerCase() : status;
             const result = await client.query(`
-              INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", screenshot, "createdAt", "updatedAt")
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+              INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", screenshot, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
               RETURNING *
-            `, [id, userId, txTypeFallback, amount, currency, txStatusFallback, description, gateway, binanceAddress, screenshot]);
+            `, [id, userId, txTypeFallback, amount, currency, txStatusFallback, description, gateway, binanceAddress, screenshot, feeAmount, netAmount, feeReceiverId, transactionType]);
             console.log('✅ Transaction created with fallback enum casing:', id);
             return result.rows[0];
           }
@@ -1770,11 +1799,12 @@ export const databaseHelpers = {
           `, [newTotalSupply, newRemainingSupply, supply.id]);
 
           // Record mint history
+          const { randomUUID } = await import('crypto');
           const mintHistory = await client.query(`
             INSERT INTO mint_history (id, "adminId", amount, "createdAt")
             VALUES ($1, $2, $3, NOW())
             RETURNING *
-          `, [require('crypto').randomUUID(), adminId, amount]);
+          `, [randomUUID(), adminId, amount]);
 
           await client.query('COMMIT');
 
@@ -1831,7 +1861,7 @@ export const databaseHelpers = {
     }
   },
 
-  // Token value and inflation calculations
+  // Token value and inflation calculations (Supply-Based Economy)
   tokenValue: {
     async getCurrentTokenValue() {
       try {
@@ -1845,19 +1875,26 @@ export const databaseHelpers = {
           throw new Error('TokenSupply record not found');
         }
 
+        // NEW SUPPLY-BASED ECONOMY: Use only userSupplyRemaining for inflation
+        const totalUserSupply = 2000000; // Initial 20% allocation
+        const userSupplyRemaining = Number(tokenSupply.userSupplyRemaining);
+        const adminReserve = Number(tokenSupply.adminReserve);
         const totalSupply = Number(tokenSupply.totalSupply);
-        const remainingSupply = Number(tokenSupply.remainingSupply);
 
-        // Calculate inflation factor
-        const inflationFactor = totalSupply / remainingSupply;
+        // Calculate inflation factor based on user supply usage
+        // inflationFactor = initialUserSupply / currentUserSupplyRemaining
+        const inflationFactor = totalUserSupply / userSupplyRemaining;
         const currentTokenValue = baseValue * inflationFactor;
 
         return {
           baseValue,
           totalSupply,
-          remainingSupply,
+          userSupplyRemaining,
+          adminReserve,
+          totalUserSupply,
           inflationFactor,
           currentTokenValue,
+          usagePercentage: ((totalUserSupply - userSupplyRemaining) / totalUserSupply) * 100,
           calculatedAt: new Date()
         };
       } catch (error) {
@@ -1866,9 +1903,12 @@ export const databaseHelpers = {
         return {
           baseValue: 0.0035,
           totalSupply: 10000000,
-          remainingSupply: 10000000,
+          userSupplyRemaining: 2000000,
+          adminReserve: 8000000,
+          totalUserSupply: 2000000,
           inflationFactor: 1.0,
           currentTokenValue: 0.0035,
+          usagePercentage: 0,
           calculatedAt: new Date(),
           error: error.message
         };
@@ -1921,18 +1961,144 @@ export const databaseHelpers = {
     }
   },
 
+  // Admin Supply Transfer operations (for controlled economy)
+  adminSupplyTransfer: {
+    async transferToUserSupply(adminId, amount, reason = null) {
+      try {
+        // Get current token supply
+        const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
+        if (!tokenSupply) {
+          throw new Error('Token supply not found');
+        }
+
+        const currentReserve = Number(tokenSupply.adminReserve);
+        const currentUserSupply = Number(tokenSupply.userSupplyRemaining);
+
+        // Validate admin has enough reserve
+        if (currentReserve < amount) {
+          throw new Error(`Insufficient admin reserve. Available: ${currentReserve}, Requested: ${amount}`);
+        }
+
+        // Begin transaction
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+
+          // Update token supply
+          const updateResult = await client.query(`
+            UPDATE token_supply 
+            SET 
+              "adminReserve" = "adminReserve" - $1,
+              "userSupplyRemaining" = "userSupplyRemaining" + $1,
+              "updatedAt" = NOW()
+            WHERE id = $2
+            RETURNING *
+          `, [amount, tokenSupply.id]);
+
+          const updatedSupply = updateResult.rows[0];
+
+          // Create transfer record
+          const { randomUUID } = await import('crypto');
+          const transferId = randomUUID();
+          const transferResult = await client.query(`
+            INSERT INTO admin_supply_transfers 
+            (id, "adminId", "tokenSupplyId", amount, "fromReserve", "toUserSupply", reason, "createdAt")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            RETURNING *
+          `, [transferId, adminId, tokenSupply.id, amount, currentReserve, currentUserSupply + amount, reason]);
+
+          // Log admin action
+          await databaseHelpers.adminLog.createAdminLog({
+            adminId,
+            action: 'TRANSFER_SUPPLY',
+            targetType: 'TOKEN_SUPPLY',
+            targetId: tokenSupply.id.toString(),
+            details: `Transferred ${amount} TIKI from admin reserve to user supply. Reason: ${reason || 'None'}`
+          });
+
+          await client.query('COMMIT');
+
+          console.log('✅ Supply transferred successfully:', {
+            amount,
+            newReserve: updatedSupply.adminReserve,
+            newUserSupply: updatedSupply.userSupplyRemaining
+          });
+
+          return {
+            success: true,
+            transfer: transferResult.rows[0],
+            updatedSupply: updatedSupply
+          };
+
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+
+      } catch (error) {
+        console.error('Error transferring supply:', error);
+        throw error;
+      }
+    },
+
+    async getTransferHistory(adminId = null, limit = 50) {
+      try {
+        let query = `
+          SELECT ast.*, u.name as admin_name, u.email as admin_email
+          FROM admin_supply_transfers ast
+          LEFT JOIN users u ON ast."adminId" = u.id
+        `;
+        const params = [];
+
+        if (adminId) {
+          query += ' WHERE ast."adminId" = $1';
+          params.push(adminId);
+        }
+
+        query += ' ORDER BY ast."createdAt" DESC LIMIT $' + (params.length + 1);
+        params.push(limit);
+
+        const result = await pool.query(query, params);
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting transfer history:', error);
+        throw error;
+      }
+    },
+
+    async getTransferStats() {
+      try {
+        const result = await pool.query(`
+          SELECT 
+            COUNT(*) as total_transfers,
+            SUM(amount) as total_transferred,
+            MIN("createdAt") as first_transfer,
+            MAX("createdAt") as last_transfer
+          FROM admin_supply_transfers
+        `);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error getting transfer stats:', error);
+        throw error;
+      }
+    }
+  },
+
   // Admin Log Helper
   adminLog: {
     async createAdminLog(logData) {
       try {
         const { adminId, action, targetType, targetId, details, ipAddress, userAgent } = logData;
+        const { randomUUID } = await import('crypto');
         
         const result = await pool.query(`
           INSERT INTO admin_logs (id, "adminId", action, "targetType", "targetId", details, "ipAddress", "userAgent", "createdAt")
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
           RETURNING *
         `, [
-          require('crypto').randomUUID(),
+          randomUUID(),
           adminId,
           action,
           targetType,
@@ -1973,6 +2139,184 @@ export const databaseHelpers = {
       } catch (error) {
         console.error('Error getting admin logs:', error);
         throw error;
+      }
+    }
+  },
+
+  // Fee Configuration operations
+  feeConfig: {
+    async getFeeConfig() {
+      try {
+        const result = await pool.query('SELECT * FROM fee_config ORDER BY "createdAt" DESC LIMIT 1');
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('Error getting fee config:', error);
+        return null;
+      }
+    },
+
+    async createFeeConfig(configData) {
+      try {
+        const { transactionFeeRate = 0.05, feeReceiverId = 'ADMIN_WALLET', isActive = true } = configData;
+        const { randomUUID } = await import('crypto');
+        
+        const result = await pool.query(`
+          INSERT INTO fee_config (id, "transactionFeeRate", "feeReceiverId", "isActive", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, NOW(), NOW())
+          RETURNING *
+        `, [randomUUID(), transactionFeeRate, feeReceiverId, isActive]);
+        
+        console.log('✅ Fee config created:', result.rows[0]);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error creating fee config:', error);
+        throw error;
+      }
+    },
+
+    async updateFeeConfig(configData) {
+      try {
+        const { transactionFeeRate, feeReceiverId, isActive } = configData;
+        
+        // Get current config
+        const currentConfig = await this.getFeeConfig();
+        
+        if (currentConfig) {
+          // Update existing config
+          const result = await pool.query(`
+            UPDATE fee_config 
+            SET "transactionFeeRate" = $1, "feeReceiverId" = $2, "isActive" = $3, "updatedAt" = NOW()
+            WHERE id = $4
+            RETURNING *
+          `, [transactionFeeRate, feeReceiverId, isActive, currentConfig.id]);
+          
+          console.log('✅ Fee config updated:', result.rows[0]);
+          return result.rows[0];
+        } else {
+          // Create new config
+          return await this.createFeeConfig(configData);
+        }
+      } catch (error) {
+        console.error('Error updating fee config:', error);
+        throw error;
+      }
+    }
+  },
+
+  // Enhanced transaction operations with fee support
+  transactionWithFees: {
+    async createTransactionWithFee(transactionData) {
+      try {
+        const { userId, type, amount, currency = 'USD', status = 'PENDING', description = null } = transactionData;
+        
+        // Calculate fee (5% default)
+        const feeRate = 0.05;
+        const feeAmount = amount * feeRate;
+        const netAmount = amount - feeAmount;
+        
+        const { randomUUID } = await import('crypto');
+        const id = randomUUID();
+        
+        const result = await pool.query(`
+          INSERT INTO transactions (id, "userId", type, amount, currency, status, description, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+          RETURNING *
+        `, [id, userId, type, amount, currency, status, description, feeAmount, netAmount, 'ADMIN_WALLET', type]);
+        
+        console.log('✅ Transaction with fee created:', id);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error creating transaction with fee:', error);
+        throw error;
+      }
+    },
+
+    async getFeeStats() {
+      try {
+        const result = await pool.query(`
+          SELECT 
+            COUNT(*) as totalTransactionsWithFees,
+            COALESCE(SUM("feeAmount"), 0) as totalFeesCollected,
+            COALESCE(AVG("feeAmount"), 0) as averageFeeAmount,
+            MAX("createdAt") as lastFeeCollection
+          FROM transactions 
+          WHERE "feeAmount" > 0
+        `);
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error getting fee stats:', error);
+        return {
+          totalTransactionsWithFees: 0,
+          totalFeesCollected: 0,
+          averageFeeAmount: 0,
+          lastFeeCollection: null
+        };
+      }
+    }
+  },
+
+  // Deposit addresses operations
+  depositAddresses: {
+    async getDepositAddresses() {
+      let client;
+      try {
+        client = await pool.connect();
+        
+        const result = await client.query(`
+          SELECT * FROM deposit_addresses 
+          ORDER BY id DESC 
+          LIMIT 1
+        `);
+        
+        return result.rows[0] || { bep20: null, trc20: null };
+      } catch (error) {
+        console.error('Error fetching deposit addresses:', error);
+        throw error;
+      } finally {
+        if (client) client.release();
+      }
+    },
+
+    async updateDepositAddresses(addresses) {
+      let client;
+      try {
+        const { bep20, trc20 } = addresses;
+        
+        client = await pool.connect();
+        
+        // Check if a record exists
+        const existingResult = await client.query(`
+          SELECT id FROM deposit_addresses 
+          ORDER BY id DESC 
+          LIMIT 1
+        `);
+        
+        if (existingResult.rows.length > 0) {
+          // Update existing record
+          const result = await client.query(`
+            UPDATE deposit_addresses 
+            SET bep20 = $1, trc20 = $2, "updatedAt" = NOW()
+            WHERE id = $3
+            RETURNING *
+          `, [bep20, trc20, existingResult.rows[0].id]);
+          
+          return result.rows[0];
+        } else {
+          // Create new record
+          const result = await client.query(`
+            INSERT INTO deposit_addresses (bep20, trc20, "updatedAt")
+            VALUES ($1, $2, NOW())
+            RETURNING *
+          `, [bep20, trc20]);
+          
+          return result.rows[0];
+        }
+      } catch (error) {
+        console.error('Error updating deposit addresses:', error);
+        throw error;
+      } finally {
+        if (client) client.release();
       }
     }
   }

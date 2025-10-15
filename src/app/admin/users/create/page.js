@@ -33,7 +33,7 @@ export default function CreateUserPage() {
   }, []);
 
   useEffect(() => {
-    if (mounted && !loading) {
+    if (mounted && !isLoading) {
       if (!isAuthenticated) {
         router.push('/auth/signin');
         return;

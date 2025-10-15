@@ -154,3 +154,6 @@ const setupAdminUser = async () => {
 
 // Run the setup
 setupAdminUser().catch(console.error);
+
+
+

@@ -262,12 +262,7 @@ export default function AdminUsersPage() {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">User Management</h1>
                 <p className="text-slate-300 mt-1">Manage users, roles, and permissions</p>
               </div>
-              <Button
-                onClick={() => router.push('/admin/users/create')}
-                className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
-              >
-                Add New User
-              </Button>
+              
             </div>
           </div>
 
@@ -530,33 +525,117 @@ export default function AdminUsersPage() {
               </div>
             )}
 
-            {/* Pagination */}
+            {/* Premium Mobile-Responsive Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6">
-                <div className="text-sm text-slate-300">
-                  Showing {((currentPage - 1) * usersPerPage) + 1} to {Math.min(currentPage * usersPerPage, filteredUsers.length)} of {filteredUsers.length} users
+              <div className="mt-6 space-y-4">
+                {/* Mobile-First Pagination Info */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                  {/* Results Info - Mobile Optimized */}
+                  <div className="text-center sm:text-left">
+                    <div className="text-sm text-slate-300 mb-1 sm:mb-0">
+                      <span className="font-medium text-slate-200">
+                        {((currentPage - 1) * usersPerPage) + 1}
+                      </span>
+                      <span className="mx-1 text-slate-400">to</span>
+                      <span className="font-medium text-slate-200">
+                        {Math.min(currentPage * usersPerPage, filteredUsers.length)}
+                      </span>
+                      <span className="mx-1 text-slate-400">of</span>
+                      <span className="font-medium text-slate-200">
+                        {filteredUsers.length}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-400 sm:hidden">
+                      Users
+                    </div>
+                  </div>
+
+                  {/* Page Info - Mobile Optimized */}
+                  <div className="text-center sm:text-right">
+                    <div className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 rounded-lg border border-slate-600/30 shadow-sm">
+                      <span className="text-sm font-medium text-slate-200">
+                        Page {currentPage}
+                      </span>
+                      <span className="mx-2 text-slate-400">/</span>
+                      <span className="text-sm text-slate-300">
+                        {totalPages}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
-                  >
-                    Previous
-                  </Button>
-                  <span className="px-3 py-2 text-sm text-slate-300">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
-                  >
-                    Next
-                  </Button>
+
+                {/* Mobile-First Navigation Controls */}
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:justify-center sm:space-x-3">
+                  {/* Mobile: Stack buttons vertically, Desktop: Horizontal */}
+                  <div className="flex space-x-2 sm:space-x-3">
+                    {/* Previous Button */}
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="flex-1 sm:flex-none bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 py-2.5 px-4 text-sm font-medium"
+                    >
+                      <span className="flex items-center justify-center">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        <span className="hidden sm:inline">Previous</span>
+                        <span className="sm:hidden">Prev</span>
+                      </span>
+                    </Button>
+
+                    {/* Next Button */}
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="flex-1 sm:flex-none bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 py-2.5 px-4 text-sm font-medium"
+                    >
+                      <span className="flex items-center justify-center">
+                        <span className="hidden sm:inline">Next</span>
+                        <span className="sm:hidden">Next</span>
+                        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </span>
+                    </Button>
+                  </div>
+
+                  {/* Quick Page Jump - Desktop Only */}
+                  <div className="hidden lg:flex items-center space-x-2">
+                    <span className="text-sm text-slate-400">Go to:</span>
+                    <select
+                      value={currentPage}
+                      onChange={(e) => setCurrentPage(parseInt(e.target.value))}
+                      className="px-3 py-1.5 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 transition-all duration-200"
+                    >
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <option key={page} value={page} className="bg-slate-800 text-white">
+                          Page {page}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
+                {/* Mobile: Quick Page Numbers */}
+                {totalPages <= 5 && (
+                  <div className="flex justify-center space-x-1 sm:hidden">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 rounded-full text-sm font-medium transition-all duration-200 ${
+                          currentPage === page
+                            ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-400/30 shadow-lg shadow-cyan-500/10'
+                            : 'bg-gradient-to-r from-slate-600/30 to-slate-700/30 text-slate-300 hover:from-slate-500/30 hover:to-slate-600/30 hover:text-white border border-slate-500/20'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

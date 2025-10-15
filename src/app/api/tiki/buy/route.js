@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from '../../../../lib/session';
+import { calculateFee, creditFeeToAdmin } from '../../../../lib/fees';
 
 export async function POST(request) {
   try {
@@ -42,41 +43,49 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Failed to resolve user for buy' }, { status: 500 });
     }
 
-    // Get current price and stats
-    let currentPrice, totalTokens, totalInvestment;
+    // Get current price from SUPPLY-BASED calculation (buy-based inflation removed)
+    let currentPrice;
     
     try {
       const { databaseHelpers } = await import('../../../../lib/database.js');
-      const stats = await databaseHelpers.tokenStats.getTokenStats();
-      currentPrice = stats.currentPrice;
-      totalTokens = stats.totalTokens;
-      totalInvestment = stats.totalInvestment;
+      const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+      currentPrice = tokenValue.currentTokenValue;
+      
+      console.log('📊 Using supply-based token value:', {
+        currentPrice,
+        inflationFactor: tokenValue.inflationFactor,
+        userSupplyRemaining: tokenValue.userSupplyRemaining,
+        usagePercentage: tokenValue.usagePercentage
+      });
     } catch (dbError) {
-      console.warn('Database not available, using fallback values:', dbError.message);
-      currentPrice = 0.0035;
-      totalTokens = 100000000;
-      totalInvestment = 350000;
+      console.warn('Database not available, using fallback value:', dbError.message);
+      currentPrice = 0.0035; // Base value
     }
 
-    // Calculate tokens to buy
-    const tokensToBuy = usdAmount / currentPrice;
+    // Calculate buy fee (1% for buy transactions)
+    const { fee, net } = await calculateFee(usdAmount, "buy");
     
-    // Update token stats with new investment
-    let updatedStats;
+    // Calculate tokens to buy (based on net amount after fee)
+    const tokensToBuy = net / currentPrice;
+    
+    // Check if user supply has enough tokens
     try {
       const { databaseHelpers } = await import('../../../../lib/database.js');
-      updatedStats = await databaseHelpers.tokenStats.updateTokenStats(usdAmount);
-    } catch (dbError) {
-      console.warn('Database update failed, using fallback calculation:', dbError.message);
-      // Fallback calculation
-      const newTotalInvestment = totalInvestment + usdAmount;
-      const newPrice = newTotalInvestment / totalTokens;
-      updatedStats = {
-        currentPrice: newPrice,
-        totalTokens: totalTokens,
-        totalInvestment: newTotalInvestment,
-        lastUpdated: new Date()
-      };
+      const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
+      
+      if (tokenSupply && Number(tokenSupply.userSupplyRemaining) < tokensToBuy) {
+        return NextResponse.json({
+          success: false,
+          error: 'Insufficient user supply available',
+          details: {
+            requested: tokensToBuy,
+            available: Number(tokenSupply.userSupplyRemaining),
+            message: 'User supply limit reached. Admin needs to unlock more tokens from reserve.'
+          }
+        }, { status: 400 });
+      }
+    } catch (supplyError) {
+      console.warn('Could not check supply limits:', supplyError.message);
     }
 
     // Update user's TIKI balance and create real transaction
@@ -90,7 +99,7 @@ export async function POST(request) {
       }
       // Increase tiki balance by tokensToBuy
       updatedWallet = await databaseHelpers.wallet.updateTikiBalance(userId, tokensToBuy);
-      // Create transaction record (BUY, USD amount)
+      // Create transaction record (BUY, USD amount) with fee information
       await databaseHelpers.transaction.createTransaction({
         userId: userId,
         type: 'BUY',
@@ -98,11 +107,35 @@ export async function POST(request) {
         currency: 'USD',
         status: 'COMPLETED',
         gateway: 'TikiMarket',
-        description: `Bought ${tokensToBuy.toFixed(2)} TIKI at ${currentPrice} USD`
+        description: `Bought ${tokensToBuy.toFixed(2)} TIKI at ${currentPrice} USD`,
+        feeAmount: fee,
+        netAmount: net,
+        feeReceiverId: 'ADMIN_WALLET',
+        transactionType: 'buy'
       });
+      
+      // Credit fee to admin wallet
+      if (fee > 0) {
+        await creditFeeToAdmin(databaseHelpers.pool, fee);
+        console.log('💰 Buy API: Fee credited to admin wallet:', fee);
+      }
     } catch (txErr) {
       console.error('Error updating wallet/creating transaction for buy:', txErr);
       return NextResponse.json({ success: false, error: 'Failed to update wallet for buy' }, { status: 500 });
+    }
+
+    // Deduct from user supply after successful transaction (supply-based economy)
+    try {
+      const { databaseHelpers } = await import('../../../../lib/database.js');
+      await databaseHelpers.pool.query(`
+        UPDATE token_supply 
+        SET "userSupplyRemaining" = "userSupplyRemaining" - $1,
+            "updatedAt" = NOW()
+      `, [tokensToBuy]);
+      
+      console.log('✅ User supply deducted:', tokensToBuy, 'TIKI');
+    } catch (supplyError) {
+      console.error('⚠️ Could not deduct from user supply:', supplyError.message);
     }
 
     return NextResponse.json({
@@ -111,9 +144,10 @@ export async function POST(request) {
         userId: userId,
         type: 'BUY',
         amount: usdAmount,
+        fee: fee,
+        netAmount: net,
         tokensReceived: tokensToBuy,
         pricePerToken: currentPrice,
-        newPrice: updatedStats.currentPrice,
         status: 'COMPLETED',
         createdAt: new Date()
       },
@@ -121,11 +155,8 @@ export async function POST(request) {
         tikiBalance: updatedWallet?.tikiBalance ?? null
       },
       priceUpdate: {
-        oldPrice: currentPrice,
-        newPrice: updatedStats.currentPrice,
-        totalInvestment: updatedStats.totalInvestment,
-        totalTokens: updatedStats.totalTokens,
-        lastUpdated: updatedStats.lastUpdated
+        currentPrice: currentPrice,
+        _note: 'Supply-based pricing active. Buy-based inflation removed.'
       }
     });
 

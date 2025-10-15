@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, Button, Input, Loader, Toast } from '@/components';
+import Layout from '../../../components/Layout';
 
 export default function AdminTokenSupplyPage() {
   const [mintAmount, setMintAmount] = useState('');
@@ -153,28 +154,33 @@ export default function AdminTokenSupplyPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <Loader size="lg" />
-          <p className="text-slate-300 mt-4">Loading token supply data...</p>
+      <Layout showSidebar={true}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+          <div className="text-center">
+            <Loader size="lg" />
+            <p className="text-slate-300 mt-4">Loading token supply data...</p>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm rounded-lg p-8 border border-slate-600/30 shadow-xl">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-red-400 to-rose-400 bg-clip-text text-transparent mb-4">Error Loading Data</h2>
-          <p className="text-slate-300">{error}</p>
+      <Layout showSidebar={true}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+          <div className="text-center bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm rounded-lg p-8 border border-slate-600/30 shadow-xl">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-red-400 to-rose-400 bg-clip-text text-transparent mb-4">Error Loading Data</h2>
+            <p className="text-slate-300">{error}</p>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6">
+    <Layout showSidebar={true}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
@@ -441,5 +447,6 @@ export default function AdminTokenSupplyPage() {
         )}
       </div>
     </div>
+    </Layout>
   );
 }

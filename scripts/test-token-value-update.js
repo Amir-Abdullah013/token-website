@@ -170,3 +170,6 @@ const testTokenValueUpdate = async () => {
 
 // Run the test
 testTokenValueUpdate().catch(console.error);
+
+
+

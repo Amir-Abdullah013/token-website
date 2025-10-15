@@ -28,7 +28,7 @@ const MobileNavigation = ({ user }) => {
   const adminNavigation = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
     { name: 'Users', href: '/admin/users', icon: '👥' },
-    { name: 'Wallets', href: '/admin/wallets', icon: '💼' },
+    { name: 'Token Supply', href: '/admin/token-supply', icon: '🪙' },
     { name: 'Deposits', href: '/admin/deposits', icon: '💰' },
     { name: 'Withdrawals', href: '/admin/withdrawals', icon: '💸' },
     { name: 'Transfers', href: '/admin/transfers', icon: '📤' },

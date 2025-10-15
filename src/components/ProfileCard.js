@@ -152,15 +152,16 @@ const ProfileCard = ({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Profile Information Card */}
-      <Card>
+      <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Profile Information</CardTitle>
+            <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Profile Information</CardTitle>
             {isEditable && !isEditing && (
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => setIsEditing(true)}
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30"
               >
                 Edit Profile
               </Button>
@@ -169,21 +170,21 @@ const ProfileCard = ({
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-4 p-3 bg-gradient-to-r from-red-500/20 to-rose-500/20 border border-red-400/30 rounded-lg">
+              <p className="text-sm text-red-300">{error}</p>
             </div>
           )}
           
           {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-sm text-green-600">{success}</p>
+            <div className="mb-4 p-3 bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-emerald-400/30 rounded-lg">
+              <p className="text-sm text-emerald-300">{success}</p>
             </div>
           )}
 
           {isEditing ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="name" className="block text-sm font-semibold text-slate-200 mb-2">
                   Full Name
                 </label>
                 <Input
@@ -194,11 +195,12 @@ const ProfileCard = ({
                   onChange={handleInputChange}
                   required
                   placeholder="Enter your full name"
+                  className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30"
                 />
               </div>
 
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="phone" className="block text-sm font-semibold text-slate-200 mb-2">
                   Phone Number
                 </label>
                 <Input
@@ -208,11 +210,12 @@ const ProfileCard = ({
                   value={formData.phone}
                   onChange={handleInputChange}
                   placeholder="Enter your phone number"
+                  className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30"
                 />
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="block text-sm font-semibold text-slate-200 mb-2">
                   Email Address
                 </label>
                 <Input
@@ -222,9 +225,9 @@ const ProfileCard = ({
                   value={formData.email}
                   onChange={handleInputChange}
                   disabled
-                  className="bg-gray-50"
+                  className="bg-slate-700/30 border border-slate-500/30 text-slate-400"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Email cannot be changed. Contact support if needed.
                 </p>
               </div>
@@ -235,6 +238,7 @@ const ProfileCard = ({
                   variant="primary"
                   loading={loading}
                   disabled={loading}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30"
                 >
                   Save Changes
                 </Button>
@@ -243,154 +247,74 @@ const ProfileCard = ({
                   variant="outline"
                   onClick={cancelEdit}
                   disabled={loading}
+                  className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white border border-slate-400/30"
                 >
                   Cancel
                 </Button>
               </div>
             </form>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="text-sm font-semibold text-slate-200 mb-3 flex items-center">
+                  <span className="mr-2">👤</span>
                   Full Name
                 </label>
-                <p className="text-gray-900">{user?.name || 'Not provided'}</p>
+                <div className="bg-slate-800/40 px-4 py-3 rounded-lg border border-slate-600/40 shadow-lg">
+                  <p className="text-white font-medium">{user?.name || 'Not provided'}</p>
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="text-sm font-semibold text-slate-200 mb-3 flex items-center">
+                  <span className="mr-2">📧</span>
                   Email Address
                 </label>
-                <p className="text-gray-900">{user?.email || 'Not provided'}</p>
+                <div className="bg-slate-800/40 px-4 py-3 rounded-lg border border-slate-600/40 shadow-lg">
+                  <p className="text-white font-medium">{user?.email || 'Not provided'}</p>
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="text-sm font-semibold text-slate-200 mb-3 flex items-center">
+                  <span className="mr-2">📱</span>
                   Phone Number
                 </label>
-                <p className="text-gray-900">{user?.phone || 'Not provided'}</p>
+                <div className="bg-slate-800/40 px-4 py-3 rounded-lg border border-slate-600/40 shadow-lg">
+                  <p className="text-white font-medium">{user?.phone || 'Not provided'}</p>
+                </div>
               </div>
-
-             
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="text-sm font-semibold text-slate-200 mb-3 flex items-center">
+                  <span className="mr-2">📅</span>
                   Member Since
                 </label>
-                <p className="text-gray-900">
-                  {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() :
-                   user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 
-                   user?.$createdAt ? new Date(user.$createdAt).toLocaleDateString() : 
-                   'Loading...'}
-                </p>
+                <div className="bg-slate-800/40 px-4 py-3 rounded-lg border border-slate-600/40 shadow-lg">
+                  <p className="text-white font-medium">
+                    {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) :
+                     user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                       year: 'numeric',
+                       month: 'long',
+                       day: 'numeric'
+                     }) : 
+                     user?.$createdAt ? new Date(user.$createdAt).toLocaleDateString('en-US', {
+                       year: 'numeric',
+                       month: 'long',
+                       day: 'numeric'
+                     }) : 
+                     'Loading...'}
+                  </p>
+                </div>
               </div>
-
-             
-            
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Password Change Card */}
-      {showPasswordChange && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Change Password</CardTitle>
-              {!showPasswordForm && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowPasswordForm(true)}
-                >
-                  Change Password
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {showPasswordForm ? (
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    Current Password
-                  </label>
-                  <Input
-                    id="currentPassword"
-                    name="currentPassword"
-                    type="password"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    placeholder="Enter your current password"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    New Password
-                  </label>
-                  <Input
-                    id="newPassword"
-                    name="newPassword"
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    placeholder="Enter your new password"
-                    minLength={8}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Password must be at least 8 characters long
-                  </p>
-                </div>
-
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirm New Password
-                  </label>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    placeholder="Confirm your new password"
-                    minLength={8}
-                  />
-                </div>
-
-                <div className="flex space-x-3">
-                  <Button 
-                    type="submit" 
-                    variant="primary"
-                    loading={loading}
-                    disabled={loading}
-                  >
-                    Update Password
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={cancelPasswordChange}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-gray-600 mb-4">
-                  Click "Change Password" to update your password
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

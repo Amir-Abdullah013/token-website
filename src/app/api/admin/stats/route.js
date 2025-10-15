@@ -4,8 +4,13 @@ import { databaseHelpers } from '../../../../lib/database';
 
 export async function GET(request) {
   try {
+    console.log('🔍 Admin Stats API: Checking authentication...');
+    
     const session = await getServerSession();
+    console.log('📋 Session data:', session ? { id: session.id, email: session.email } : 'No session');
+    
     if (!session?.id) {
+      console.log('❌ No session found');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -13,7 +18,10 @@ export async function GET(request) {
     }
 
     const userRole = await getUserRole(session);
+    console.log('👤 User role:', userRole);
+    
     if (userRole !== 'ADMIN') {
+      console.log('❌ User is not admin, role:', userRole);
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
@@ -52,9 +60,13 @@ export async function GET(request) {
         SELECT 
           COUNT(*) as totalTransactions,
           SUM(CASE WHEN type = 'DEPOSIT' THEN amount ELSE 0 END) as totalDeposits,
+          SUM(CASE WHEN type = 'WITHDRAW' THEN amount ELSE 0 END) as totalWithdrawals,
           SUM(CASE WHEN type = 'BUY' THEN amount ELSE 0 END) as totalBuys,
+          SUM(CASE WHEN type = 'SELL' THEN amount ELSE 0 END) as totalSells,
           COUNT(CASE WHEN type = 'DEPOSIT' THEN 1 END) as depositCount,
-          COUNT(CASE WHEN type = 'BUY' THEN 1 END) as buyCount
+          COUNT(CASE WHEN type = 'WITHDRAW' THEN 1 END) as withdrawalCount,
+          COUNT(CASE WHEN type = 'BUY' THEN 1 END) as buyCount,
+          COUNT(CASE WHEN type = 'SELL' THEN 1 END) as sellCount
         FROM transactions
         WHERE status = 'COMPLETED'
       `),
@@ -80,11 +92,13 @@ export async function GET(request) {
       totalBalance: parseFloat(walletData.totalbalance) || 0,
       totalTikiBalance: parseFloat(walletData.totaltikibalance) || 0,
       totalDeposits: parseFloat(transactionData.totaldeposits) || 0,
-      totalWithdrawals: 0, // No withdrawals in current system
+      totalWithdrawals: parseFloat(transactionData.totalwithdrawals) || 0,
       totalBuys: parseFloat(transactionData.totalbuys) || 0,
-      totalSells: 0, // No sells in current system
+      totalSells: parseFloat(transactionData.totalsells) || 0,
       depositCount: parseInt(transactionData.depositcount) || 0,
+      withdrawalCount: parseInt(transactionData.withdrawalcount) || 0,
       buyCount: parseInt(transactionData.buycount) || 0,
+      sellCount: parseInt(transactionData.sellcount) || 0,
       pendingTransactions: parseInt(pendingData.pendingtransactions) || 0,
       totalTransactions: parseInt(transactionData.totaltransactions) || 0
     };

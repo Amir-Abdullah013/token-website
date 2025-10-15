@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth-context';
 import { useTiki } from '../../../lib/tiki-context';
+import { useFeeCalculator } from '../../../lib/hooks/useFeeCalculator';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -129,6 +130,10 @@ export default function SendTokensPage() {
   const [transfers, setTransfers] = useState([]);
   const [isLoadingTransfers, setIsLoadingTransfers] = useState(true);
 
+  // Calculate fee for transfer (5% fee)
+  const amount = parseFloat(formData.amount) || 0;
+  const feeCalculation = useFeeCalculator('transfer', amount);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -204,8 +209,11 @@ export default function SendTokensPage() {
       newErrors.amount = 'Amount is required';
     } else if (parseFloat(formData.amount) <= 0) {
       newErrors.amount = 'Amount must be greater than 0';
-    } else if (parseFloat(formData.amount) > tikiBalance) {
-      newErrors.amount = 'Insufficient TIKI balance';
+    } else {
+      const totalRequired = parseFloat(formData.amount) + feeCalculation.fee;
+      if (totalRequired > tikiBalance) {
+        newErrors.amount = `Insufficient TIKI balance. Required: ${formatTiki(totalRequired)} TIKI (${formatTiki(parseFloat(formData.amount))} + ${formatTiki(feeCalculation.fee)} fee)`;
+      }
     }
 
     setErrors(newErrors);
@@ -361,6 +369,29 @@ export default function SendTokensPage() {
                 <p className="mt-1 text-sm text-slate-400">
                   Maximum: {formatTiki(tikiBalance)} TIKI
                 </p>
+                
+                {/* Fee Information Display */}
+                {amount > 0 && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-xl shadow-sm border border-gray-100">
+                    <div className="text-sm text-gray-600">
+                      <div className="flex justify-between items-center mb-1">
+                        <span>Transfer Amount:</span>
+                        <span className="font-medium">{formatTiki(amount)} TIKI</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span>Fee ({feeCalculation.feePercentage}%):</span>
+                        <span className="font-medium text-orange-600">{formatTiki(feeCalculation.fee)} TIKI</span>
+                      </div>
+                      <div className="flex justify-between items-center border-t pt-1">
+                        <span className="font-medium">Total Required:</span>
+                        <span className="font-bold text-blue-600">{formatTiki(amount + feeCalculation.fee)} TIKI</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Recipient will receive: {formatTiki(amount)} TIKI
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

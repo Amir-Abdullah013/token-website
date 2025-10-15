@@ -23,8 +23,12 @@ export async function GET(request) {
         currentValue: tokenValue.currentTokenValue,
         inflationFactor: tokenValue.inflationFactor,
         totalSupply: tokenValue.totalSupply,
-        remainingSupply: tokenValue.remainingSupply,
+        userSupplyRemaining: tokenValue.userSupplyRemaining,
+        adminReserve: tokenValue.adminReserve,
+        totalUserSupply: tokenValue.totalUserSupply,
+        usagePercentage: tokenValue.usagePercentage,
         calculatedAt: tokenValue.calculatedAt,
+        _note: 'Supply-based economy active. Buy-based inflation removed.',
         error: tokenValue.error || null
       }
     });

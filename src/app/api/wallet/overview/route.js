@@ -99,7 +99,7 @@ export async function GET(request) {
     };
 
     try {
-      recentTransactions = await databaseHelpers.transaction.getUserTransactions(userId, 5);
+      recentTransactions = await databaseHelpers.transaction.getUserTransactions(userId);
       console.log('Recent transactions:', recentTransactions.length);
     } catch (txError) {
       console.error('Error getting transactions:', txError);

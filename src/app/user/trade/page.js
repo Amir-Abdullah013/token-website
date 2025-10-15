@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth-context';
 import { useTiki } from '../../../lib/tiki-context';
 import { usePriceUpdates } from '../../../hooks/usePriceUpdates';
+import { useFeeCalculator } from '../../../lib/hooks/useFeeCalculator';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -44,6 +45,10 @@ export default function TradePage() {
   const [price, setPrice] = useState('');
   const [total, setTotal] = useState(0);
   const [isTrading, setIsTrading] = useState(false);
+
+  // Calculate fee for trading (1% for buy/sell)
+  const amountValue = parseFloat(amount) || 0;
+  const feeCalculation = useFeeCalculator(tradeType, amountValue);
 
   // Tiki market data - using real Tiki price from global state
   const [marketData, setMarketData] = useState({
@@ -453,6 +458,32 @@ export default function TradePage() {
                         <p className="text-xs text-slate-400 mt-1">
                           You will receive: {formatCurrency(parseFloat(amount) * tikiPrice, 'USD')}
                         </p>
+                      )}
+                      
+                      {/* Fee Information Display */}
+                      {amountValue > 0 && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-xl shadow-sm border border-gray-100">
+                          <div className="text-sm text-gray-600">
+                            <div className="flex justify-between items-center mb-1">
+                              <span>{tradeType === 'buy' ? 'USD Amount:' : 'TIKI Amount:'}</span>
+                              <span className="font-medium">${amountValue.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center mb-1">
+                              <span>Fee ({feeCalculation.feePercentage}%):</span>
+                              <span className="font-medium text-orange-600">${feeCalculation.fee.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-t pt-1">
+                              <span className="font-medium">Total Required:</span>
+                              <span className="font-bold text-blue-600">${(amountValue + feeCalculation.fee).toFixed(2)}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {tradeType === 'buy' 
+                                ? `You will receive: ${formatTiki((amountValue - feeCalculation.fee) / tikiPrice)} TIKI`
+                                : `You will receive: $${(amountValue - feeCalculation.fee).toFixed(2)}`
+                              }
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth-context';
 import { useTiki } from '../../../lib/tiki-context';
+import { useFeeCalculator } from '../../../lib/hooks/useFeeCalculator';
 import Layout from '../../../components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -20,7 +21,8 @@ export default function WithdrawPage() {
   // Form state
   const [formData, setFormData] = useState({
     amount: '',
-    binanceAddress: ''
+    binanceAddress: '',
+    network: ''
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,6 +34,10 @@ export default function WithdrawPage() {
   // Validation rules
   const MIN_WITHDRAW_AMOUNT = 10;
   const MAX_WITHDRAW_AMOUNT = 10000;
+
+  // Calculate fee for withdrawal (10% fee)
+  const amount = parseFloat(formData.amount) || 0;
+  const feeCalculation = useFeeCalculator('withdraw', amount);
 
   useEffect(() => {
     setMounted(true);
@@ -94,9 +100,17 @@ export default function WithdrawPage() {
         newErrors.amount = `Minimum withdrawal amount is $${MIN_WITHDRAW_AMOUNT}`;
       } else if (amount > MAX_WITHDRAW_AMOUNT) {
         newErrors.amount = `Maximum withdrawal amount is $${MAX_WITHDRAW_AMOUNT}`;
-      } else if (amount > usdBalance) {
-        newErrors.amount = 'Insufficient balance';
+      } else {
+        const totalRequired = amount + feeCalculation.fee;
+        if (totalRequired > usdBalance) {
+          newErrors.amount = `Insufficient balance. Required: $${totalRequired.toFixed(2)} ($${amount.toFixed(2)} + $${feeCalculation.fee.toFixed(2)} fee)`;
+        }
       }
+    }
+
+    // Network validation
+    if (!formData.network) {
+      newErrors.network = 'Network selection is required';
     }
 
     // Binance address validation
@@ -128,7 +142,8 @@ export default function WithdrawPage() {
         },
         body: JSON.stringify({
           amount: parseFloat(formData.amount),
-          binanceAddress: formData.binanceAddress
+          binanceAddress: formData.binanceAddress,
+          network: formData.network
         })
       });
 
@@ -145,7 +160,7 @@ export default function WithdrawPage() {
         success('Withdrawal request submitted successfully. Waiting for admin confirmation.');
         
         // Reset form
-        setFormData({ amount: '', binanceAddress: '' });
+        setFormData({ amount: '', binanceAddress: '', network: '' });
         
         // Reload withdrawals to show the new request
         loadWithdrawals();
@@ -312,6 +327,84 @@ export default function WithdrawPage() {
                 <p className="mt-1 text-sm text-slate-400">
                   Minimum: ${MIN_WITHDRAW_AMOUNT} | Maximum: ${MAX_WITHDRAW_AMOUNT} | Available: {formatCurrency(usdBalance, 'USD')}
                 </p>
+                
+                {/* Fee Information Display */}
+                {amount > 0 && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-xl shadow-sm border border-gray-100">
+                    <div className="text-sm text-gray-600">
+                      <div className="flex justify-between items-center mb-1">
+                        <span>Withdrawal Amount:</span>
+                        <span className="font-medium">${amount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span>Fee ({feeCalculation.feePercentage}%):</span>
+                        <span className="font-medium text-orange-600">${feeCalculation.fee.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center border-t pt-1">
+                        <span className="font-medium">Total Required:</span>
+                        <span className="font-bold text-blue-600">${(amount + feeCalculation.fee).toFixed(2)}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        You will receive: ${amount.toFixed(2)} (after fee deduction)
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Premium Network Selection - Mobile Responsive */}
+              <div>
+                <label htmlFor="network" className="block text-sm font-medium text-slate-200 mb-3">
+                  <span className="flex items-center">
+                    <span className="mr-2">🌐</span>
+                    Network Type *
+                  </span>
+                </label>
+                <div className="relative">
+                  <select
+                    id="network"
+                    name="network"
+                    value={formData.network}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400/50 focus:border-rose-400 transition-all duration-200 hover:border-slate-400/50 appearance-none cursor-pointer text-sm sm:text-base ${errors.network ? 'border-red-500' : ''}`}
+                    disabled={isSubmitting}
+                  >
+                    <option value="" className="bg-slate-800 text-white py-2">🌐 Select Network</option>
+                    <option value="BEP20" className="bg-slate-800 text-white py-2">🟡 BSC (BNB Smart Chain) - BEP20</option>
+                    <option value="TRC20" className="bg-slate-800 text-white py-2">🔴 TRX (Tron Network) - TRC20</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+                {errors.network && (
+                  <p className="mt-2 text-sm text-red-400 flex items-center">
+                    <span className="mr-1">⚠️</span>
+                    {errors.network}
+                  </p>
+                )}
+                
+                {/* Premium Network Information */}
+                <div className="mt-3 p-3 bg-gradient-to-r from-slate-800/30 to-slate-700/30 rounded-lg border border-slate-600/30">
+                  <div className="text-xs text-slate-300">
+                    <div className="flex items-center mb-1">
+                      <span className="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>
+                      <span className="font-medium">BEP20:</span>
+                      <span className="ml-1 text-slate-400">Lower fees, faster transactions</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-2 h-2 bg-red-400 rounded-full mr-2"></span>
+                      <span className="font-medium">TRC20:</span>
+                      <span className="ml-1 text-slate-400">Widely supported, stable network</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="mt-2 text-xs sm:text-sm text-slate-400">
+                  Choose the network type for your withdrawal address
+                </p>
               </div>
 
               {/* Binance Address Input */}
@@ -351,7 +444,7 @@ export default function WithdrawPage() {
                 <Button
                   type="submit"
                   className="flex-1 bg-gradient-to-r from-rose-500 via-red-500 to-pink-600 hover:from-rose-600 hover:via-red-600 hover:to-pink-700 text-white shadow-lg shadow-rose-500/25 border border-rose-400/30"
-                  disabled={isSubmitting || !formData.amount || !formData.binanceAddress || !!errors.amount || !!errors.binanceAddress}
+                  disabled={isSubmitting || !formData.amount || !formData.binanceAddress || !formData.network || !!errors.amount || !!errors.binanceAddress || !!errors.network}
                 >
                   {isSubmitting ? (
                     <>
@@ -407,6 +500,9 @@ export default function WithdrawPage() {
                     </div>
                     <div className="text-sm text-slate-300">
                       <p><strong>Binance Address:</strong> {withdrawal.binanceAddress}</p>
+                      {withdrawal.network && (
+                        <p><strong>Network:</strong> {withdrawal.network}</p>
+                      )}
                     </div>
                   </div>
                 ))}

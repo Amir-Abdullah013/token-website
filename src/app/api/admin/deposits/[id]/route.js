@@ -96,8 +96,47 @@ export async function PATCH(request, { params }) {
       adminNotes
     });
 
-    // Update transaction status
-    await databaseHelpers.transaction.updateTransactionStatus(depositRequest.transactionId, newStatus);
+    // Update ALL PENDING deposit transactions for this user with matching amount
+    // This ensures we catch the right transaction even if there are multiple deposits
+    try {
+      console.log(`🔄 Updating transactions for user ${depositRequest.userId}, amount $${depositRequest.amount}`);
+      
+      const transactionResult = await databaseHelpers.pool.query(`
+        UPDATE transactions
+        SET status = $1, "updatedAt" = NOW()
+        WHERE "userId" = $2 
+          AND type = 'DEPOSIT'
+          AND amount = $3
+          AND status = 'PENDING'
+        RETURNING id, status, "createdAt"
+      `, [newStatus, depositRequest.userId, depositRequest.amount]);
+      
+      if (transactionResult.rows.length > 0) {
+        console.log(`✅ Updated ${transactionResult.rows.length} transaction(s):`);
+        transactionResult.rows.forEach(tx => {
+          console.log(`   ${tx.id} - ${tx.status} - ${new Date(tx.createdAt).toLocaleString()}`);
+        });
+      } else {
+        console.warn(`⚠️ No PENDING deposit transactions found for user ${depositRequest.userId} with amount $${depositRequest.amount}`);
+        
+        // Debug: Show all transactions for this user
+        const debugTxs = await databaseHelpers.pool.query(`
+          SELECT id, type, amount, status, "createdAt"
+          FROM transactions
+          WHERE "userId" = $1
+          ORDER BY "createdAt" DESC
+          LIMIT 10
+        `, [depositRequest.userId]);
+        
+        console.log(`   User has ${debugTxs.rows.length} transactions:`);
+        debugTxs.rows.forEach(tx => {
+          console.log(`     ${tx.id} - ${tx.type} - $${tx.amount} - ${tx.status} - ${new Date(tx.createdAt).toLocaleString()}`);
+        });
+      }
+    } catch (txError) {
+      console.error('Error updating transaction status:', txError);
+      // Don't fail the whole request if transaction update fails
+    }
 
     // If approved, update user's balance
     if (action === 'approve') {

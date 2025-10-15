@@ -142,101 +142,8 @@ export default function AdminStakingsPage() {
     setFilteredStakings(filtered);
   };
 
-  // Handle mark as completed
-  const handleMarkCompleted = async (stakingId) => {
-    setIsProcessing(true);
-    try {
-      const response = await fetch(`/api/admin/stakings/${stakingId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'mark-completed' })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to mark staking as completed: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to mark staking as completed');
-      }
-      
-      // Update local state
-      setStakings(prev => 
-        prev.map(s => 
-          s.id === stakingId 
-            ? { ...s, status: 'COMPLETED' }
-            : s
-        )
-      );
-      setFilteredStakings(prev => 
-        prev.map(s => 
-          s.id === stakingId 
-            ? { ...s, status: 'COMPLETED' }
-            : s
-        )
-      );
-      
-      success(`Staking marked as completed successfully!`);
-    } catch (err) {
-      console.error('Error marking staking as completed:', err);
-      error(`Failed to mark staking as completed: ${err.message}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Handle reject
-  const handleReject = async (stakingId) => {
-    if (!confirm('Are you sure you want to reject this staking? The staked amount will be refunded to the adminUser.')) {
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch(`/api/admin/stakings/${stakingId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'reject' })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to reject staking: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to reject staking');
-      }
-      
-      // Update local state
-      setStakings(prev => 
-        prev.map(s => 
-          s.id === stakingId 
-            ? { ...s, status: 'CANCELLED' }
-            : s
-        )
-      );
-      setFilteredStakings(prev => 
-        prev.map(s => 
-          s.id === stakingId 
-            ? { ...s, status: 'CANCELLED' }
-            : s
-        )
-      );
-      
-      success(`Staking rejected and refunded successfully!`);
-    } catch (err) {
-      console.error('Error rejecting staking:', err);
-      error(`Failed to reject staking: ${err.message}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  // Note: Admin controls removed - staking is now automatic
+  // Stakings are automatically processed when they reach their end date
 
   // Handle refresh
   const handleRefresh = () => {
@@ -273,9 +180,9 @@ export default function AdminStakingsPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">Staking Management</h1>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">Staking History</h1>
                 <p className="mt-2 text-slate-300">
-                  Manage user stakings and rewards
+                  View automatic staking processing and rewards (read-only)
                 </p>
               </div>
               <div className="flex space-x-4">
@@ -370,7 +277,7 @@ export default function AdminStakingsPage() {
           <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
-                Staking Requests ({filteredStakings.length})
+                Staking History ({filteredStakings.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -409,7 +316,7 @@ export default function AdminStakingsPage() {
                           Status
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                          Actions
+                          Auto-Processed
                         </th>
                       </tr>
                     </thead>
@@ -467,27 +374,17 @@ export default function AdminStakingsPage() {
                             </td>
                             <td className="px-4 py-3">
                               {staking.status === 'ACTIVE' ? (
-                                <div className="flex space-x-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleMarkCompleted(staking.id)}
-                                    disabled={isProcessing}
-                                    className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
-                                  >
-                                    Mark Completed
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReject(staking.id)}
-                                    disabled={isProcessing}
-                                    className="bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 border border-red-400/30 hover:from-red-500/30 hover:to-rose-500/30 hover:text-white"
-                                  >
-                                    Reject
-                                  </Button>
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-2 h-2 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full animate-pulse"></div>
+                                  <span className="text-sm text-amber-300">Auto-processing at end date</span>
+                                </div>
+                              ) : staking.status === 'CLAIMED' ? (
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-2 h-2 bg-gradient-to-r from-emerald-400 to-green-400 rounded-full"></div>
+                                  <span className="text-sm text-emerald-300">Auto-completed</span>
                                 </div>
                               ) : (
-                                <span className="text-sm text-slate-400">No actions</span>
+                                <span className="text-sm text-slate-400">View only</span>
                               )}
                             </td>
                           </tr>

@@ -120,10 +120,12 @@ const TikiTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// Premium loading skeleton component
-const LoadingSkeleton = () => (
+// Premium loading skeleton component - Mobile Responsive
+const LoadingSkeleton = ({ isMobile = false }) => (
   <div className="animate-pulse">
-    <div className="h-64 bg-gradient-to-br from-slate-800/40 to-slate-900/40 rounded-lg border border-slate-600/20 backdrop-blur-sm">
+    <div className={`bg-gradient-to-br from-slate-800/40 to-slate-900/40 rounded-lg border border-slate-600/20 backdrop-blur-sm ${
+      isMobile ? 'h-64' : 'h-64 sm:h-80 lg:h-96'
+    }`}>
       <div className="h-full bg-gradient-to-br from-slate-700/30 to-slate-800/30 rounded-lg"></div>
     </div>
   </div>
@@ -136,6 +138,18 @@ const TikiPriceChart = ({ className = '' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPrice, setCurrentPrice] = useState(tikiPrice);
   const [priceChange, setPriceChange] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Generate data when filter changes or Tiki price changes
   useEffect(() => {
@@ -174,23 +188,25 @@ const TikiPriceChart = ({ className = '' }) => {
 
   return (
     <div className={`space-y-4 ${className}`}>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Tiki Price Chart</CardTitle>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600">Time Range:</span>
-              <div className="flex space-x-1">
+      <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+              TIKI Price Chart
+            </CardTitle>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="text-sm text-slate-300 font-medium">Time Range:</span>
+              <div className="flex flex-wrap gap-1 sm:gap-2">
                 {TIME_FILTERS.map((filter) => (
                   <Button
                     key={filter.value}
                     size="sm"
                     variant={selectedFilter === filter.value ? 'default' : 'outline'}
                     onClick={() => handleFilterChange(filter.value)}
-                    className={`text-xs px-2 py-1 ${
+                    className={`text-xs px-2 py-1 sm:px-3 sm:py-1.5 transition-all duration-200 ${
                       selectedFilter === filter.value
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 hover:bg-gray-100'
+                        ? 'bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30'
+                        : 'bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30'
                     }`}
                   >
                     {filter.label}
@@ -200,18 +216,18 @@ const TikiPriceChart = ({ className = '' }) => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          {/* Premium Current Price Display */}
-          <div className="mb-6 bg-gradient-to-r from-slate-800/40 to-slate-700/40 rounded-lg p-4 border border-slate-600/30 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-300 font-medium">Current Tiki Price</p>
-                <p className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+        <CardContent className="p-4 sm:p-6">
+          {/* Premium Current Price Display - Mobile Responsive */}
+          <div className="mb-4 sm:mb-6 bg-gradient-to-r from-slate-800/40 to-slate-700/40 rounded-lg p-3 sm:p-4 border border-slate-600/30 backdrop-blur-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-slate-300 font-medium">Current Tiki Price</p>
+                <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
                   {formatCurrency(currentPrice, 'USD')}
                 </p>
               </div>
-              <div className="text-right">
-                <div className={`flex items-center text-sm font-semibold ${getPriceChangeColor()}`}>
+              <div className="text-center sm:text-right">
+                <div className={`flex items-center justify-center sm:justify-end text-xs sm:text-sm font-semibold ${getPriceChangeColor()}`}>
                   <span className="mr-1">{getPriceChangeIcon()}</span>
                   <span>
                     {priceChange >= 0 ? '+' : ''}{formatCurrency(priceChange, 'USD')} 
@@ -229,29 +245,41 @@ const TikiPriceChart = ({ className = '' }) => {
             </div>
           </div>
 
-          {/* Premium Chart */}
+          {/* Premium Chart - Mobile Responsive */}
           {isLoading ? (
-            <LoadingSkeleton />
+            <LoadingSkeleton isMobile={isMobile} />
           ) : (
-            <div className="h-64 bg-gradient-to-br from-slate-800/20 to-slate-900/20 rounded-lg p-4 border border-slate-600/20">
+            <div className={`bg-gradient-to-br from-slate-800/20 to-slate-900/20 rounded-lg p-2 sm:p-4 border border-slate-600/20 ${
+              isMobile ? 'h-64' : 'h-64 sm:h-80 lg:h-96'
+            }`}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <LineChart 
+                  data={chartData} 
+                  margin={{ 
+                    top: 5, 
+                    right: isMobile ? 10 : 30, 
+                    left: isMobile ? 10 : 20, 
+                    bottom: isMobile ? 5 : 10 
+                  }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#64748B" opacity={0.2} />
                   <XAxis 
                     dataKey="time"
                     stroke="#94A3B8"
-                    fontSize={12}
+                    fontSize={isMobile ? 10 : 12}
                     tickLine={false}
                     axisLine={false}
                     tick={{ fill: '#94A3B8' }}
+                    interval={isMobile ? 'preserveStartEnd' : 0}
                   />
                   <YAxis 
                     stroke="#94A3B8"
-                    fontSize={12}
+                    fontSize={isMobile ? 10 : 12}
                     tickLine={false}
                     axisLine={false}
                     tick={{ fill: '#94A3B8' }}
-                    tickFormatter={(value) => `$${value.toFixed(4)}`}
+                    tickFormatter={(value) => isMobile ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`}
+                    width={isMobile ? 40 : 60}
                   />
                   <Tooltip content={<TikiTooltip />} />
                   <defs>
@@ -270,10 +298,10 @@ const TikiPriceChart = ({ className = '' }) => {
                     type="monotone"
                     dataKey="price"
                     stroke="url(#tikiPriceLine)"
-                    strokeWidth={3}
+                    strokeWidth={isMobile ? 2 : 3}
                     dot={false}
                     activeDot={{ 
-                      r: 6, 
+                      r: isMobile ? 4 : 6, 
                       fill: '#06B6D4', 
                       stroke: '#0891B2', 
                       strokeWidth: 2,
@@ -286,26 +314,26 @@ const TikiPriceChart = ({ className = '' }) => {
                     stroke="#10B981" 
                     strokeDasharray="4 4"
                     strokeOpacity={0.8}
-                    strokeWidth={2}
+                    strokeWidth={isMobile ? 1 : 2}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           )}
 
-          {/* Premium Chart Info */}
-          <div className="mt-4 flex items-center justify-between text-xs text-slate-400 bg-gradient-to-r from-slate-800/30 to-slate-700/30 rounded-lg p-3 border border-slate-600/20">
-            <div className="flex items-center space-x-4">
+          {/* Premium Chart Info - Mobile Responsive */}
+          <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 text-xs text-slate-400 bg-gradient-to-r from-slate-800/30 to-slate-700/30 rounded-lg p-2 sm:p-3 border border-slate-600/20">
+            <div className="flex items-center justify-center sm:justify-start space-x-3 sm:space-x-4">
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mr-2 shadow-sm shadow-cyan-500/50"></div>
-                <span className="text-slate-200 font-medium">Tiki Price</span>
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mr-1 sm:mr-2 shadow-sm shadow-cyan-500/50"></div>
+                <span className="text-slate-200 font-medium text-xs sm:text-sm">Tiki Price</span>
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full mr-2 shadow-sm shadow-emerald-500/50" style={{ opacity: 0.8 }}></div>
-                <span className="text-slate-200 font-medium">Current</span>
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full mr-1 sm:mr-2 shadow-sm shadow-emerald-500/50" style={{ opacity: 0.8 }}></div>
+                <span className="text-slate-200 font-medium text-xs sm:text-sm">Current</span>
               </div>
             </div>
-            <div className="text-slate-300 font-medium">
+            <div className="text-center sm:text-right text-slate-300 font-medium text-xs sm:text-sm">
               {chartData.length} data points
             </div>
           </div>

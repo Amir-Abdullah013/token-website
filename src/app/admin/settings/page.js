@@ -17,14 +17,22 @@ export default function AdminSystemSettingsPage() {
   const [settings, setSettings] = useState({
     tokenPrice: '',
     tokenSupply: '',
-    paymentGateways: []
+    paymentGateways: [],
+    feeConfig: {
+      transactionFeeRate: 0.05,
+      feeReceiverId: 'ADMIN_WALLET',
+      isActive: true
+    }
   });
   
   // Form state
   const [forms, setForms] = useState({
     tokenPrice: { value: '', error: '' },
     tokenSupply: { value: '', error: '' },
-    newGateway: { name: '', active: true }
+    newGateway: { name: '', active: true },
+    feeRate: { value: '5', error: '' },
+    feeReceiverId: { value: 'ADMIN_WALLET', error: '' },
+    feeActive: true
   });
 
   useEffect(() => {
@@ -44,22 +52,31 @@ export default function AdminSystemSettingsPage() {
       setUser(currentUser);
       
       // Load system settings
-      const [tokenPrice, tokenSupply, paymentGateways] = await Promise.all([
+      const [tokenPrice, tokenSupply, paymentGateways, feeConfig] = await Promise.all([
         databaseHelpers.settings.getTokenPrice(),
         databaseHelpers.settings.getTokenSupply(),
-        databaseHelpers.settings.getPaymentGateways()
+        databaseHelpers.settings.getPaymentGateways(),
+        databaseHelpers.feeConfig.getFeeConfig()
       ]);
       
       setSettings({
         tokenPrice,
         tokenSupply,
-        paymentGateways
+        paymentGateways,
+        feeConfig: feeConfig || {
+          transactionFeeRate: 0.05,
+          feeReceiverId: 'ADMIN_WALLET',
+          isActive: true
+        }
       });
       
       setForms(prev => ({
         ...prev,
         tokenPrice: { value: tokenPrice.toString(), error: '' },
-        tokenSupply: { value: tokenSupply.toString(), error: '' }
+        tokenSupply: { value: tokenSupply.toString(), error: '' },
+        feeRate: { value: ((feeConfig?.transactionFeeRate || 0.05) * 100).toString(), error: '' },
+        feeReceiverId: { value: feeConfig?.feeReceiverId || 'ADMIN_WALLET', error: '' },
+        feeActive: feeConfig?.isActive !== false
       }));
       
     } catch (error) {
@@ -300,6 +317,82 @@ export default function AdminSystemSettingsPage() {
     }
   };
 
+  // Fee configuration handlers
+  const handleSaveFeeConfig = async () => {
+    const feeRate = parseFloat(forms.feeRate.value) / 100; // Convert percentage to decimal
+    const feeReceiverId = forms.feeReceiverId.value.trim();
+    const isActive = forms.feeActive;
+    
+    // Validate fee rate
+    if (isNaN(feeRate) || feeRate < 0 || feeRate > 1) {
+      setForms(prev => ({
+        ...prev,
+        feeRate: { ...prev.feeRate, error: 'Fee rate must be between 0% and 100%' }
+      }));
+      return;
+    }
+
+    // Validate fee receiver ID
+    if (!feeReceiverId) {
+      setForms(prev => ({
+        ...prev,
+        feeReceiverId: { ...prev.feeReceiverId, error: 'Fee receiver ID is required' }
+      }));
+      return;
+    }
+
+    try {
+      setSaving(true);
+      
+      const feeConfigData = {
+        transactionFeeRate: feeRate,
+        feeReceiverId: feeReceiverId,
+        isActive: isActive
+      };
+      
+      await databaseHelpers.feeConfig.updateFeeConfig(feeConfigData);
+      
+      // Log admin action
+      await databaseHelpers.adminLog.createAdminLog({
+        adminId: user.id,
+        action: 'UPDATE_FEE_CONFIG',
+        targetType: 'FEE_CONFIG',
+        targetId: 'fee_config',
+        details: `Updated fee rate to ${(feeRate * 100).toFixed(2)}%, receiver: ${feeReceiverId}, active: ${isActive}`
+      });
+      
+      setSettings(prev => ({ 
+        ...prev, 
+        feeConfig: {
+          transactionFeeRate: feeRate,
+          feeReceiverId: feeReceiverId,
+          isActive: isActive
+        }
+      }));
+      
+      setToast({
+        type: 'success',
+        message: 'Fee configuration updated successfully'
+      });
+      
+    } catch (error) {
+      console.error('Error saving fee config:', error);
+      setToast({
+        type: 'error',
+        message: 'Failed to update fee configuration'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleFeeInputChange = (field, value) => {
+    setForms(prev => ({
+      ...prev,
+      [field]: { value, error: '' }
+    }));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -407,6 +500,109 @@ export default function AdminSystemSettingsPage() {
                 >
                   {saving ? 'Saving...' : 'Update Token Supply'}
                 </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Transaction Fee Settings */}
+        <div className="mt-8">
+          <Card>
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="text-3xl">💰</div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Transaction Fees</h3>
+                  <p className="text-sm text-gray-600">Configure transaction fee system</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Fee Rate */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Transaction Fee Rate (%)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={forms.feeRate.value}
+                    onChange={(e) => handleFeeInputChange('feeRate', e.target.value)}
+                    placeholder="Enter fee rate (e.g., 5 for 5%)"
+                    className="w-full"
+                  />
+                  {forms.feeRate.error && (
+                    <p className="text-sm text-red-600 mt-1">{forms.feeRate.error}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Current: {(settings.feeConfig.transactionFeeRate * 100).toFixed(2)}%
+                  </p>
+                </div>
+
+                {/* Fee Receiver ID */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fee Receiver ID
+                  </label>
+                  <Input
+                    type="text"
+                    value={forms.feeReceiverId.value}
+                    onChange={(e) => handleFeeInputChange('feeReceiverId', e.target.value)}
+                    placeholder="ADMIN_WALLET"
+                    className="w-full"
+                  />
+                  {forms.feeReceiverId.error && (
+                    <p className="text-sm text-red-600 mt-1">{forms.feeReceiverId.error}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Current: {settings.feeConfig.feeReceiverId}
+                  </p>
+                </div>
+              </div>
+
+              {/* Fee System Active Toggle */}
+              <div className="mt-4">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="feeActive"
+                    checked={forms.feeActive}
+                    onChange={(e) => setForms(prev => ({
+                      ...prev,
+                      feeActive: e.target.checked
+                    }))}
+                    className="rounded"
+                  />
+                  <label htmlFor="feeActive" className="text-sm font-medium text-gray-700">
+                    Enable Transaction Fee System
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Current Status: {settings.feeConfig.isActive ? 'Active' : 'Inactive'}
+                </p>
+              </div>
+
+              {/* Save Button */}
+              <div className="mt-6">
+                <Button
+                  onClick={handleSaveFeeConfig}
+                  disabled={saving}
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  {saving ? 'Saving...' : 'Update Fee Configuration'}
+                </Button>
+              </div>
+
+              {/* Fee Preview */}
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Fee Preview</h4>
+                <div className="text-sm text-gray-600">
+                  <p>For a $100 transaction:</p>
+                  <p>• Fee: ${(100 * (parseFloat(forms.feeRate.value) / 100 || 0.05)).toFixed(2)}</p>
+                  <p>• Net Amount: ${(100 - (100 * (parseFloat(forms.feeRate.value) / 100 || 0.05))).toFixed(2)}</p>
+                </div>
               </div>
             </div>
           </Card>
@@ -521,7 +717,7 @@ export default function AdminSystemSettingsPage() {
           <Card>
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Settings Overview</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">${settings.tokenPrice}</div>
                   <div className="text-blue-800 font-medium">Token Price</div>
@@ -532,6 +728,16 @@ export default function AdminSystemSettingsPage() {
                     {settings.tokenSupply.toLocaleString()}
                   </div>
                   <div className="text-green-800 font-medium">Token Supply</div>
+                </div>
+                
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {(settings.feeConfig.transactionFeeRate * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-orange-800 font-medium">Transaction Fee</div>
+                  <div className="text-xs text-orange-600 mt-1">
+                    {settings.feeConfig.isActive ? 'Active' : 'Inactive'}
+                  </div>
                 </div>
                 
                 <div className="text-center p-4 bg-purple-50 rounded-lg">

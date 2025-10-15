@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { NotificationBell } from './index';
 
 const Navbar = ({ user, onSignOut }) => {
@@ -36,7 +37,8 @@ const Navbar = ({ user, onSignOut }) => {
   ];
   
   const userNavigation = [
-    { name: 'Dashboard', href: '/user/dashboard', icon: '📊' },
+    { name: 'Staking', href: '/user/staking', icon: '🏦' },
+    { name: 'Referrals', href: '/user/referrals', icon: '👥' },
     { name: 'Notifications', href: '/user/notifications', icon: '🔔' },
     { name: 'Profile', href: '/user/profile', icon: '👤' },
     { name: 'Settings', href: '/user/settings', icon: '⚙️' },
@@ -44,10 +46,11 @@ const Navbar = ({ user, onSignOut }) => {
   
   const adminNavigation = [
     { name: 'Admin Dashboard', href: '/admin/dashboard', icon: '📊' },
-    { name: 'Notifications', href: '/admin/notifications', icon: '🔔' },
-    { name: 'Activity Logs', href: '/admin/logs', icon: '📋' },
-    { name: 'System Settings', href: '/admin/settings', icon: '⚙️' },
-    { name: 'Users', href: '/admin/users', icon: '👥' },
+    { name: 'Fees', href: '/admin/fees', icon: '💰' },
+    { name: 'Fees Settings', href: '/admin/fees/settings', icon: '⚙️' },
+    { name: 'Transactions', href: '/admin/transactions', icon: '📋' },
+    { name: 'Manage Notifications', href: '/admin/notifications', icon: '🔔' },
+    { name: 'Admin Profile', href: '/admin/profile', icon: '👤' },
   ];
   
   if (!mounted) {
@@ -109,7 +112,15 @@ const Navbar = ({ user, onSignOut }) => {
                 
                 {/* User navigation */}
                 <div className="flex space-x-2">
-                  {(user.role === 'admin' ? adminNavigation : userNavigation).map((item) => (
+                  {(() => {
+                    // Admin detection with multiple checks
+                    const isAdmin = user?.role === 'admin' || 
+                                   user?.role === 'ADMIN' || 
+                                   user?.isAdmin === true ||
+                                   user?.role === 'Admin';
+                    
+                    return isAdmin ? adminNavigation : userNavigation;
+                  })().map((item) => (
                     <Link
                       key={item.name}
                       href={item.href}
@@ -229,7 +240,15 @@ const Navbar = ({ user, onSignOut }) => {
                     <div className="text-xs text-gray-500">{user.email}</div>
                   </div>
                 </div>
-                {(user.role === 'admin' ? adminNavigation : userNavigation).map((item) => (
+                {(() => {
+                  // Admin detection with multiple checks
+                  const isAdmin = user?.role === 'admin' || 
+                                 user?.role === 'ADMIN' || 
+                                 user?.isAdmin === true ||
+                                 user?.role === 'Admin';
+                  
+                  return isAdmin ? adminNavigation : userNavigation;
+                })().map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}

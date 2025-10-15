@@ -2,387 +2,151 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Layout from '../../../components/Layout';
 import { useAuth } from '../../../lib/auth-context';
-
-// Self-contained components to avoid import issues
-const Button = ({ children, className = '', onClick, disabled = false, type = 'button', variant = 'primary' }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95';
-  
-  const variants = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm hover:shadow-md',
-    secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 shadow-sm hover:shadow-md',
-    outline: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500 shadow-sm hover:shadow-md',
-    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 shadow-sm hover:shadow-md',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm hover:shadow-md'
-  };
-
-  return (
-    <button
-      type={type}
-      className={`${baseClasses} ${variants[variant]} ${className}`}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {children}
-    </button>
-  );
-};
-
-const Input = ({ value, onChange, placeholder, type = 'text', disabled = false, className = '', ...props }) => (
-  <input
-    type={type}
-    value={value}
-    onChange={onChange}
-    placeholder={placeholder}
-    disabled={disabled}
-    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed ${className}`}
-    {...props}
-  />
-);
-
-const Card = ({ children, className = '', variant = 'default' }) => {
-  const variants = {
-    default: 'bg-white border-gray-200 shadow-sm',
-    elevated: 'bg-white border-gray-200 shadow-lg',
-    outlined: 'bg-white border-2 border-gray-200'
-  };
-
-  return (
-    <div className={`rounded-lg border transition-all duration-200 ${variants[variant]} ${className}`}>
-      {children}
-    </div>
-  );
-};
-
-const CardHeader = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>
-    {children}
-  </div>
-);
-
-const CardTitle = ({ children, className = '' }) => (
-  <h3 className={`text-lg font-semibold text-gray-900 ${className}`}>
-    {children}
-  </h3>
-);
-
-const CardContent = ({ children, className = '' }) => (
-  <div className={`p-6 ${className}`}>
-    {children}
-  </div>
-);
-
-
-const StatusBadge = ({ status }) => {
-  const getStatusStyles = () => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'bg-gradient-to-r from-cyan-500/40 to-blue-500/40 text-white border border-cyan-400/60';
-      case 'COMPLETED':
-        return 'bg-gradient-to-r from-blue-500/40 to-indigo-500/40 text-white border border-blue-400/60';
-      case 'CLAIMED':
-        return 'bg-gradient-to-r from-indigo-500/40 to-purple-500/40 text-white border border-indigo-400/60';
-      case 'REJECTED':
-        return 'bg-gradient-to-r from-red-500/40 to-rose-500/40 text-white border border-red-400/60';
-      default:
-        return 'bg-gradient-to-r from-slate-500/40 to-gray-500/40 text-white border border-slate-400/60';
-    }
-  };
-
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusStyles()}`}>
-      {status}
-    </span>
-  );
-};
-
-const LoadingSkeleton = () => (
-  <>
-    {[...Array(3)].map((_, i) => (
-    <tr key={i} className="border-b border-slate-600/20 animate-pulse">
-      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
-      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-16"></div></td>
-      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-12"></div></td>
-      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-24"></div></td>
-      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-24"></div></td>
-      <td className="px-4 py-3"><div className="h-6 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-full w-16"></div></td>
-      <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
-      <td className="px-4 py-3"><div className="h-6 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
-    </tr>
-  ))}
-  </>
-);
-
-const StakingRow = ({ staking, onClaim }) => {
-  const formatTiki = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
-  
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const getDaysRemaining = (endDate) => {
-    const now = new Date();
-    const end = new Date(endDate);
-    const diffTime = end - now;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
-  };
-
-  const daysRemaining = getDaysRemaining(staking.endDate);
-  const rewardAmount = (staking.amountStaked * staking.rewardPercent) / 100;
-  const totalReturn = staking.amountStaked + rewardAmount;
-
-  return (
-    <tr className="hover:bg-slate-700/20 transition-colors duration-150">
-      <td className="px-4 py-3 text-sm text-white">
-        {formatTiki(staking.amountStaked)} TIKI
-      </td>
-      <td className="px-4 py-3 text-sm text-white">
-        {staking.durationDays} days
-      </td>
-      <td className="px-4 py-3 text-sm text-white">
-        {staking.rewardPercent}%
-      </td>
-      <td className="px-4 py-3 text-sm text-slate-300">
-        {formatDate(staking.startDate)}
-      </td>
-      <td className="px-4 py-3 text-sm text-slate-300">
-        {formatDate(staking.endDate)}
-      </td>
-      <td className="px-4 py-3">
-        <StatusBadge status={staking.status} />
-      </td>
-      <td className="px-4 py-3 text-sm text-slate-300">
-        {staking.status === 'ACTIVE' && daysRemaining > 0 ? (
-          <span className="text-white font-medium">
-            {daysRemaining} days left
-          </span>
-        ) : staking.status === 'COMPLETED' ? (
-          <span className="text-white font-medium">
-            Ready to claim
-          </span>
-        ) : staking.status === 'CLAIMED' ? (
-          <span className="text-slate-300">
-            Claimed
-          </span>
-        ) : (
-          <span className="text-slate-400">—</span>
-        )}
-      </td>
-      <td className="px-4 py-3 text-sm text-white">
-        {staking.status === 'COMPLETED' ? (
-          <Button
-            onClick={() => onClaim(staking.id)}
-            variant="success"
-            className="px-3 py-1 text-xs bg-gradient-to-r from-blue-500/80 to-indigo-500/80 hover:from-blue-600/90 hover:to-indigo-600/90 text-white shadow-lg shadow-blue-500/40 border border-blue-400/60"
-          >
-            Claim Reward
-          </Button>
-        ) : staking.status === 'CLAIMED' ? (
-          <span className="text-slate-300 text-xs">Claimed</span>
-        ) : (
-          <span className="text-slate-400 text-xs">—</span>
-        )}
-      </td>
-    </tr>
-  );
-};
-
-// Simple toast system
-const useToast = () => {
-  const [toasts, setToasts] = useState([]);
-
-  const success = (message) => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type: 'success' }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(toast => toast.id !== id));
-    }, 3000);
-  };
-
-  const error = (message) => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type: 'error' }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(toast => toast.id !== id));
-    }, 3000);
-  };
-
-  const removeToast = (id) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  };
-
-  return { success, error, toasts, removeToast };
-};
-
-const ToastContainer = ({ toasts, removeToast }) => (
-  <div className="fixed top-4 right-4 z-50 space-y-2">
-    {toasts.map(toast => (
-      <div
-        key={toast.id}
-        className={`px-4 py-2 rounded-lg shadow-2xl cursor-pointer transition-all duration-300 backdrop-blur-sm border ${
-          toast.type === 'success' 
-            ? 'bg-gradient-to-r from-emerald-500/90 to-green-500/90 text-white hover:from-emerald-600/90 hover:to-green-600/90 border-emerald-400/30' 
-            : 'bg-gradient-to-r from-red-500/90 to-rose-500/90 text-white hover:from-red-600/90 hover:to-rose-600/90 border-red-400/30'
-        }`}
-        onClick={() => removeToast(toast.id)}
-      >
-        {toast.message}
-      </div>
-    ))}
-  </div>
-);
+import { useTiki } from '../../../lib/tiki-context';
+import Layout from '../../../components/Layout';
+import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
+import Button from '../../../components/Button';
+import Input from '../../../components/Input';
+import { useToast, ToastContainer } from '../../../components/Toast';
+import { 
+  TrendingUp, 
+  Clock, 
+  DollarSign, 
+  Lock, 
+  CheckCircle, 
+  AlertCircle, 
+  Info,
+  Coins,
+  Calendar,
+  Shield,
+  Zap,
+  Star
+} from 'lucide-react';
 
 export default function StakingPage() {
+  const { user, loading, isAuthenticated } = useAuth();
+  const { usdBalance, tikiBalance, tikiPrice, formatCurrency, formatTiki } = useTiki();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
-  const { user, loading, isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
-
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    amount: '',
+    duration: '7'
+  });
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Data state
   const [stakings, setStakings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorState, setErrorState] = useState(null);
-  const [tikiBalance, setTikiBalance] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Staking form state
-  const [stakingAmount, setStakingAmount] = useState('');
-  const [stakingDuration, setStakingDuration] = useState(7);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Validation rules
+  const MIN_AMOUNT = 100;
+  const MAX_AMOUNT = 100000;
+
+  // Staking duration options
+  const STAKING_OPTIONS = [
+    { days: 7, rewardPercent: 3, label: '7 Days', description: '3% APY - Quick Returns' },
+    { days: 15, rewardPercent: 4, label: '15 Days', description: '4% APY - Short Term' },
+    { days: 30, rewardPercent: 6, label: '30 Days', description: '6% APY - Monthly' },
+    { days: 90, rewardPercent: 10, label: '90 Days', description: '10% APY - Maximum Returns' }
+  ];
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted && !loading && isAuthenticated && user) {
-      // Only fetch data if user is authenticated
-      console.log('User authenticated, fetching data for:', user.email);
+    if (isAuthenticated) {
       fetchStakings();
-      fetchUserBalance();
-    } else if (mounted && !loading && !isAuthenticated) {
-      // Redirect to signin if not authenticated
-      console.log('User not authenticated, redirecting to signin');
-      router.push('/auth/signin');
     }
-  }, [mounted, loading, isAuthenticated, user, router]);
-
-  const fetchUserBalance = async () => {
-    try {
-      console.log('🔍 Fetching balance for authenticated user:', user?.email);
-      const response = await fetch('/api/user/wallet');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.wallet) {
-          console.log('✅ User balance fetched:', data.wallet.tikiBalance);
-          setTikiBalance(data.wallet.tikiBalance || 0);
-        } else {
-          console.error('❌ Failed to fetch wallet data:', data.error);
-          setTikiBalance(0);
-        }
-      } else {
-        console.error('❌ Failed to fetch balance:', response.status);
-        setTikiBalance(0);
-      }
-    } catch (err) {
-      console.error('❌ Error fetching balance:', err);
-      setTikiBalance(0);
-    }
-  };
+  }, [isAuthenticated]);
 
   const fetchStakings = async () => {
-    setIsLoading(true);
-    setErrorState(null);
     try {
-      console.log('🔍 Fetching stakings for authenticated user:', user?.email);
+      setIsLoading(true);
       const response = await fetch('/api/stake');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch stakings: ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.success) {
-        console.log('✅ User stakings fetched:', data.stakings?.length || 0);
-        if (data.stakings && data.stakings.length > 0) {
-          console.log('📋 Sample staking:', {
-            id: data.stakings[0].id,
-            userId: data.stakings[0].userId,
-            amountStaked: data.stakings[0].amountStaked,
-            user_name: data.stakings[0].user_name,
-            user_email: data.stakings[0].user_email
-          });
-        }
+      if (response.ok) {
+        const data = await response.json();
         setStakings(data.stakings || []);
-        // Show warning if there was a database issue
-        if (data.warning) {
-          console.warn('⚠️ Database warning:', data.warning);
-        }
       } else {
-        throw new Error(data.error || 'Failed to load stakings');
+        console.error('Failed to fetch stakings');
       }
-    } catch (err) {
-      console.error('❌ Error fetching stakings:', err);
-      // Don't show error state for connection issues, just show empty array
-      if (err.message.includes('500') || err.message.includes('timeout')) {
-        setStakings([]);
-        console.log('🔄 Connection issue - showing empty stakings');
-      } else {
-        setErrorState(err.message || 'Failed to load stakings');
-      }
+    } catch (error) {
+      console.error('Error fetching stakings:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleStake = async (e) => {
-    e.preventDefault();
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     
-    if (!stakingAmount || parseFloat(stakingAmount) <= 0) {
-      error('Please enter a valid staking amount');
-      return;
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
+  };
 
-    if (parseFloat(stakingAmount) > tikiBalance) {
-      error(`Insufficient balance. Available: ${tikiBalance.toFixed(2)} TIKI`);
-      return;
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.amount || parseFloat(formData.amount) < MIN_AMOUNT) {
+      newErrors.amount = `Minimum staking amount is ${formatTiki(MIN_AMOUNT)} TIKI`;
     }
+    
+    if (parseFloat(formData.amount) > parseFloat(tikiBalance)) {
+      newErrors.amount = 'Insufficient TIKI balance';
+    }
+    
+    if (parseFloat(formData.amount) > MAX_AMOUNT) {
+      newErrors.amount = `Maximum staking amount is ${formatTiki(MAX_AMOUNT)} TIKI`;
+    }
+    
+    if (!formData.duration) {
+      newErrors.duration = 'Please select a staking duration';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
+  const handleStake = async () => {
+    if (!validateForm()) return;
+    
     setIsSubmitting(true);
-
     try {
       const response = await fetch('/api/stake', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          amount: parseFloat(stakingAmount),
-          durationDays: stakingDuration
+          amount: parseFloat(formData.amount),
+          durationDays: parseInt(formData.duration)
         }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (response.ok && data.success) {
-        success(`✅ ${data.message}`);
-        setStakingAmount('');
-        fetchUserBalance(); // Refresh balance
-        fetchStakings(); // Refresh stakings list
+      if (result.success) {
+        success(`Successfully staked ${formatTiki(parseFloat(formData.amount))} TIKI for ${formData.duration} days!`);
+        setFormData({ amount: '', duration: '7' });
+        fetchStakings();
       } else {
-        error(data.error || 'Failed to create staking');
+        error(result.error || 'Failed to stake tokens');
       }
-    } catch (err) {
-      console.error('Error creating staking:', err);
-      error(err.message || 'Failed to create staking');
+    } catch (error) {
+      console.error('Staking error:', error);
+      error('Failed to stake tokens. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -392,238 +156,416 @@ export default function StakingPage() {
     try {
       const response = await fetch(`/api/stake/${stakingId}/claim`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (response.ok && data.success) {
-        success(`✅ ${data.message}`);
-        fetchUserBalance(); // Refresh balance
-        fetchStakings(); // Refresh stakings list
+      if (result.success) {
+        success('Successfully claimed staking rewards!');
+        fetchStakings();
       } else {
-        error(data.error || 'Failed to claim reward');
+        error(result.error || 'Failed to claim rewards');
       }
-    } catch (err) {
-      console.error('Error claiming reward:', err);
-      error(err.message || 'Failed to claim reward');
+    } catch (error) {
+      console.error('Claim error:', error);
+      error('Failed to claim rewards. Please try again.');
     }
   };
 
-  const formatTiki = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
+  const getSelectedOption = () => {
+    return STAKING_OPTIONS.find(option => option.days.toString() === formData.duration) || STAKING_OPTIONS[0];
   };
 
-  if (!mounted || loading) {
+  const calculateReward = () => {
+    const amount = parseFloat(formData.amount) || 0;
+    const selectedOption = getSelectedOption();
+    const reward = (amount * selectedOption.rewardPercent) / 100;
+    return reward;
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'ACTIVE':
+        return 'bg-gradient-to-r from-cyan-500/40 to-blue-500/40 text-white border border-cyan-400/60';
+      case 'COMPLETED':
+        return 'bg-gradient-to-r from-emerald-500/40 to-green-500/40 text-white border border-emerald-400/60';
+      case 'CLAIMED':
+        return 'bg-gradient-to-r from-violet-500/40 to-purple-500/40 text-white border border-violet-400/60';
+      default:
+        return 'bg-gradient-to-r from-slate-500/40 to-gray-500/40 text-white border border-slate-400/60';
+    }
+  };
+
+  const getDaysRemaining = (endDate) => {
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  };
+
+  if (!mounted) {
     return (
-      <Layout showSidebar={true}>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-            <p className="text-slate-300">Loading staking page...</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading...</p>
         </div>
-      </Layout>
+      </div>
     );
   }
 
-  if (!isAuthenticated || !user) {
+  if (loading) {
     return (
-      <Layout showSidebar={true}>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-red-400 text-4xl mb-4">🔒</div>
-            <h2 className="text-xl font-semibold bg-gradient-to-r from-red-400 to-rose-400 bg-clip-text text-transparent mb-2">Authentication Required</h2>
-            <p className="text-slate-300 mb-4">Please sign in to access the staking page.</p>
-            <button 
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center">
+          <div className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm rounded-lg p-8 border border-slate-600/30 shadow-xl">
+            <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-red-400 to-rose-400 bg-clip-text text-transparent">
+              Authentication Required
+            </h1>
+            <p className="text-slate-300 mb-6">
+              Please sign in to access the staking features.
+            </p>
+            <Button
               onClick={() => router.push('/auth/signin')}
-              className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 py-2 rounded-md hover:from-cyan-600 hover:to-blue-600 shadow-lg shadow-cyan-500/25 border border-cyan-400/30 transition-all duration-300"
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30"
             >
               Sign In
-            </button>
+            </Button>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout showSidebar={true}>
+    <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      <div className="container mx-auto p-4">
-        <div className="mb-6">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Staking</h1>
-            <p className="text-slate-300 mt-2">Stake your TIKI tokens to earn rewards</p>
+        {/* Header Section */}
+        <div className="bg-gradient-to-r from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm shadow-xl border-b border-slate-600/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                TIKI Staking
+              </h1>
+              <p className="text-slate-300 text-lg max-w-2xl mx-auto">
+                Earn rewards by staking your TIKI tokens. Choose your preferred duration and start earning today.
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Premium Current Balance */}
-        <Card className="mb-6 bg-gradient-to-br from-cyan-500/30 via-blue-500/30 to-indigo-500/30 border border-cyan-400/50 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/30 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-lg text-white">Your TIKI Balance</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-4xl font-bold text-white">{formatTiki(tikiBalance)} TIKI</p>
-            <p className="text-slate-300 text-sm mt-2">Available for staking</p>
-          </CardContent>
-        </Card>
-
-        {/* Premium Staking Form */}
-        <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Stake TIKI Tokens</CardTitle>
-            <p className="text-slate-300 text-sm mt-1">Choose your staking amount and duration to start earning rewards</p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleStake} className="space-y-6">
-              <div>
-                <label htmlFor="amount" className="block text-sm font-medium text-slate-300 mb-2">
-                  Amount to Stake (TIKI)
-                </label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={stakingAmount}
-                  onChange={(e) => setStakingAmount(e.target.value)}
-                  placeholder="Enter amount to stake"
-                  disabled={isSubmitting}
-                  className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 rounded-lg"
-                />
-                <p className="text-slate-400 text-xs mt-1">Available: {formatTiki(tikiBalance)} TIKI</p>
-              </div>
-
-              <div>
-                <label htmlFor="duration" className="block text-sm font-medium text-slate-300 mb-2">
-                  Staking Duration
-                </label>
-                <select
-                  id="duration"
-                  value={stakingDuration}
-                  onChange={(e) => setStakingDuration(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-                  disabled={isSubmitting}
-                >
-                  <option value={7} className="bg-slate-800 text-white">7 days (2% reward)</option>
-                  <option value={30} className="bg-slate-800 text-white">30 days (10% reward)</option>
-                  <option value={90} className="bg-slate-800 text-white">90 days (25% reward)</option>
-                </select>
-                <p className="text-slate-400 text-xs mt-1">Longer periods offer higher rewards</p>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-cyan-500/40 border border-cyan-400/60 py-3 rounded-lg font-medium"
-                disabled={isSubmitting || !stakingAmount || parseFloat(stakingAmount) <= 0}
-              >
-                {isSubmitting ? 'Creating Staking...' : 'Stake Now'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Premium My Stakings */}
-        <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">My Stakings</CardTitle>
-            <p className="text-slate-300 text-sm mt-1">Track your active and completed staking positions</p>
-          </CardHeader>
-          <CardContent>
-            {errorState ? (
-              <div className="text-center py-8">
-                <div className="text-red-400 text-4xl mb-4">⚠️</div>
-                <p className="text-red-300 mb-4">{errorState}</p>
-                <Button onClick={fetchStakings} variant="outline" className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30">
-                  Try Again
-                </Button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-600/30">
-                  <thead className="bg-gradient-to-r from-slate-700/30 to-slate-800/30">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Amount</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Duration</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Reward %</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Start Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">End Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Time Left</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-gradient-to-br from-slate-800/20 to-slate-900/20 divide-y divide-slate-600/20">
-                    {isLoading ? (
-                      <LoadingSkeleton />
-                    ) : stakings.length === 0 ? (
-                      <tr>
-                        <td colSpan="8" className="px-4 py-8 text-center">
-                          <div className="text-slate-400 text-4xl mb-4">🏦</div>
-                          <h3 className="text-lg font-medium text-white mb-2">No Stakings Yet</h3>
-                          <p className="text-slate-300 mb-4">Start staking to earn rewards on your TIKI tokens!</p>
-                          <Button 
-                            onClick={() => document.getElementById('amount')?.focus()}
-                            className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/40 border border-cyan-400/60"
-                          >
-                            Start Staking
-                          </Button>
-                        </td>
-                      </tr>
-                    ) : (
-                      stakings.map((staking) => (
-                        <StakingRow key={staking.id} staking={staking} onClaim={handleClaim} />
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Premium Information Section */}
-        <Card className="mt-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-lg bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Staking Information</CardTitle>
-            <p className="text-slate-300 text-sm mt-1">Learn about staking rewards and how the system works</p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="bg-gradient-to-r from-emerald-500/30 via-green-500/30 to-teal-500/30 p-4 rounded-lg border border-emerald-400/50 hover:scale-105 transition-all duration-300">
-                <h4 className="text-sm font-medium text-white">How Staking Works</h4>
-                <p className="text-sm text-slate-300">
-                  Lock your TIKI tokens for a specified period to earn rewards. The longer you stake, the higher the reward percentage.
-                </p>
-              </div>
-              
-              <div className="bg-gradient-to-r from-amber-500/30 via-orange-500/30 to-yellow-500/30 p-4 rounded-lg border border-amber-400/50 hover:scale-105 transition-all duration-300">
-                <h4 className="text-sm font-medium text-white">Reward Structure</h4>
-                <div className="text-sm text-slate-300 space-y-1">
-                  <p>• 7 days: 2% reward</p>
-                  <p>• 30 days: 10% reward</p>
-                  <p>• 90 days: 25% reward</p>
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-r from-violet-500/30 to-purple-500/30 p-4 rounded-lg border border-violet-400/50 hover:scale-105 transition-all duration-300">
-                <h4 className="text-sm font-medium text-white">Important Notes</h4>
-                <p className="text-sm text-slate-300">
-                  Staked tokens are locked for the duration period. You can only claim rewards after the staking period ends. 
-                  Early withdrawal is not allowed.
-                </p>
-              </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Current Balance Card */}
+            <div className="lg:col-span-1">
+              <Card className="bg-gradient-to-br from-cyan-500/30 via-blue-500/30 to-indigo-500/30 border border-cyan-400/50 hover:shadow-xl hover:shadow-cyan-500/30 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg text-white flex items-center">
+                    <Coins className="h-5 w-5 mr-2" />
+                    Your TIKI Balance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-white mb-2">
+                    {formatTiki(tikiBalance)}
+                  </div>
+                  <p className="text-slate-300 text-sm">
+                    Available for staking
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Staking Form */}
+            <div className="lg:col-span-2">
+              <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                    Stake TIKI Tokens
+                  </CardTitle>
+                  <p className="text-slate-300 text-sm">
+                    Choose your staking amount and duration to start earning rewards
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Amount Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Staking Amount (TIKI)
+                    </label>
+                    <Input
+                      type="number"
+                      name="amount"
+                      value={formData.amount}
+                      onChange={handleInputChange}
+                      placeholder={`Minimum ${formatTiki(MIN_AMOUNT)} TIKI`}
+                      className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 rounded-lg"
+                    />
+                    {errors.amount && (
+                      <p className="text-red-400 text-sm mt-1">{errors.amount}</p>
+                    )}
+                  </div>
+
+                  {/* Duration Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-3">
+                      Staking Duration
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {STAKING_OPTIONS.map((option) => (
+                        <button
+                          key={option.days}
+                          onClick={() => setFormData(prev => ({ ...prev, duration: option.days.toString() }))}
+                          className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                            formData.duration === option.days.toString()
+                              ? 'border-cyan-400 bg-gradient-to-r from-cyan-500/20 to-blue-500/20'
+                              : 'border-slate-500/30 bg-gradient-to-r from-slate-700/30 to-slate-800/30 hover:border-slate-400/50'
+                          }`}
+                        >
+                          <div className="text-center">
+                            <div className="text-white font-semibold">{option.label}</div>
+                            <div className="text-cyan-400 font-bold text-lg">{option.rewardPercent}% APY</div>
+                            <div className="text-slate-300 text-xs">{option.description}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    {errors.duration && (
+                      <p className="text-red-400 text-sm mt-1">{errors.duration}</p>
+                    )}
+                  </div>
+
+                  {/* Reward Preview */}
+                  {formData.amount && parseFloat(formData.amount) > 0 && (
+                    <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 p-4 rounded-lg border border-emerald-400/30">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-emerald-200 text-sm font-medium">Expected Reward</div>
+                          <div className="text-white text-xl font-bold">
+                            {formatTiki(calculateReward())} TIKI
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-emerald-200 text-sm font-medium">APY</div>
+                          <div className="text-white text-xl font-bold">
+                            {getSelectedOption().rewardPercent}%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stake Button */}
+                  <Button
+                    onClick={handleStake}
+                    disabled={isSubmitting || !formData.amount || !formData.duration}
+                    className="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-cyan-500/40 border border-cyan-400/60"
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Staking...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <Lock className="h-4 w-4 mr-2" />
+                        Stake TIKI Tokens
+                      </div>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* My Stakings Section */}
+          <div className="mt-8">
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+                  My Stakings
+                </CardTitle>
+                <p className="text-slate-300 text-sm">
+                  Track your active staking positions and rewards
+                </p>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : stakings.length === 0 ? (
+                  <div className="text-center py-12">
+                    <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">No Active Stakings</h3>
+                    <p className="text-slate-300 mb-6">
+                      Start staking your TIKI tokens to earn rewards
+                    </p>
+                    <Button
+                      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                      className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 text-white shadow-lg shadow-cyan-500/40 border border-cyan-400/60"
+                    >
+                      Start Staking
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {stakings.map((staking) => {
+                      const daysRemaining = getDaysRemaining(staking.endDate);
+                      return (
+                        <div
+                          key={staking.id}
+                          className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 p-6 rounded-lg border border-slate-600/20 hover:border-slate-500/40 transition-all duration-200"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                            {/* Amount */}
+                            <div>
+                              <div className="text-sm text-slate-300">Amount</div>
+                              <div className="text-white font-semibold">
+                                {formatTiki(staking.amountStaked)} TIKI
+                              </div>
+                            </div>
+
+                            {/* Duration */}
+                            <div>
+                              <div className="text-sm text-slate-300">Duration</div>
+                              <div className="text-white font-semibold">
+                                {staking.durationDays} days
+                              </div>
+                            </div>
+
+                            {/* Reward */}
+                            <div>
+                              <div className="text-sm text-slate-300">Reward Rate</div>
+                              <div className="text-white font-semibold">
+                                {staking.rewardPercent}% APY
+                              </div>
+                            </div>
+
+                            {/* Status */}
+                            <div>
+                              <div className="text-sm text-slate-300">Status</div>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(staking.status)}`}>
+                                {staking.status}
+                              </span>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="text-right">
+                              {staking.status === 'COMPLETED' ? (
+                                <Button
+                                  onClick={() => handleClaim(staking.id)}
+                                  className="bg-gradient-to-r from-emerald-500/80 to-green-500/80 hover:from-emerald-600/90 hover:to-green-600/90 text-white shadow-lg shadow-emerald-500/40 border border-emerald-400/60"
+                                >
+                                  Claim Reward
+                                </Button>
+                              ) : staking.status === 'ACTIVE' ? (
+                                <div className="text-sm">
+                                  <div className="text-slate-300">Time Remaining</div>
+                                  <div className="text-white font-semibold">
+                                    {daysRemaining} days
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-sm text-slate-400">
+                                  {staking.status === 'CLAIMED' ? 'Claimed' : '—'}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Additional Info */}
+                          <div className="mt-4 pt-4 border-t border-slate-600/20 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-slate-300">Start Date: </span>
+                              <span className="text-white">{formatDate(staking.startDate)}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-300">End Date: </span>
+                              <span className="text-white">{formatDate(staking.endDate)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Information Section */}
+          <div className="mt-8">
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-lg bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+                  Staking Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-gradient-to-r from-emerald-500/30 via-green-500/30 to-teal-500/30 p-4 rounded-lg border border-emerald-400/50">
+                    <div className="flex items-center mb-3">
+                      <Shield className="h-5 w-5 text-emerald-400 mr-2" />
+                      <h3 className="text-sm font-medium text-white">How Staking Works</h3>
+                    </div>
+                    <p className="text-sm text-slate-300">
+                      Lock your TIKI tokens for a specified period to earn rewards. The longer you stake, the higher your returns.
+                    </p>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-amber-500/30 via-orange-500/30 to-yellow-500/30 p-4 rounded-lg border border-amber-400/50">
+                    <div className="flex items-center mb-3">
+                      <TrendingUp className="h-5 w-5 text-amber-400 mr-2" />
+                      <h3 className="text-sm font-medium text-white">Reward Structure</h3>
+                    </div>
+                    <p className="text-sm text-slate-300">
+                      Earn 3-10% APY based on your staking duration. Choose from 7, 15, 30, or 90 days. Rewards are calculated daily and paid upon completion.
+                    </p>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-violet-500/30 to-purple-500/30 p-4 rounded-lg border border-violet-400/50">
+                    <div className="flex items-center mb-3">
+                      <Info className="h-5 w-5 text-violet-400 mr-2" />
+                      <h3 className="text-sm font-medium text-white">Important Notes</h3>
+                    </div>
+                    <p className="text-sm text-slate-300">
+                      Staked tokens are locked until the end of the staking period. Early withdrawal is not possible.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
+
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </Layout>
   );
 }
-
-// Disable prerendering for this page
-export const dynamic = 'force-dynamic';

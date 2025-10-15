@@ -32,9 +32,16 @@ export default function AdminDashboard() {
     try {
       setIsDataLoading(true);
       console.log('📊 Fetching admin dashboard data...');
+      console.log('👤 Current admin user:', adminUser);
+      console.log('🔐 Is authenticated:', isAuthenticated);
       
       // Fetch admin stats
-      const statsResponse = await fetch('/api/admin/stats');
+      const statsResponse = await fetch('/api/admin/stats', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
         console.log('✅ Admin stats received:', statsData);
@@ -60,7 +67,12 @@ export default function AdminDashboard() {
       
       // Fetch recent activity from real API
       try {
-        const activityResponse = await fetch('/api/admin/recent-activity');
+        const activityResponse = await fetch('/api/admin/recent-activity', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
         if (activityResponse.ok) {
           const activityData = await activityResponse.json();
           if (activityData.success) {
@@ -221,23 +233,8 @@ export default function AdminDashboard() {
                   >
                     View All Transactions
                   </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => router.push('/admin/deposits')}
-                    className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
-                  >
-                    Manage Deposits
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      console.log('Admin Dashboard: Navigating to withdrawals page');
-                      router.push('/admin/withdrawals');
-                    }}
-                    className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
-                  >
-                    Manage Withdrawals
-                  </Button>
+                  
+                  
                 </div>
               </CardContent>
             </Card>
