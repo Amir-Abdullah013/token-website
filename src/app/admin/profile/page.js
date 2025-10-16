@@ -194,52 +194,6 @@ export default function AdminProfile() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-lg bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Security Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-slate-800/20 rounded-lg border border-slate-600/20">
-                    <div>
-                      <p className="text-sm font-medium text-slate-200">Email Verification</p>
-                      <p className="text-xs text-slate-300">
-                        {userData?.emailVerification ? 'Verified' : 'Not verified'}
-                      </p>
-                    </div>
-                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
-                      userData?.emailVerification ? 
-                        'bg-gradient-to-r from-emerald-500/50 to-green-500/50 text-white border border-emerald-400/70 shadow-lg' : 
-                        'bg-gradient-to-r from-amber-500/50 to-orange-500/50 text-white border border-amber-400/70 shadow-lg'
-                    }`}>
-                      {userData?.emailVerification ? 'Verified' : 'Pending'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-slate-800/20 rounded-lg border border-slate-600/20">
-                    <div>
-                      <p className="text-sm font-medium text-slate-200">Admin Privileges</p>
-                      <p className="text-xs text-slate-300">Full system access</p>
-                    </div>
-                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-red-500/50 to-rose-500/50 text-white border border-red-400/70 shadow-lg">
-                      Active
-                    </span>
-                  </div>
-                  
-                  <div className="pt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      fullWidth
-                      onClick={() => router.push('/auth/verify-email')}
-                      className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-blue-500/30 hover:text-cyan-200 border border-cyan-400/30"
-                    >
-                      Verify Email
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
               <CardHeader>
@@ -265,15 +219,7 @@ export default function AdminProfile() {
                   >
                     Manage Users
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    fullWidth
-                    onClick={() => router.push('/admin/settings')}
-                    className="bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 hover:from-violet-500/30 hover:to-purple-500/30 hover:text-violet-200 border border-violet-400/30"
-                  >
-                    System Settings
-                  </Button>
+                  
                 </div>
               </CardContent>
             </Card>

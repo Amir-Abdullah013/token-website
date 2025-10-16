@@ -345,25 +345,74 @@ export default function AdminNotificationsPage() {
         {/* Header */}
         <div className="bg-gradient-to-r from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm shadow-xl border-b border-slate-600/30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center py-6">
-            <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Notification Management</h1>
-                <p className="text-slate-300">Create and manage notifications for all users</p>
-            </div>
-              <div className="flex items-center space-x-4">
-              <Button
-                  onClick={() => setShowCreateModal(true)}
-                  className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30"
-              >
-                  Create Notification
-              </Button>
-              <Button
-                onClick={() => router.push('/admin/dashboard')}
-                  variant="outline"
-                  className="bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30"
-              >
-                Back to Dashboard
-              </Button>
+            {/* Mobile-first responsive header */}
+            <div className="py-4 sm:py-6">
+              {/* Title section */}
+              <div className="mb-4 sm:mb-0">
+                <div className="flex items-center space-x-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-lg flex items-center justify-center">
+                    <span className="text-cyan-200 text-lg sm:text-xl">🔔</span>
+                  </div>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                    Notification Management
+                  </h1>
+                </div>
+                <p className="text-slate-300 text-sm sm:text-base">
+                  Create and manage notifications for all users
+                </p>
+              </div>
+
+              {/* Action buttons - responsive layout */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                {/* Mobile: Stack buttons vertically, Desktop: Horizontal */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+                  <Button
+                    onClick={() => setShowCreateModal(true)}
+                    className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30 flex items-center justify-center space-x-2"
+                  >
+                    <span className="text-lg">➕</span>
+                    <span className="text-sm sm:text-base">Create Notification</span>
+                  </Button>
+                  
+                  <Button
+                    onClick={() => router.push('/admin/dashboard')}
+                    variant="outline"
+                    className="w-full sm:w-auto bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30 flex items-center justify-center space-x-2"
+                  >
+                    <span className="text-lg">🏠</span>
+                    <span className="text-sm sm:text-base">Back to Dashboard</span>
+                  </Button>
+                </div>
+
+                {/* Mobile-only: Quick stats bar */}
+                <div className="sm:hidden bg-slate-800/40 rounded-lg p-3 border border-slate-600/30">
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="text-center">
+                      <div className="text-cyan-200 font-semibold">{totalNotifications}</div>
+                      <div className="text-slate-400">Total</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-emerald-200 font-semibold">{globalNotifications}</div>
+                      <div className="text-slate-400">Global</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-amber-200 font-semibold">{unreadNotifications}</div>
+                      <div className="text-slate-400">Unread</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-violet-200 font-semibold">{readNotifications}</div>
+                      <div className="text-slate-400">Read</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile-only: Additional info panel */}
+              <div className="sm:hidden mt-3 bg-slate-800/20 rounded-lg p-3 border border-slate-600/20">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span>📊 Notification Management System</span>
+                  <span>Admin Panel</span>
+                </div>
               </div>
             </div>
           </div>

@@ -329,48 +329,66 @@ export default function UserDashboard() {
         </div>
 
         {/* Portfolio Overview Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Total Balance */}
           <Card className="bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-indigo-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/20">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-xs text-indigo-200 mb-1">Total Balance</div>
-              <div className="text-xl font-bold text-white mb-1">
-                {formatCurrency(usdBalance + (tikiBalance * tikiPrice), 'USD')}
+              <div className="text-lg sm:text-xl font-bold text-white mb-1 break-words overflow-hidden">
+                <span className="block truncate" title={formatCurrency(usdBalance + (tikiBalance * tikiPrice), 'USD')}>
+                  {formatCurrency(usdBalance + (tikiBalance * tikiPrice), 'USD')}
+                </span>
               </div>
-              <div className="text-emerald-400 text-xs font-medium">+2.5% from yesterday</div>
+              <div className="text-emerald-400 text-xs font-medium break-words">
+                <span className="block truncate">+2.5% from yesterday</span>
+              </div>
             </CardContent>
           </Card>
 
           {/* USD Balance */}
           <Card className="bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/20">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-xs text-emerald-200 mb-1">USD Balance</div>
-              <div className="text-xl font-bold text-white mb-1">
-                {formatCurrency(usdBalance, 'USD')}
+              <div className="text-lg sm:text-xl font-bold text-white mb-1 break-words overflow-hidden">
+                <span className="block truncate" title={formatCurrency(usdBalance, 'USD')}>
+                  {formatCurrency(usdBalance, 'USD')}
+                </span>
               </div>
-              <div className="text-emerald-300 text-xs">Available for trading</div>
+              <div className="text-emerald-300 text-xs break-words">
+                <span className="block truncate">Available for trading</span>
+              </div>
             </CardContent>
           </Card>
 
           {/* TIKI Holdings */}
           <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-red-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-xs text-amber-200 mb-1">TIKI Holdings</div>
-              <div className="text-xl font-bold text-white mb-1">
-                {formatTiki(tikiBalance)}
+              <div className="text-lg sm:text-xl font-bold text-white mb-1 break-words overflow-hidden">
+                <span className="block truncate" title={formatTiki(tikiBalance)}>
+                  {formatTiki(tikiBalance)}
+                </span>
               </div>
-              <div className="text-amber-300 text-xs">Worth {formatCurrency(tikiBalance * tikiPrice, 'USD')}</div>
+              <div className="text-amber-300 text-xs break-words">
+                <span className="block truncate" title={`Worth ${formatCurrency(tikiBalance * tikiPrice, 'USD')}`}>
+                  Worth {formatCurrency(tikiBalance * tikiPrice, 'USD')}
+                </span>
+              </div>
             </CardContent>
           </Card>
 
           {/* TIKI Price */}
           <Card className="bg-gradient-to-br from-rose-500/20 via-pink-500/20 to-purple-500/20 border border-rose-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/20">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="text-xs text-rose-200 mb-1">TIKI Price</div>
-              <div className="text-xl font-bold text-white mb-1">
-                {formatCurrency(tikiPrice, 'USD')}
+              <div className="text-lg sm:text-xl font-bold text-white mb-1 break-words overflow-hidden">
+                <span className="block truncate" title={formatCurrency(tikiPrice, 'USD')}>
+                  {formatCurrency(tikiPrice, 'USD')}
+                </span>
               </div>
-              <div className="text-emerald-400 text-xs font-medium">+2.5% today</div>
+              <div className="text-emerald-400 text-xs font-medium break-words">
+                <span className="block truncate">+2.5% today</span>
+              </div>
             </CardContent>
           </Card>
         </div>

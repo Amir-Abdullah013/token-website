@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   LineChart,
   Line,
@@ -151,12 +151,12 @@ const TikiPriceChart = ({ className = '' }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Generate data when filter changes or Tiki price changes
+  // Generate data only when filter changes (NOT when tikiPrice changes)
   useEffect(() => {
     setIsLoading(true);
     
     // Simulate API delay
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       const data = generateTikiData(selectedFilter, tikiPrice);
       setChartData(data);
       
@@ -169,22 +169,77 @@ const TikiPriceChart = ({ className = '' }) => {
       
       setIsLoading(false);
     }, 500);
-  }, [selectedFilter, tikiPrice]);
 
-  // Handle filter change
-  const handleFilterChange = (filter) => {
+    // Cleanup timeout on unmount or dependency change
+    return () => clearTimeout(timeoutId);
+  }, [selectedFilter]); // Removed tikiPrice dependency
+
+  // Update current price and chart data smoothly without re-rendering
+  useEffect(() => {
+    if (tikiPrice !== currentPrice) {
+      setCurrentPrice(tikiPrice);
+      
+      // Update chart data smoothly without triggering re-render
+      setChartData(prevData => {
+        if (prevData.length > 0) {
+          const newData = [...prevData];
+          const lastIndex = newData.length - 1;
+          
+          // Update the last data point with new price
+          newData[lastIndex] = {
+            ...newData[lastIndex],
+            price: tikiPrice,
+            timestamp: new Date().toISOString(),
+            time: new Date().toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            }),
+            date: new Date().toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric' 
+            })
+          };
+          
+          // Calculate price change from previous point
+          if (newData.length > 1) {
+            const previousPrice = newData[lastIndex - 1].price;
+            setPriceChange(tikiPrice - previousPrice);
+          }
+          
+          return newData;
+        }
+        return prevData;
+      });
+    }
+  }, [tikiPrice, currentPrice]);
+
+  // Handle filter change - memoized to prevent unnecessary re-renders
+  const handleFilterChange = useCallback((filter) => {
     setSelectedFilter(filter);
-  };
+  }, []);
 
-  // Get price change color
-  const getPriceChangeColor = () => {
-    return priceChange >= 0 ? 'text-green-600' : 'text-red-600';
-  };
+  // Memoize chart configuration to prevent re-renders
+  const chartConfig = useMemo(() => ({
+    margin: { 
+      top: 5, 
+      right: isMobile ? 10 : 30, 
+      left: isMobile ? 10 : 20, 
+      bottom: isMobile ? 5 : 10 
+    },
+    strokeWidth: isMobile ? 2 : 3,
+    dotRadius: isMobile ? 4 : 6,
+    fontSize: isMobile ? 10 : 12,
+    yAxisWidth: isMobile ? 40 : 60
+  }), [isMobile]);
 
-  // Get price change icon
-  const getPriceChangeIcon = () => {
-    return priceChange >= 0 ? '📈' : '📉';
-  };
+  // Memoize price change calculations
+  const priceChangeInfo = useMemo(() => ({
+    color: priceChange >= 0 ? 'text-green-600' : 'text-red-600',
+    icon: priceChange >= 0 ? '📈' : '📉',
+    percentage: currentPrice > 0 ? ((priceChange / (currentPrice - priceChange)) * 100).toFixed(2) : '0.00'
+  }), [priceChange, currentPrice]);
+
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -227,11 +282,11 @@ const TikiPriceChart = ({ className = '' }) => {
                 </p>
               </div>
               <div className="text-center sm:text-right">
-                <div className={`flex items-center justify-center sm:justify-end text-xs sm:text-sm font-semibold ${getPriceChangeColor()}`}>
-                  <span className="mr-1">{getPriceChangeIcon()}</span>
+                <div className={`flex items-center justify-center sm:justify-end text-xs sm:text-sm font-semibold ${priceChangeInfo.color}`}>
+                  <span className="mr-1">{priceChangeInfo.icon}</span>
                   <span>
                     {priceChange >= 0 ? '+' : ''}{formatCurrency(priceChange, 'USD')} 
-                    ({((priceChange / (currentPrice - priceChange)) * 100).toFixed(2)}%)
+                    ({priceChangeInfo.percentage}%)
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 font-medium">
@@ -255,18 +310,13 @@ const TikiPriceChart = ({ className = '' }) => {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart 
                   data={chartData} 
-                  margin={{ 
-                    top: 5, 
-                    right: isMobile ? 10 : 30, 
-                    left: isMobile ? 10 : 20, 
-                    bottom: isMobile ? 5 : 10 
-                  }}
+                  margin={chartConfig.margin}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#64748B" opacity={0.2} />
                   <XAxis 
                     dataKey="time"
                     stroke="#94A3B8"
-                    fontSize={isMobile ? 10 : 12}
+                    fontSize={chartConfig.fontSize}
                     tickLine={false}
                     axisLine={false}
                     tick={{ fill: '#94A3B8' }}
@@ -274,12 +324,12 @@ const TikiPriceChart = ({ className = '' }) => {
                   />
                   <YAxis 
                     stroke="#94A3B8"
-                    fontSize={isMobile ? 10 : 12}
+                    fontSize={chartConfig.fontSize}
                     tickLine={false}
                     axisLine={false}
                     tick={{ fill: '#94A3B8' }}
                     tickFormatter={(value) => isMobile ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`}
-                    width={isMobile ? 40 : 60}
+                    width={chartConfig.yAxisWidth}
                   />
                   <Tooltip content={<TikiTooltip />} />
                   <defs>
@@ -298,10 +348,10 @@ const TikiPriceChart = ({ className = '' }) => {
                     type="monotone"
                     dataKey="price"
                     stroke="url(#tikiPriceLine)"
-                    strokeWidth={isMobile ? 2 : 3}
+                    strokeWidth={chartConfig.strokeWidth}
                     dot={false}
                     activeDot={{ 
-                      r: isMobile ? 4 : 6, 
+                      r: chartConfig.dotRadius, 
                       fill: '#06B6D4', 
                       stroke: '#0891B2', 
                       strokeWidth: 2,
