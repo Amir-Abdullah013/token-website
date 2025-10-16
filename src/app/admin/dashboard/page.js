@@ -327,6 +327,32 @@ export default function AdminDashboard() {
                     </button>
 
                     <button
+                      onClick={() => router.push("/admin/fees")}
+                      className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 rounded-lg border border-amber-400/30 transition-all duration-300 hover:scale-105"
+                    >
+                      <div className="flex items-center">
+                        <span className="text-2xl mr-3">💰</span>
+                        <span className="font-medium text-amber-200">
+                          Manage Fees
+                        </span>
+                      </div>
+                      <span className="text-amber-400">→</span>
+                    </button>
+
+                    <button
+                      onClick={() => router.push("/admin/fees-settings")}
+                      className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 hover:from-orange-500/30 hover:to-red-500/30 rounded-lg border border-orange-400/30 transition-all duration-300 hover:scale-105"
+                    >
+                      <div className="flex items-center">
+                        <span className="text-2xl mr-3">⚙️</span>
+                        <span className="font-medium text-orange-200">
+                          Fees Settings
+                        </span>
+                      </div>
+                      <span className="text-orange-400">→</span>
+                    </button>
+
+                    <button
                       onClick={() => router.push("/admin/notifications")}
                       className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-violet-500/20 to-purple-500/20 hover:from-violet-500/30 hover:to-purple-500/30 rounded-lg border border-violet-400/30 transition-all duration-300 hover:scale-105"
                     >
