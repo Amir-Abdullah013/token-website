@@ -555,7 +555,7 @@ export default function TradePage() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                       {/* Current Price */}
                       <div className="text-center p-4 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg border border-cyan-400/30">
                         <div className="text-2xl font-bold text-white">
@@ -580,7 +580,7 @@ export default function TradePage() {
                         <div className="text-sm text-emerald-300">24h Change</div>
                         <div className="text-xs text-slate-400 mt-1">
                           {formatMarketCurrency(marketData.priceChange24h)}
-                        </div>
+                    </div>
                       </div>
                       
                     
@@ -602,7 +602,7 @@ export default function TradePage() {
                       <div className="text-center p-3 bg-gradient-to-br from-slate-700/30 to-slate-800/30 rounded-lg border border-slate-600/20">
                         <div className="text-lg font-bold text-white">
                           {formatMarketCurrency(marketData.low24h)}
-                        </div>
+                    </div>
                         <div className="text-xs text-slate-300">24h Low</div>
                       </div>
                     </div>
@@ -635,7 +635,7 @@ export default function TradePage() {
                         </button>
                       </div>
                     </div>
-                  </CardHeader>
+                </CardHeader>
                   <CardContent className="p-4">
                     {orderBookError ? (
                       <div className="text-center py-4">
@@ -674,12 +674,12 @@ export default function TradePage() {
                                     <span className="text-slate-300 text-xs">{formatAmount(ask.amount)}</span>
                                     <span className="text-slate-400 text-xs">{formatTotal(ask.total)}</span>
                                   </div>
-                                </div>
-                              ))}
+                      </div>
+                    ))}
                             </div>
                           </div>
-                          
-                          {/* Spread */}
+                    
+                    {/* Spread */}
                           <div className="text-center py-2 border-t border-slate-600/30">
                             <div className="text-xs text-slate-400">Spread: ${calculateSpread().absolute}</div>
                           </div>
@@ -774,9 +774,9 @@ export default function TradePage() {
                                   {formatAmount(trade.amount)}
                                 </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
+                      </div>
+                    ))}
+                  </div>
 
                         {/* Mobile Trade Summary */}
                         <div className="border-t border-slate-600/30 pt-2">
@@ -787,8 +787,8 @@ export default function TradePage() {
                         </div>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
               </div>
               
 
@@ -858,10 +858,10 @@ export default function TradePage() {
                               <div className="text-slate-400 text-xs">
                                 {formatAmount(trade.amount)} TIKI
                               </div>
-                            </div>
-                          </div>
-                        ))}
+                        </div>
                       </div>
+                    ))}
+                  </div>
 
                       {/* Trade Summary */}
                       <div className="border-t border-slate-600/30 pt-2">

@@ -30,7 +30,7 @@ export default function StakingPage() {
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     amount: '',
@@ -68,7 +68,7 @@ export default function StakingPage() {
       setIsLoading(true);
       const response = await fetch('/api/stake');
       if (response.ok) {
-        const data = await response.json();
+      const data = await response.json();
         setStakings(data.stakings || []);
       } else {
         console.error('Failed to fetch stakings');
@@ -121,7 +121,7 @@ export default function StakingPage() {
 
   const handleStake = async () => {
     if (!validateForm()) return;
-    
+
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/stake', {
@@ -226,7 +226,7 @@ export default function StakingPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
+          <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
           <p className="text-slate-300">Loading...</p>
         </div>
@@ -280,12 +280,12 @@ export default function StakingPage() {
             {/* Current Balance Card */}
             <div className="lg:col-span-1">
               <Card className="bg-gradient-to-br from-cyan-500/30 via-blue-500/30 to-indigo-500/30 border border-cyan-400/50 hover:shadow-xl hover:shadow-cyan-500/30 backdrop-blur-sm">
-                <CardHeader>
+          <CardHeader>
                   <CardTitle className="text-lg text-white flex items-center">
                     <Coins className="h-5 w-5 mr-2" />
                     Your TIKI Balance
                   </CardTitle>
-                </CardHeader>
+          </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white mb-2">
                     {formatTiki(tikiBalance)}
@@ -293,29 +293,29 @@ export default function StakingPage() {
                   <p className="text-slate-300 text-sm">
                     Available for staking
                   </p>
-                </CardContent>
-              </Card>
+          </CardContent>
+        </Card>
             </div>
 
-            {/* Staking Form */}
+        {/* Staking Form */}
             <div className="lg:col-span-2">
               <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
-                <CardHeader>
+          <CardHeader>
                   <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                     Stake TIKI Tokens
                   </CardTitle>
                   <p className="text-slate-300 text-sm">
                     Choose your staking amount and duration to start earning rewards
                   </p>
-                </CardHeader>
+          </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Amount Input */}
-                  <div>
+              <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Staking Amount (TIKI)
-                    </label>
-                    <Input
-                      type="number"
+                </label>
+                <Input
+                  type="number"
                       name="amount"
                       value={formData.amount}
                       onChange={handleInputChange}
@@ -325,13 +325,13 @@ export default function StakingPage() {
                     {errors.amount && (
                       <p className="text-red-400 text-sm mt-1">{errors.amount}</p>
                     )}
-                  </div>
+              </div>
 
                   {/* Duration Selection */}
-                  <div>
+              <div>
                     <label className="block text-sm font-medium text-slate-300 mb-3">
-                      Staking Duration
-                    </label>
+                  Staking Duration
+                </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                       {STAKING_OPTIONS.map((option) => (
                         <button
@@ -354,7 +354,7 @@ export default function StakingPage() {
                     {errors.duration && (
                       <p className="text-red-400 text-sm mt-1">{errors.duration}</p>
                     )}
-                  </div>
+              </div>
 
                   {/* Reward Preview */}
                   {formData.amount && parseFloat(formData.amount) > 0 && (
@@ -377,7 +377,7 @@ export default function StakingPage() {
                   )}
 
                   {/* Stake Button */}
-                  <Button
+              <Button
                     onClick={handleStake}
                     disabled={isSubmitting || !formData.amount || !formData.duration}
                     className="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-cyan-500/40 border border-cyan-400/60"
@@ -393,24 +393,24 @@ export default function StakingPage() {
                         Stake TIKI Tokens
                       </div>
                     )}
-                  </Button>
-                </CardContent>
-              </Card>
+              </Button>
+          </CardContent>
+        </Card>
             </div>
           </div>
 
           {/* My Stakings Section */}
           <div className="mt-8">
             <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
-              <CardHeader>
+          <CardHeader>
                 <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
                   My Stakings
                 </CardTitle>
                 <p className="text-slate-300 text-sm">
                   Track your active staking positions and rewards
                 </p>
-              </CardHeader>
-              <CardContent>
+          </CardHeader>
+          <CardContent>
                 {isLoading ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map((i) => (
@@ -431,9 +431,9 @@ export default function StakingPage() {
                       className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 text-white shadow-lg shadow-cyan-500/40 border border-cyan-400/60"
                     >
                       Start Staking
-                    </Button>
-                  </div>
-                ) : (
+                </Button>
+              </div>
+            ) : (
                   <div className="space-y-4">
                     {stakings.map((staking) => {
                       const daysRemaining = getDaysRemaining(staking.endDate);
@@ -513,11 +513,11 @@ export default function StakingPage() {
                         </div>
                       );
                     })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
           {/* Information Section */}
           <div className="mt-8">

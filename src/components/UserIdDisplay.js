@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useToast } from './Toast';
-import { formatUserId, getShortUserId } from '../lib/user-id';
 
 export default function UserIdDisplay({ userId, showFull = false, className = '' }) {
   const [copied, setCopied] = useState(false);
@@ -37,7 +36,7 @@ export default function UserIdDisplay({ userId, showFull = false, className = ''
     );
   }
 
-  const displayId = showFull ? formatUserId(userId) : getShortUserId(userId);
+  const displayId = showFull ? userId : userId?.substring(0, 8) + '...';
 
   return (
     <div className={`flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 ${className}`}>

@@ -109,10 +109,7 @@ export default function SignIn() {
         
         let errorMessage = data.error || 'Failed to sign in';
         
-        // Add debug information if available
-        if (data.debug) {
-          errorMessage += `\n\nDebug Info:\n- Email: ${data.debug.email}\n- Database Used: ${data.debug.usedDatabase}\n- Timestamp: ${data.debug.timestamp}`;
-        }
+      
         
         if (data.errorCode === 'USER_NOT_FOUND') {
           setErrors({ 

@@ -1,90 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from '../../../lib/session';
+import { databaseHelpers } from '../../../lib/database';
+import { calculateFee, creditFeeToAdmin } from '../../../lib/fees';
 import { randomUUID } from 'crypto';
 
-export async function GET(request) {
-  console.log('📋 Transfer History API: Fetching transfers');
-  
-  try {
-    // Get session
-    const session = await getServerSession();
-    console.log('🔍 Transfer History API: Session:', session);
-    
-    if (!session) {
-      return NextResponse.json({
-        success: false,
-        error: 'No session found'
-      }, { status: 401 });
-    }
-
-    // Get user's TIKI ID for filtering
-    const senderTikiId = `TIKI-${session.email.split('@')[0].toUpperCase().substring(0, 4)}-${session.id.substring(0, 8).toUpperCase()}`;
-    console.log('🆔 Transfer History API: User TIKI ID:', senderTikiId);
-
-    // Import database helpers
-    const { databaseHelpers } = await import('../../../lib/database.js');
-    
-    if (!databaseHelpers || !databaseHelpers.pool) {
-      console.error('❌ Transfer History API: Database pool not available');
-      return NextResponse.json({
-        success: false,
-        error: 'Database connection error'
-      }, { status: 500 });
-    }
-
-    // Fetch transfers where user is either sender or recipient
-    const transfersResult = await databaseHelpers.pool.query(`
-      SELECT 
-        id,
-        "senderTikiId",
-        "recipientTikiId", 
-        amount,
-        note,
-        status,
-        "createdAt"
-      FROM transfers 
-      WHERE "senderTikiId" = $1 OR "recipientTikiId" = $1
-      ORDER BY "createdAt" DESC
-      LIMIT 50
-    `, [senderTikiId]);
-
-    console.log('📊 Transfer History API: Found transfers:', transfersResult.rows.length);
-
-    // Format transfers for frontend
-    const formattedTransfers = transfersResult.rows.map(transfer => ({
-      id: transfer.id,
-      type: transfer.senderTikiId === senderTikiId ? 'sent' : 'received',
-      amount: transfer.amount,
-      note: transfer.note,
-      status: transfer.status,
-      createdAt: transfer.createdAt,
-      senderTikiId: transfer.senderTikiId,
-      recipientTikiId: transfer.recipientTikiId
-    }));
-
-    return NextResponse.json({
-      success: true,
-      transfers: formattedTransfers,
-      total: formattedTransfers.length
-    });
-
-  } catch (error) {
-    console.error('❌ Transfer History API: Error:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to fetch transfer history',
-      details: error.message
-    }, { status: 500 });
-  }
-}
-
 export async function POST(request) {
-  console.log('🚀 Simple Transfer API: Starting request processing');
+  console.log('🚀 Transfer Simple API: Starting request processing');
   
   try {
     // Get session
     const session = await getServerSession();
-    console.log('🔍 Simple Transfer API: Session:', session);
+    console.log('🔍 Transfer Simple API: Session:', session);
     
     if (!session) {
       return NextResponse.json({
@@ -95,7 +21,7 @@ export async function POST(request) {
 
     // Parse request body
     const body = await request.json();
-    console.log('🔍 Simple Transfer API: Request body:', body);
+    console.log('🔍 Transfer Simple API: Request body:', body);
     
     const { recipientTikiId, amount, note } = body;
     
@@ -116,184 +42,250 @@ export async function POST(request) {
     }
     
     // Validate TIKI ID format
-    if (!/^TIKI-[A-Z0-9]{4}-[A-Z0-9]{8}$/.test(recipientTikiId)) {
+    if (!recipientTikiId.startsWith('TIKI-') || recipientTikiId.length < 10) {
       return NextResponse.json({
         success: false,
         error: 'Invalid TIKI ID format'
       }, { status: 400 });
     }
 
-    // Check if sending to self (compare with sender's TIKI ID)
-    const senderTikiId = `TIKI-${session.email.split('@')[0].toUpperCase().substring(0, 4)}-${session.id.substring(0, 8).toUpperCase()}`;
-    if (recipientTikiId === senderTikiId) {
+    // Get sender's wallet
+    const userId = session.id || session.user?.id;
+    console.log('🔍 Transfer Simple API: Getting sender wallet for user ID:', userId);
+    console.log('🔍 Transfer Simple API: Session details:', {
+      sessionId: session.id,
+      sessionUserId: session.user?.id,
+      email: session.email,
+      name: session.name
+    });
+    
+    if (!userId) {
       return NextResponse.json({
         success: false,
-        error: 'Cannot send to yourself'
-      }, { status: 400 });
+        error: 'User ID not found in session'
+      }, { status: 401 });
     }
-
-    // Get current sender wallet balance
-    console.log('🔍 Simple Transfer API: Getting sender wallet...');
-    const senderResponse = await fetch(`http://localhost:3000/api/wallet/balance?userId=${session.id}`);
-    let senderWallet = null;
     
-    if (senderResponse.ok) {
-      const senderData = await senderResponse.json();
-      senderWallet = senderData;
-      console.log('📊 Simple Transfer API: Sender wallet:', senderWallet);
-    } else {
-      console.log('⚠️ Simple Transfer API: Could not get sender wallet, using defaults');
-      senderWallet = { tikiBalance: 1000, usdBalance: 100 }; // Default for testing
-    }
-
-    // Check sufficient balance
-    if (senderWallet.tikiBalance < numericAmount) {
-      return NextResponse.json({
-        success: false,
-        error: 'Insufficient TIKI balance'
-      }, { status: 400 });
-    }
-
-    // Update sender's wallet (decrease TIKI balance) using direct database update
-    console.log('🔽 Simple Transfer API: Updating sender wallet directly...');
-    const newSenderTikiBalance = senderWallet.tikiBalance - numericAmount;
+    let senderWallet = await databaseHelpers.wallet.getWalletByUserId(userId);
+    console.log('🔍 Transfer Simple API: Sender wallet result:', senderWallet);
     
-    try {
-      // Use direct database update instead of API call
-      const { databaseHelpers } = await import('../../../lib/database.js');
-      
-      if (databaseHelpers && databaseHelpers.pool) {
-        await databaseHelpers.pool.query(`
-          UPDATE wallets 
-          SET "tikiBalance" = $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
-          WHERE "userId" = $2
-        `, [newSenderTikiBalance, session.id]);
-        
-        console.log('✅ Simple Transfer API: Sender wallet updated via direct SQL');
-      } else {
-        console.error('❌ Simple Transfer API: Database pool not available');
-      }
-    } catch (updateError) {
-      console.error('❌ Simple Transfer API: Error updating sender wallet:', updateError);
-    }
-
-    // Find recipient by TIKI ID and update their balance
-    console.log('🔍 Simple Transfer API: Looking up recipient by TIKI ID...');
-    
-    try {
-      const { databaseHelpers } = await import('../../../lib/database.js');
-      
-      if (!databaseHelpers || !databaseHelpers.pool) {
-        console.error('❌ Simple Transfer API: Database pool not available for recipient lookup');
+    if (!senderWallet) {
+      console.log('🔧 Transfer Simple API: Creating sender wallet...');
+      try {
+        senderWallet = await databaseHelpers.wallet.createWallet(userId);
+        console.log('✅ Transfer Simple API: Created sender wallet:', senderWallet);
+      } catch (walletError) {
+        console.error('❌ Transfer Simple API: Error creating sender wallet:', walletError);
         return NextResponse.json({
           success: false,
-          error: 'Database connection error'
+          error: 'Failed to create sender wallet',
+          details: walletError.message
         }, { status: 500 });
       }
+    }
 
-      // Extract recipient info from TIKI ID
-      // Format: TIKI-XXXX-YYYYYYYY where XXXX is email prefix and YYYYYYYY is user ID prefix
-      const tikiParts = recipientTikiId.split('-');
-      const recipientIdPrefix = tikiParts[2]; // The user ID part
+    // Calculate transfer fee (5% for transfers)
+    const { fee, net } = await calculateFee(numericAmount, "transfer");
+    
+    // Check sufficient balance (user needs to have the full amount + fee)
+    const totalRequired = numericAmount + fee;
+    if (senderWallet.tikiBalance < totalRequired) {
+      return NextResponse.json({
+        success: false,
+        error: `Insufficient TIKI balance. Required: ${totalRequired.toFixed(2)} TIKI (${numericAmount.toFixed(2)} + ${fee.toFixed(2)} fee)`
+      }, { status: 400 });
+    }
 
-      // Find recipient user by matching the ID prefix
-      const recipientResult = await databaseHelpers.pool.query(
-        'SELECT id, email, name FROM users WHERE UPPER(SUBSTRING(id, 1, 8)) = $1',
-        [recipientIdPrefix]
-      );
+    // Find recipient by TIKI ID
+    console.log('🔍 Transfer Simple API: Looking up recipient by TIKI ID:', recipientTikiId);
+    
+    // Handle both TIKI ID formats:
+    // Format 1: TIKI-AMIR-11661526 (4-8 format from auth-context)
+    // Format 2: TIKI-AMIR-1166-1526 (4-4-4 format from user-id.js)
+    const tikiIdParts = recipientTikiId.split('-');
+    if (tikiIdParts.length < 3 || tikiIdParts.length > 4) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid TIKI ID format'
+      }, { status: 400 });
+    }
 
-      if (recipientResult.rows.length === 0) {
-        return NextResponse.json({
-          success: false,
-          error: 'Recipient not found. Please verify the TIKI ID is correct.'
-        }, { status: 404 });
-      }
-
-      const recipient = recipientResult.rows[0];
-      console.log('👤 Simple Transfer API: Found recipient:', recipient.email);
-
-      // Get recipient's current wallet balance
-      const recipientWalletResult = await databaseHelpers.pool.query(
-        'SELECT "userId", "tikiBalance", "balance" FROM wallets WHERE "userId" = $1',
-        [recipient.id]
-      );
-
-      let recipientWallet;
-      if (recipientWalletResult.rows.length === 0) {
-        // Create wallet for recipient if it doesn't exist
-        console.log('💼 Simple Transfer API: Creating wallet for recipient...');
-        const walletId = randomUUID();
-        await databaseHelpers.pool.query(`
-          INSERT INTO wallets (id, "userId", balance, "tikiBalance", currency, "lastUpdated", "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())
-        `, [walletId, recipient.id, 0, 0, 'USD']);
-        
-        recipientWallet = { tikiBalance: 0, balance: 0 };
+    const emailPrefix = tikiIdParts[1]; // AMIR from both formats
+    let idSuffix;
+    
+    if (tikiIdParts.length === 3) {
+      // Format 1: TIKI-AMIR-11661526 (4-8 format)
+      idSuffix = tikiIdParts[2]; // 11661526
       } else {
-        recipientWallet = recipientWalletResult.rows[0];
+      // Format 2: TIKI-AMIR-1166-1526 (4-4-4 format)
+      idSuffix = tikiIdParts[2] + tikiIdParts[3]; // 11661526
+    }
+    
+    console.log('🔍 Transfer Simple API: Parsed TIKI ID parts:', { emailPrefix, idSuffix, format: tikiIdParts.length === 3 ? '4-8' : '4-4-4' });
+    
+    // Search for user by email prefix and ID suffix
+    let recipient = null;
+    let allUsers = [];
+    
+    try {
+      // Get all users and search for matching TIKI ID
+      allUsers = await databaseHelpers.user.getAllUsers();
+      console.log('🔍 Transfer Simple API: Searching through', allUsers.length, 'users');
+      
+      for (const user of allUsers) {
+        // Generate TIKI ID for this user using the same logic as auth-context (4-8 format)
+        const userEmailPrefix = user.email.split('@')[0].toUpperCase().substring(0, 4);
+        const userIdSuffix = user.id.substring(0, 8).toUpperCase();
+        const userTikiId = `TIKI-${userEmailPrefix}-${userIdSuffix}`;
+        
+        console.log('🔍 Transfer Simple API: Checking user:', { 
+          id: user.id, 
+          email: user.email, 
+          generatedTikiId: userTikiId,
+          targetTikiId: recipientTikiId,
+          emailPrefix: userEmailPrefix,
+          idSuffix: userIdSuffix
+        });
+        
+        // Check if the target TIKI ID matches this user's generated TIKI ID
+        if (userTikiId === recipientTikiId) {
+          recipient = user;
+          console.log('✅ Transfer Simple API: Found exact match:', user.email);
+          break;
+        }
+        
+        // Also check if the email prefix and ID suffix match (for partial matching)
+        if (userEmailPrefix === emailPrefix && userIdSuffix === idSuffix) {
+          recipient = user;
+          console.log('✅ Transfer Simple API: Found partial match:', user.email);
+          break;
+        }
       }
+    } catch (searchError) {
+      console.error('❌ Transfer Simple API: Error searching users:', searchError);
+    }
+    
+    if (!recipient) {
+      console.log('❌ Transfer Simple API: Recipient not found for TIKI ID:', recipientTikiId);
+      console.log('🔍 Transfer Simple API: Searched for:', { emailPrefix, idSuffix });
+      
+      // Generate list of available TIKI IDs for better error message
+      const availableTikiIds = allUsers.map(u => {
+        const userEmailPrefix = u.email.split('@')[0].toUpperCase().substring(0, 4);
+        const userIdSuffix = u.id.substring(0, 8).toUpperCase();
+        return {
+          email: u.email,
+          name: u.name,
+          tikiId: `TIKI-${userEmailPrefix}-${userIdSuffix}`
+        };
+      });
+      
+      console.log('🔍 Transfer Simple API: Available users with TIKI IDs:', availableTikiIds);
+      
+      return NextResponse.json({
+        success: false,
+        error: `Recipient not found. The TIKI ID "${recipientTikiId}" does not exist in the system.`,
+        availableTikiIds: availableTikiIds.slice(0, 10), // Show first 10 for reference
+        totalUsers: allUsers.length
+      }, { status: 404 });
+    }
 
-      console.log('📊 Simple Transfer API: Recipient current balance:', recipientWallet.tikiBalance);
+    console.log('✅ Transfer Simple API: Recipient found:', recipient.email);
 
-      // Update recipient's wallet (increase TIKI balance)
-      const newRecipientTikiBalance = recipientWallet.tikiBalance + numericAmount;
-      console.log('🔼 Simple Transfer API: Updating recipient wallet to:', newRecipientTikiBalance);
+    // Get recipient's wallet
+    console.log('🔍 Transfer Simple API: Getting recipient wallet...');
+    let recipientWallet = await databaseHelpers.wallet.getWalletByUserId(recipient.id);
+    
+    if (!recipientWallet) {
+      console.log('🔧 Transfer Simple API: Creating recipient wallet...');
+      recipientWallet = await databaseHelpers.wallet.createWallet(recipient.id);
+    }
 
+    // Update wallet balances
+    console.log('💰 Transfer Simple API: Updating wallet balances...');
+    console.log('📊 Transfer Simple API: Sender wallet before:', { 
+      id: senderWallet.id, 
+      balance: senderWallet.balance, 
+      tikiBalance: senderWallet.tikiBalance 
+    });
+    console.log('📊 Transfer Simple API: Recipient wallet before:', { 
+      id: recipientWallet.id, 
+      balance: recipientWallet.balance, 
+      tikiBalance: recipientWallet.tikiBalance 
+    });
+    
+    // Update sender's wallet (decrease TIKI balance by full amount + fee)
+    const totalDeducted = numericAmount + fee;
+    const newSenderTikiBalance = senderWallet.tikiBalance - totalDeducted;
+    console.log('🔽 Transfer Simple API: Updating sender wallet...', { 
+      userId: session.id, 
+      amount: numericAmount,
+      fee: fee,
+      totalDeducted: totalDeducted,
+      newTikiBalance: newSenderTikiBalance 
+    });
+    
+    // Use direct SQL update for sender
       await databaseHelpers.pool.query(`
         UPDATE wallets 
         SET "tikiBalance" = $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
         WHERE "userId" = $2
-      `, [newRecipientTikiBalance, recipient.id]);
-
-      console.log('✅ Simple Transfer API: Recipient wallet updated successfully');
-
-    } catch (recipientError) {
-      console.error('❌ Simple Transfer API: Error updating recipient:', recipientError);
-      // Rollback sender's balance if recipient update fails
-      try {
-        const { databaseHelpers } = await import('../../../lib/database.js');
+    `, [newSenderTikiBalance, session.id]);
+    console.log('✅ Transfer Simple API: Sender wallet updated via direct SQL');
+    
+    // Update recipient's wallet (increase TIKI balance by net amount)
+    const newRecipientTikiBalance = recipientWallet.tikiBalance + net;
+    console.log('🔼 Transfer Simple API: Updating recipient wallet...', { 
+      userId: recipient.id, 
+      netAmount: net,
+      newTikiBalance: newRecipientTikiBalance 
+    });
+    
+    // Use direct SQL update for recipient
         await databaseHelpers.pool.query(`
           UPDATE wallets 
           SET "tikiBalance" = $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
           WHERE "userId" = $2
-        `, [senderWallet.tikiBalance, session.id]);
-        console.log('↩️ Simple Transfer API: Rolled back sender balance');
-      } catch (rollbackError) {
-        console.error('❌ Simple Transfer API: Rollback failed:', rollbackError);
-      }
-      
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to complete transfer to recipient'
-      }, { status: 500 });
+    `, [newRecipientTikiBalance, recipient.id]);
+    console.log('✅ Transfer Simple API: Recipient wallet updated via direct SQL');
+    
+    // Credit fee to admin wallet
+    if (fee > 0) {
+      await creditFeeToAdmin(databaseHelpers.pool, fee);
+      console.log('💰 Transfer Simple API: Fee credited to admin wallet:', fee);
     }
     
     // Create transfer record
     const transferId = randomUUID();
     const transfer = {
       id: transferId,
-      senderTikiId: senderTikiId,
-      recipientTikiId: recipientTikiId,
+      senderId: session.id,
+      recipientId: recipient.id,
+      senderEmail: session.email,
+      recipientEmail: recipient.email,
       amount: numericAmount,
+      fee: fee,
+      netAmount: net,
       note: note || null,
       status: 'COMPLETED',
       createdAt: new Date().toISOString()
     };
     
-    // Save transfer record to database
-    try {
-      await databaseHelpers.pool.query(`
-        INSERT INTO transfers (id, "senderTikiId", "recipientTikiId", amount, note, status, "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-      `, [transferId, senderTikiId, recipientTikiId, numericAmount, note, 'COMPLETED']);
-      
-      console.log('💾 Simple Transfer API: Transfer record saved to database');
-    } catch (dbError) {
-      console.error('❌ Simple Transfer API: Error saving transfer record:', dbError);
-      // Don't fail the transfer if record saving fails, but log it
-    }
+    // Verify the final balances
+    console.log('🔍 Transfer Simple API: Verifying final balances...');
+    const finalSenderWallet = await databaseHelpers.wallet.getWalletByUserId(session.id);
+    const finalRecipientWallet = await databaseHelpers.wallet.getWalletByUserId(recipient.id);
     
-    console.log('✅ Simple Transfer API: Transfer completed:', transfer);
+    console.log('📊 Transfer Simple API: Final sender wallet:', { 
+      id: finalSenderWallet.id, 
+      tikiBalance: finalSenderWallet.tikiBalance 
+    });
+    console.log('📊 Transfer Simple API: Final recipient wallet:', { 
+      id: finalRecipientWallet.id, 
+      tikiBalance: finalRecipientWallet.tikiBalance 
+    });
+    
+    console.log('✅ Transfer Simple API: Transfer completed:', transfer);
     
     return NextResponse.json({
       success: true,
@@ -301,15 +293,20 @@ export async function POST(request) {
       transfer: {
         id: transfer.id,
         amount: transfer.amount,
-        recipientTikiId: transfer.recipientTikiId,
+        fee: transfer.fee,
+        netAmount: transfer.netAmount,
+        recipientEmail: transfer.recipientEmail,
         note: transfer.note,
         createdAt: transfer.createdAt
       },
-      newBalance: newSenderTikiBalance
+      balances: {
+        senderTikiBalance: finalSenderWallet.tikiBalance,
+        recipientTikiBalance: finalRecipientWallet.tikiBalance
+      }
     });
     
   } catch (error) {
-    console.error('❌ Simple Transfer API: Error:', error);
+    console.error('❌ Transfer Simple API: Error:', error);
     return NextResponse.json({
       success: false,
       error: 'Transfer failed',
