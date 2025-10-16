@@ -353,18 +353,21 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       
-      // Use comprehensive session clearing
-      await clearAllSessions();
+      console.log('🔄 Starting sign out process...');
+      
+      // Use comprehensive session clearing with redirect
+      await clearAllSessions({ redirect: true, redirectTo: '/auth/signin' });
       
       // Clear user state
       setUser(null);
       setConfigValid(false);
       
-      console.log('User signed out successfully');
+      console.log('✅ User signed out successfully');
       return { success: true };
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       setError(errorMessage);
+      console.error('❌ Sign out error:', errorMessage);
       return { success: false, error: errorMessage };
     }
   };

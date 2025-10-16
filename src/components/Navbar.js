@@ -1,18 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { NotificationBell } from './index';
 
 const Navbar = ({ user, onSignOut }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const userMenuRef = useRef(null);
+  const [userMenuPosition, setUserMenuPosition] = useState({ top: 0, right: 0 });
   
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Calculate dropdown position when menu opens
+  useEffect(() => {
+    if (isUserMenuOpen && userMenuRef.current) {
+      const rect = userMenuRef.current.getBoundingClientRect();
+      setUserMenuPosition({
+        top: rect.bottom + window.scrollY + 8,
+        right: window.innerWidth - rect.right - window.scrollX
+      });
+    }
+  }, [isUserMenuOpen]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -36,15 +50,19 @@ const Navbar = ({ user, onSignOut }) => {
     { name: 'Features', href: '/#features' },
   ];
   
-  const userNavigation = [
-    { name: 'Staking', href: '/user/staking', icon: '🏦' },
+  // Mobile hamburger menu navigation for users
+  const userMobileNavigation = [
+    { name: 'User Dashboard', href: '/user/dashboard', icon: '📊' },
     { name: 'Referrals', href: '/user/referrals', icon: '👥' },
+    { name: 'Staking', href: '/user/staking', icon: '🏦' },
+    { name: 'Transactions', href: '/user/transactions', icon: '📋' },
     { name: 'Notifications', href: '/user/notifications', icon: '🔔' },
     { name: 'Profile', href: '/user/profile', icon: '👤' },
     { name: 'Settings', href: '/user/settings', icon: '⚙️' },
   ];
   
-  const adminNavigation = [
+  // Mobile hamburger menu navigation for admins
+  const adminMobileNavigation = [
     { name: 'Admin Dashboard', href: '/admin/dashboard', icon: '📊' },
     { name: 'Fees', href: '/admin/fees', icon: '💰' },
     { name: 'Fees Settings', href: '/admin/fees/settings', icon: '⚙️' },
@@ -110,31 +128,10 @@ const Navbar = ({ user, onSignOut }) => {
                 {/* Notification Bell */}
                 <NotificationBell />
                 
-                {/* User navigation */}
-                <div className="flex space-x-2">
-                  {(() => {
-                    // Admin detection with multiple checks
-                    const isAdmin = user?.role === 'admin' || 
-                                   user?.role === 'ADMIN' || 
-                                   user?.isAdmin === true ||
-                                   user?.role === 'Admin';
-                    
-                    return isAdmin ? adminNavigation : userNavigation;
-                  })().map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="text-gray-300 hover:text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10 flex items-center space-x-2"
-                    >
-                      <span>{item.icon}</span>
-                      <span>{item.name}</span>
-                    </Link>
-                  ))}
-                </div>
-                
                 {/* User profile dropdown */}
                 <div className="relative">
                   <button 
+                    ref={userMenuRef}
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 hover:bg-white/10 p-2 transition-colors"
                   >
@@ -149,25 +146,59 @@ const Navbar = ({ user, onSignOut }) => {
                     </svg>
                   </button>
                   
-                  {/* Dropdown menu */}
-                  {isUserMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-md rounded-lg shadow-lg border border-gray-700 z-50">
-                      <div className="py-1">
-                        <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700">
-                          <div className="font-medium text-white">{user.name}</div>
-                          <div className="text-xs text-gray-400">{user.email}</div>
+                  {/* Dropdown menu - Portal-based with maximum z-index */}
+                  {isUserMenuOpen && mounted && createPortal(
+                    <>
+                      {/* Backdrop with maximum z-index */}
+                      <div 
+                        className="fixed inset-0 z-[999998]"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('🔓 Backdrop clicked - closing menu');
+                          setIsUserMenuOpen(false);
+                        }}
+                      />
+                      
+                      {/* Dropdown content with maximum z-index */}
+                      <div 
+                        className="fixed w-48 bg-black/90 backdrop-blur-md rounded-lg shadow-lg border border-gray-700 z-[999999]"
+                        style={{
+                          top: userMenuPosition.top,
+                          right: userMenuPosition.right
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('🔓 Dropdown content clicked - preventing close');
+                        }}
+                      >
+                        <div className="py-1">
+                          <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700">
+                            <div className="font-medium text-white">{user.name}</div>
+                            <div className="text-xs text-gray-400">{user.email}</div>
+                          </div>
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('🔓 Desktop sign out button clicked');
+                              try {
+                                await onSignOut();
+                                console.log('✅ Desktop sign out completed');
+                                setIsUserMenuOpen(false);
+                              } catch (error) {
+                                console.error('❌ Desktop sign out error:', error);
+                              }
+                            }}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                          >
+                            Sign Out
+                          </button>
                         </div>
-                        <button
-                          onClick={() => {
-                            onSignOut();
-                            setIsUserMenuOpen(false);
-                          }}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-                        >
-                          Sign Out
-                        </button>
                       </div>
-                    </div>
+                    </>,
+                    document.body
                   )}
                 </div>
               </div>
@@ -221,48 +252,43 @@ const Navbar = ({ user, onSignOut }) => {
       {isMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-black/90 backdrop-blur-md border-t border-gray-700">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="text-gray-300 hover:text-white block px-3 py-2 rounded-lg text-base font-medium hover:bg-white/10 transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.name}
-              </Link>
-            ))}
-            
             {user ? (
               <>
-                <div className="border-t border-gray-700 pt-2 mt-2">
-                  <div className="px-3 py-2 text-sm text-gray-400">
-                    <div className="font-medium text-white">{user.name}</div>
-                    <div className="text-xs text-gray-500">{user.email}</div>
-                  </div>
+                <div className="px-3 py-2 text-sm text-gray-400">
+                  <div className="font-medium text-white">{user.name}</div>
+                  <div className="text-xs text-gray-500">{user.email}</div>
                 </div>
-                {(() => {
-                  // Admin detection with multiple checks
-                  const isAdmin = user?.role === 'admin' || 
-                                 user?.role === 'ADMIN' || 
-                                 user?.isAdmin === true ||
-                                 user?.role === 'Admin';
-                  
-                  return isAdmin ? adminNavigation : userNavigation;
-                })().map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className="text-gray-300 hover:text-white px-3 py-2 rounded-lg text-base font-medium hover:bg-white/10 transition-colors flex items-center space-x-3"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <span>{item.icon}</span>
-                    <span>{item.name}</span>
-                  </Link>
-                ))}
+                <div className="border-t border-gray-700 pt-2 mt-2">
+                  {(() => {
+                    // Admin detection with multiple checks
+                    const isAdmin = user?.role === 'admin' || 
+                                   user?.role === 'ADMIN' || 
+                                   user?.isAdmin === true ||
+                                   user?.role === 'Admin';
+                    
+                    return isAdmin ? adminMobileNavigation : userMobileNavigation;
+                  })().map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className="text-gray-300 hover:text-white px-3 py-2 rounded-lg text-base font-medium hover:bg-white/10 transition-colors flex items-center space-x-3"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <span>{item.icon}</span>
+                      <span>{item.name}</span>
+                    </Link>
+                  ))}
+                </div>
                 <button
-                  onClick={() => {
-                    onSignOut();
-                    setIsMenuOpen(false);
+                  onClick={async () => {
+                    console.log('🔓 Mobile sign out button clicked');
+                    try {
+                      await onSignOut();
+                      console.log('✅ Mobile sign out completed');
+                      setIsMenuOpen(false);
+                    } catch (error) {
+                      console.error('❌ Mobile sign out error:', error);
+                    }
                   }}
                   className="text-gray-300 hover:text-white block w-full text-left px-3 py-2 rounded-lg text-base font-medium hover:bg-white/10 transition-colors"
                 >
