@@ -252,11 +252,11 @@ export async function POST(request) {
     `, [newSenderTikiBalance, session.id]);
     console.log('✅ Transfer Simple API: Sender wallet updated via direct SQL');
     
-    // Update recipient's wallet (increase TIKI balance by net amount)
-    const newRecipientTikiBalance = recipientWallet.tikiBalance + net;
+    // Update recipient's wallet (increase TIKI balance by full amount - recipient gets full amount, sender pays fee)
+    const newRecipientTikiBalance = recipientWallet.tikiBalance + numericAmount;
     console.log('🔼 Transfer Simple API: Updating recipient wallet...', { 
       userId: recipient.id, 
-      netAmount: net,
+      amountReceived: numericAmount,
       newTikiBalance: newRecipientTikiBalance 
     });
     
@@ -284,7 +284,7 @@ export async function POST(request) {
       recipientEmail: recipient.email,
       amount: numericAmount,
       fee: fee,
-      netAmount: net,
+      netAmount: numericAmount, // Recipient receives full amount, sender pays fee separately
       note: note || null,
       status: 'COMPLETED',
       createdAt: new Date().toISOString()
