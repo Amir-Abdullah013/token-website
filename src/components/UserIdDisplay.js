@@ -1,15 +1,79 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from './Toast';
 
 export default function UserIdDisplay({ userId, showFull = false, className = '' }) {
   const [copied, setCopied] = useState(false);
+  const [correctTikiId, setCorrectTikiId] = useState(userId);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { success } = useToast();
+
+  // Fetch the correct TIKI ID from the API
+  useEffect(() => {
+    const fetchCorrectTikiId = async () => {
+      try {
+        console.log('🔍 UserIdDisplay: Fetching correct TIKI ID...');
+        console.log('🔍 UserIdDisplay: Current userId prop:', userId);
+        
+        const response = await fetch('/api/user-tiki-id', {
+          cache: 'no-cache',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🔍 UserIdDisplay: API response:', data);
+          
+          if (data.success && data.tikiId) {
+            console.log('✅ UserIdDisplay: Updating from', correctTikiId, 'to', data.tikiId);
+            setCorrectTikiId(data.tikiId);
+          }
+        } else {
+          console.error('❌ UserIdDisplay: API response not ok:', response.status);
+        }
+      } catch (error) {
+        console.error('❌ UserIdDisplay: Error fetching correct TIKI ID:', error);
+        // Keep using the original userId if API fails
+      }
+    };
+
+    fetchCorrectTikiId();
+  }, [userId]); // Add userId as dependency
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      console.log('🔄 UserIdDisplay: Force refreshing TIKI ID...');
+      
+      const response = await fetch('/api/user-tiki-id', {
+        method: 'GET',
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.tikiId) {
+          console.log('✅ UserIdDisplay: Refreshed TIKI ID:', data.tikiId);
+          setCorrectTikiId(data.tikiId);
+          success('TIKI ID refreshed successfully!');
+        }
+      }
+    } catch (error) {
+      console.error('❌ UserIdDisplay: Error refreshing TIKI ID:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(userId);
+      await navigator.clipboard.writeText(correctTikiId);
       setCopied(true);
       success('User ID copied to clipboard!');
       
@@ -19,7 +83,7 @@ export default function UserIdDisplay({ userId, showFull = false, className = ''
       console.error('Failed to copy user ID:', err);
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
-      textArea.value = userId;
+      textArea.value = correctTikiId;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
@@ -36,7 +100,7 @@ export default function UserIdDisplay({ userId, showFull = false, className = ''
     );
   }
 
-  const displayId = showFull ? userId : userId?.substring(0, 8) + '...';
+  const displayId = showFull ? correctTikiId : correctTikiId?.substring(0, 8) + '...';
 
   return (
     <div className={`flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 ${className}`}>
@@ -46,33 +110,65 @@ export default function UserIdDisplay({ userId, showFull = false, className = ''
           {displayId}
         </div>
       </div>
-      <button
-        onClick={handleCopy}
-        className={`
-          w-full sm:w-auto px-3 sm:px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm
-          ${copied 
-            ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30 shadow-lg shadow-emerald-500/25' 
-            : 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-400/30 hover:from-cyan-500/30 hover:to-blue-500/30 hover:text-cyan-200 shadow-lg shadow-cyan-500/25'
-          }
-        `}
-        title="Copy User ID"
-      >
-        {copied ? (
-          <div className="flex items-center justify-center space-x-1">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-            <span>Copied!</span>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center space-x-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            <span>Copy</span>
-          </div>
-        )}
-      </button>
+      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <button
+          onClick={handleCopy}
+          className={`
+            w-full sm:w-auto px-3 sm:px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm
+            ${copied 
+              ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30 shadow-lg shadow-emerald-500/25' 
+              : 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-400/30 hover:from-cyan-500/30 hover:to-blue-500/30 hover:text-cyan-200 shadow-lg shadow-cyan-500/25'
+            }
+          `}
+          title="Copy User ID"
+        >
+          {copied ? (
+            <div className="flex items-center justify-center space-x-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>Copied!</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center space-x-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span>Copy</span>
+            </div>
+          )}
+        </button>
+        
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className={`
+            w-full sm:w-auto px-3 sm:px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm
+            ${isRefreshing 
+              ? 'bg-gradient-to-r from-slate-500/20 to-slate-600/20 text-slate-400 border border-slate-500/30 cursor-not-allowed' 
+              : 'bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-300 border border-orange-400/30 hover:from-orange-500/30 hover:to-red-500/30 hover:text-orange-200 shadow-lg shadow-orange-500/25'
+            }
+          `}
+          title="Refresh TIKI ID"
+        >
+          {isRefreshing ? (
+            <div className="flex items-center justify-center space-x-1">
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Refreshing...</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center space-x-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Refresh</span>
+            </div>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

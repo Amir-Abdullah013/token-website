@@ -67,7 +67,9 @@ export const AuthProvider = ({ children }) => {
               if (!userData || !userData.email || !userData.id) return null;
               const emailHash = userData.email.split('@')[0].toUpperCase();
               const idSuffix = (userData.id || userData.$id || 'user-id').substring(0, 8).toUpperCase();
-              return `TIKI-${emailHash.substring(0, 4)}-${idSuffix}`;
+              const tikiId = `TIKI-${emailHash.substring(0, 4)}-${idSuffix}`;
+              console.log('🔧 Auth Context: Generated TIKI ID for', userData.email, ':', tikiId);
+              return tikiId;
             };
 
             // Use the actual user data from session without hardcoded fallbacks
@@ -118,7 +120,9 @@ export const AuthProvider = ({ children }) => {
               if (!userData || !userData.email || !userData.id) return null;
               const emailHash = userData.email.split('@')[0].toUpperCase();
               const idSuffix = (userData.id || userData.$id || 'user-id').substring(0, 8).toUpperCase();
-              return `TIKI-${emailHash.substring(0, 4)}-${idSuffix}`;
+              const tikiId = `TIKI-${emailHash.substring(0, 4)}-${idSuffix}`;
+              console.log('🔧 Auth Context OAuth: Generated TIKI ID for', userData.email, ':', tikiId);
+              return tikiId;
             };
 
             // Ensure we have the correct user data

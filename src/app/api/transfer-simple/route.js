@@ -13,9 +13,10 @@ export async function POST(request) {
     console.log('🔍 Transfer Simple API: Session:', session);
     
     if (!session) {
+      console.log('❌ Transfer Simple API: No session found');
       return NextResponse.json({
         success: false,
-        error: 'No session found'
+        error: 'Authentication required. Please sign in to send tokens.'
       }, { status: 401 });
     }
 
@@ -66,6 +67,15 @@ export async function POST(request) {
       }, { status: 401 });
     }
     
+    // Check for self-transfer
+    const senderTikiId = `TIKI-${session.email.split('@')[0].toUpperCase().substring(0, 4)}-${userId.substring(0, 8).toUpperCase()}`;
+    if (recipientTikiId === senderTikiId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Cannot send tokens to yourself. Please use a different recipient TIKI ID.'
+      }, { status: 400 });
+    }
+
     let senderWallet = await databaseHelpers.wallet.getWalletByUserId(userId);
     console.log('🔍 Transfer Simple API: Sender wallet result:', senderWallet);
     
@@ -99,9 +109,10 @@ export async function POST(request) {
     // Find recipient by TIKI ID
     console.log('🔍 Transfer Simple API: Looking up recipient by TIKI ID:', recipientTikiId);
     
-    // Handle both TIKI ID formats:
-    // Format 1: TIKI-AMIR-11661526 (4-8 format from auth-context)
-    // Format 2: TIKI-AMIR-1166-1526 (4-4-4 format from user-id.js)
+    // Handle multiple TIKI ID formats:
+    // Format 1: TIKI-AMIR-1F1FFFE0 (4-8 format from database)
+    // Format 2: TIKI-AMIR-11661526 (4-8 format from dashboard)
+    // Format 3: TIKI-AMIR-1166-1526 (4-4-4 format from user-id.js)
     const tikiIdParts = recipientTikiId.split('-');
     if (tikiIdParts.length < 3 || tikiIdParts.length > 4) {
       return NextResponse.json({
@@ -110,14 +121,14 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    const emailPrefix = tikiIdParts[1]; // AMIR from both formats
+    const emailPrefix = tikiIdParts[1]; // AMIR from all formats
     let idSuffix;
     
     if (tikiIdParts.length === 3) {
-      // Format 1: TIKI-AMIR-11661526 (4-8 format)
-      idSuffix = tikiIdParts[2]; // 11661526
-      } else {
-      // Format 2: TIKI-AMIR-1166-1526 (4-4-4 format)
+      // Format 1 & 2: TIKI-AMIR-1F1FFFE0 or TIKI-AMIR-11661526 (4-8 format)
+      idSuffix = tikiIdParts[2]; // 1F1FFFE0 or 11661526
+    } else {
+      // Format 3: TIKI-AMIR-1166-1526 (4-4-4 format)
       idSuffix = tikiIdParts[2] + tikiIdParts[3]; // 11661526
     }
     
@@ -160,6 +171,14 @@ export async function POST(request) {
           console.log('✅ Transfer Simple API: Found partial match:', user.email);
           break;
         }
+        
+        // Fallback: Check if email prefix matches (for dashboard TIKI ID format)
+        // This is a security risk - we should not automatically match by email prefix
+        // Instead, we'll log this as a potential issue and require exact match
+        if (userEmailPrefix === emailPrefix) {
+          console.log('⚠️ Transfer Simple API: Found email prefix match but TIKI ID does not match exactly');
+          console.log('⚠️ This could be a security issue - TIKI ID mismatch detected');
+        }
       }
     } catch (searchError) {
       console.error('❌ Transfer Simple API: Error searching users:', searchError);
@@ -182,13 +201,13 @@ export async function POST(request) {
       
       console.log('🔍 Transfer Simple API: Available users with TIKI IDs:', availableTikiIds);
       
-      return NextResponse.json({
-        success: false,
+        return NextResponse.json({
+          success: false,
         error: `Recipient not found. The TIKI ID "${recipientTikiId}" does not exist in the system.`,
         availableTikiIds: availableTikiIds.slice(0, 10), // Show first 10 for reference
         totalUsers: allUsers.length
-      }, { status: 404 });
-    }
+        }, { status: 404 });
+      }
 
     console.log('✅ Transfer Simple API: Recipient found:', recipient.email);
 
