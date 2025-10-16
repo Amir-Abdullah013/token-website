@@ -274,6 +274,42 @@ export async function POST(request) {
       console.log('💰 Transfer Simple API: Fee credited to admin wallet:', fee);
     }
     
+    // Create transaction record for admin fees tracking
+    let transaction;
+    try {
+      console.log('🔍 Transfer Simple API: Creating transaction record...', {
+        userId: session.id,
+        type: 'TRANSFER',
+        amount: numericAmount,
+        currency: 'TIKI',
+        feeAmount: fee,
+        transactionType: 'transfer'
+      });
+      
+      transaction = await databaseHelpers.transaction.createTransaction({
+        userId: session.id,
+        type: 'WITHDRAW', // Use WITHDRAW enum value for transfers
+        amount: numericAmount,
+        currency: 'TIKI',
+        status: 'COMPLETED',
+        gateway: 'TikiTransfer',
+        description: `Transfer to ${recipient.email}`,
+        feeAmount: fee,
+        netAmount: numericAmount, // Recipient receives full amount
+        feeReceiverId: 'ADMIN_WALLET',
+        transactionType: 'transfer' // Keep transactionType as 'transfer' for admin fees tracking
+      });
+      console.log('✅ Transfer Simple API: Transaction record created for fee tracking:', transaction.id);
+    } catch (txErr) {
+      console.error('❌ Transfer Simple API: Failed to create transaction record:', txErr);
+      console.error('❌ Transfer Simple API: Error details:', {
+        message: txErr.message,
+        code: txErr.code,
+        stack: txErr.stack
+      });
+      // Don't fail the transfer if transaction record creation fails
+    }
+    
     // Create transfer record
     const transferId = randomUUID();
     const transfer = {
