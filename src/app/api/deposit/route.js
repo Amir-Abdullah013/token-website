@@ -134,7 +134,11 @@ export async function POST(request) {
       gateway: 'Binance',
       screenshot: `/uploads/deposits/${filename}`,
       binanceAddress: binanceAddress,
-      description: `Deposit request via Binance`
+      description: `Deposit request via Binance`,
+      feeAmount: 0, // No fee for deposits
+      netAmount: amount, // Full amount for deposits
+      feeReceiverId: null, // No fee receiver for deposits
+      transactionType: 'DEPOSIT'
     });
 
     return NextResponse.json({
