@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession, getUserRole } from '../../../lib/session';
 import { databaseHelpers } from '../../../lib/database';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 
 export async function POST(request) {
   console.log('🚀 Deposit API called');
@@ -97,30 +95,29 @@ export async function POST(request) {
       console.log('🔧 Using fallback Binance address:', binanceAddress);
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'deposits');
-    try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (error) {
-      // Directory might already exist
+    // Convert file to base64 for storage in database (Vercel-compatible)
+    const bytes = await screenshot.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64Screenshot = buffer.toString('base64');
+    
+    // Check if base64 data is too large (PostgreSQL TEXT field limit is ~1GB, but we'll be conservative)
+    if (base64Screenshot.length > 10 * 1024 * 1024) { // 10MB limit for base64
+      return NextResponse.json(
+        { success: false, error: 'Screenshot file is too large. Please use a smaller image.' },
+        { status: 400 }
+      );
     }
-
-    // Generate unique filename
+    
+    // Generate unique filename for reference
     const timestamp = Date.now();
     const fileExtension = screenshot.name.split('.').pop();
     const filename = `deposit_${session.id}_${timestamp}.${fileExtension}`;
-    const filepath = join(uploadsDir, filename);
-
-    // Save file
-    const bytes = await screenshot.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
 
     // Create deposit request using the database user ID
     const depositRequest = await databaseHelpers.deposit.createDepositRequest({
       userId: dbUser.id, // Use database user ID, not session ID
       amount,
-      screenshot: `/uploads/deposits/${filename}`,
+      screenshot: base64Screenshot, // Store base64 data instead of file path
       binanceAddress: binanceAddress
     });
 
@@ -132,7 +129,7 @@ export async function POST(request) {
       currency: 'USD',
       status: 'PENDING',
       gateway: 'Binance',
-      screenshot: `/uploads/deposits/${filename}`,
+      screenshot: base64Screenshot, // Store base64 data instead of file path
       binanceAddress: binanceAddress,
       description: `Deposit request via Binance`,
       feeAmount: 0, // No fee for deposits
