@@ -48,14 +48,10 @@ export async function GET(request) {
           throw new Error('Token supply not initialized');
         }
 
-        // Calculate total tokens needed (profit + referral bonus if applicable)
+        // Calculate total tokens needed (referral bonus already distributed on stake creation)
         let totalTokensNeeded = profit;
-        let referrerBonus = 0;
-        
-        if (staking.referrerId) {
-          referrerBonus = (profit * 10) / 100; // 10% of staking profit
-          totalTokensNeeded += referrerBonus;
-        }
+        // NOTE: Referral bonus is now distributed immediately when stake is created,
+        // not when staking completes, so we don't add it here anymore
 
         // Check if sufficient tokens are available
         if (Number(tokenSupply.userSupplyRemaining) < totalTokensNeeded) {
@@ -89,60 +85,8 @@ export async function GET(request) {
             [newTikiBalance, staking.userId]
           );
 
-          // Process referral bonus if applicable
-          if (staking.referrerId && referrerBonus > 0) {
-            console.log(`🔗 Processing referral bonus for referrer ${staking.referrerId}`);
-            
-            // Get the referral record
-            const referral = await client.query(
-              'SELECT * FROM referrals WHERE "referrerId" = $1 AND "referredId" = $2',
-              [staking.referrerId, staking.userId]
-            );
-
-            if (referral.rows.length > 0) {
-              const referralRecord = referral.rows[0];
-              
-              // Get referrer's wallet
-              const referrerWalletResult = await client.query(
-                'SELECT * FROM wallets WHERE "userId" = $1',
-                [staking.referrerId]
-              );
-              
-              if (referrerWalletResult.rows.length > 0) {
-                const referrerWallet = referrerWalletResult.rows[0];
-                const referrerNewBalance = referrerWallet.tikiBalance + referrerBonus;
-                
-                // Update referrer's wallet balance
-                await client.query(
-                  'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
-                  [referrerNewBalance, staking.referrerId]
-                );
-                
-                // Create referral earning record
-                await client.query(`
-                  INSERT INTO referral_earnings (id, "referralId", "stakingId", amount, "createdAt")
-                  VALUES ($1, $2, $3, $4, NOW())
-                `, [require('crypto').randomUUID(), referralRecord.id, staking.id, referrerBonus]);
-                
-                // Send notification to referrer
-                try {
-                  await client.query(`
-                    INSERT INTO notifications (id, "userId", title, message, type, status, "createdAt", "updatedAt")
-                    VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-                  `, [
-                    require('crypto').randomUUID(),
-                    staking.referrerId,
-                    'Referral Bonus Earned!',
-                    `You earned ${referrerBonus.toFixed(2)} TIKI referral bonus from ${staking.user_name}'s staking profit!`,
-                    'SUCCESS',
-                    'UNREAD'
-                  ]);
-                } catch (notificationError) {
-                  console.error('❌ Error sending referral notification:', notificationError);
-                }
-              }
-            }
-          }
+          // Referral bonus already distributed on stake creation
+          // No need to process it again here
 
           // Update staking record with profit and mark as claimed
           await client.query(`
@@ -179,8 +123,7 @@ export async function GET(request) {
             userName: staking.user_name,
             amountStaked: staking.amountStaked,
             rewardAmount: rewardAmount,
-            totalAmount: totalAmount,
-            referrerBonus: referrerBonus
+            totalAmount: totalAmount
           });
 
         } catch (transactionError) {

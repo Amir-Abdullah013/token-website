@@ -34,7 +34,7 @@ export default function StakingPage() {
   // Form state
   const [formData, setFormData] = useState({
     amount: '',
-    duration: '7'
+    duration: '15'
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,12 +48,14 @@ export default function StakingPage() {
   const MIN_AMOUNT = 100;
   const MAX_AMOUNT = 100000;
 
-  // Staking duration options
+  // Staking duration options (synchronized with backend)
   const STAKING_OPTIONS = [
-    { days: 7, rewardPercent: 3, label: '7 Days', description: '3% APY - Quick Returns' },
-    { days: 15, rewardPercent: 4, label: '15 Days', description: '4% APY - Short Term' },
-    { days: 30, rewardPercent: 6, label: '30 Days', description: '6% APY - Monthly' },
-    { days: 90, rewardPercent: 10, label: '90 Days', description: '10% APY - Maximum Returns' }
+    { days: 15, rewardPercent: 10, label: '15 Days', description: '10% Annual - Short Term' },
+    { days: 30, rewardPercent: 15, label: '1 Month', description: '15% Annual - Monthly' },
+    { days: 60, rewardPercent: 25, label: '2 Months', description: '25% Annual - Quarterly' },
+    { days: 120, rewardPercent: 30, label: '4 Months', description: '30% Annual - Medium Term' },
+    { days: 180, rewardPercent: 50, label: '6 Months', description: '50% Annual - Long Term' },
+    { days: 365, rewardPercent: 75, label: '1 Year', description: '75% Annual - Maximum Returns' }
   ];
 
   useEffect(() => {
@@ -545,7 +547,7 @@ export default function StakingPage() {
                       <h3 className="text-sm font-medium text-white">Reward Structure</h3>
                     </div>
                     <p className="text-sm text-slate-300">
-                      Earn 3-10% APY based on your staking duration. Choose from 7, 15, 30, or 90 days. Rewards are calculated daily and paid upon completion.
+                      Earn 10-75% annual returns based on your staking duration. Choose from 15 days to 1 year. Rewards are calculated and paid upon completion.
                     </p>
                   </div>
 

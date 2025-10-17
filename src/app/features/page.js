@@ -84,7 +84,7 @@ export default function FeaturesPage() {
           title: 'Staking Rewards',
           description: 'Earn passive income by staking your TIKI tokens with flexible duration options.',
           icon: '🏦',
-          features: ['7, 15, 30, 90 day plans', 'Up to 10% APY', 'Auto-compound rewards', 'Flexible unstaking']
+          features: ['15 days to 1 year plans', 'Up to 75% annual returns', 'Simple interest rewards', 'Flexible unstaking']
         },
         {
           title: 'Portfolio Management',

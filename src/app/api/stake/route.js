@@ -22,18 +22,21 @@ export async function POST(request) {
       );
     }
 
-    if (!durationDays || ![7, 30, 90].includes(durationDays)) {
+    if (!durationDays || ![15, 30, 60, 120, 180, 365].includes(durationDays)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid duration. Must be 7, 30, or 90 days' },
+        { success: false, error: 'Invalid duration. Must be 15, 30, 60, 120, 180, or 365 days' },
         { status: 400 }
       );
     }
 
-    // Define reward percentages
+    // Define reward percentages (annual rates)
     const rewardPercentages = {
-      7: 2,
-      30: 10,
-      90: 25
+      15: 10,   // 15 days → 10% annual
+      30: 15,   // 1 month → 15% annual
+      60: 25,   // 2 months → 25% annual
+      120: 30,  // 4 months → 30% annual
+      180: 50,  // 6 months → 50% annual
+      365: 75   // 1 year → 75% annual
     };
 
     const rewardPercent = rewardPercentages[durationDays];
@@ -137,6 +140,109 @@ export async function POST(request) {
       }, { status: 500 });
     }
 
+    // Process immediate referral bonus (NEW LOGIC)
+    let referralBonusInfo = null;
+    try {
+      // Get user details to check for referrer
+      const user = await databaseHelpers.user.getUserById(userId);
+      
+      if (user && user.referrerId) {
+        console.log('💰 Referral bonus triggered on stake creation');
+        
+        // Define referral bonus percentages based on staking duration
+        const referralBonusPercentages = {
+          15: 2,   // 15 days → 2%
+          30: 3,   // 1 month → 3%
+          60: 4,   // 2 months → 4%
+          120: 5,  // 4 months → 5%
+          180: 7,  // 6 months → 7%
+          365: 10  // 1 year → 10%
+        };
+        
+        const referralBonusPercent = referralBonusPercentages[durationDays] || 0;
+        const referrerBonus = (amount * referralBonusPercent) / 100;
+        
+        if (referrerBonus > 0) {
+          // Use transaction to ensure atomicity
+          let client;
+          try {
+            client = await databaseHelpers.pool.connect();
+            await client.query('BEGIN');
+            
+            // Get the referral record
+            const referral = await client.query(
+              'SELECT * FROM referrals WHERE "referrerId" = $1 AND "referredId" = $2',
+              [user.referrerId, userId]
+            );
+            
+            if (referral.rows.length > 0) {
+              const referralRecord = referral.rows[0];
+              
+              // Get referrer's wallet
+              const referrerWalletResult = await client.query(
+                'SELECT * FROM wallets WHERE "userId" = $1',
+                [user.referrerId]
+              );
+              
+              if (referrerWalletResult.rows.length > 0) {
+                const referrerWallet = referrerWalletResult.rows[0];
+                const referrerNewBalance = referrerWallet.tikiBalance + referrerBonus;
+                
+                // Update referrer's wallet balance
+                await client.query(
+                  'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+                  [referrerNewBalance, user.referrerId]
+                );
+                
+                // Create referral earning record
+                await client.query(`
+                  INSERT INTO referral_earnings (id, "referralId", "stakingId", amount, "createdAt")
+                  VALUES ($1, $2, $3, $4, NOW())
+                `, [require('crypto').randomUUID(), referralRecord.id, staking.id, referrerBonus]);
+                
+                // Send notification to referrer
+                await client.query(`
+                  INSERT INTO notifications (id, "userId", title, message, type, status, "createdAt", "updatedAt")
+                  VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+                `, [
+                  require('crypto').randomUUID(),
+                  user.referrerId,
+                  'Referral Bonus Earned!',
+                  `You earned ${referrerBonus.toFixed(2)} TIKI referral bonus from ${user.name}'s new staking!`,
+                  'SUCCESS',
+                  'UNREAD'
+                ]);
+                
+                await client.query('COMMIT');
+                
+                console.log(`✅ Referrer rewarded immediately with ${referrerBonus} TIKI`);
+                
+                referralBonusInfo = {
+                  referrerId: user.referrerId,
+                  bonus: referrerBonus,
+                  percentage: referralBonusPercent
+                };
+              }
+            }
+            
+          } catch (refError) {
+            if (client) {
+              await client.query('ROLLBACK');
+            }
+            console.error('❌ Error processing referral bonus:', refError);
+            // Don't fail the staking if referral bonus fails
+          } finally {
+            if (client) {
+              client.release();
+            }
+          }
+        }
+      }
+    } catch (refCheckError) {
+      console.error('❌ Error checking referral eligibility:', refCheckError);
+      // Continue with staking even if referral check fails
+    }
+
     // Create transaction record (non-blocking)
     try {
       await databaseHelpers.transaction.createTransaction({
@@ -168,7 +274,7 @@ export async function POST(request) {
       // Continue; do not fail staking due to notification
     }
 
-    return NextResponse.json({
+    const response = {
       success: true,
       message: 'Staking started successfully',
       staking: {
@@ -180,7 +286,15 @@ export async function POST(request) {
         endDate: staking.endDate,
         status: staking.status
       }
-    });
+    };
+
+    // Add referral bonus info if applicable
+    if (referralBonusInfo) {
+      response.referralBonus = referralBonusInfo;
+      response.message += ' Referral bonus distributed to referrer.';
+    }
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('Error creating staking:', error);

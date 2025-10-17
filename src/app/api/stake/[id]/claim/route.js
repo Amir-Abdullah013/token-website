@@ -89,14 +89,10 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Calculate total tokens needed (profit + referral bonus if applicable)
+    // Calculate total tokens needed (referral bonus already distributed on stake creation)
     let totalTokensNeeded = profit;
-    let referrerBonus = 0;
-    
-    if (user.referrerId) {
-      referrerBonus = (profit * 10) / 100; // 10% of staking profit
-      totalTokensNeeded += referrerBonus;
-    }
+    // NOTE: Referral bonus is now distributed immediately when stake is created,
+    // not when staking is claimed, so we don't add it here anymore
 
     // Check if sufficient tokens are available
     if (Number(tokenSupply.userSupplyRemaining) < totalTokensNeeded) {
@@ -115,11 +111,8 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Start transaction for referral profit distribution
+    // Start transaction for claim processing
     let client;
-    let referralEarning = null;
-    let referrerWallet = null;
-    let referrerNewBalance = null;
     let updatedTokenSupply = null;
 
     try {
@@ -148,70 +141,8 @@ export async function POST(request, { params }) {
         [newTikiBalance, session.id]
       );
 
-      // Check if user has a referrer and distribute referral profit
-      if (user.referrerId && referrerBonus > 0) {
-        console.log('🔗 User has referrer, distributing referral profit...');
-        
-        // Get the referral record
-        const referral = await client.query(
-          'SELECT * FROM referrals WHERE "referrerId" = $1 AND "referredId" = $2',
-          [user.referrerId, session.id]
-        );
-
-        if (referral.rows.length > 0) {
-          const referralRecord = referral.rows[0];
-          
-          // Get referrer's wallet
-          const referrerWalletResult = await client.query(
-            'SELECT * FROM wallets WHERE "userId" = $1',
-            [user.referrerId]
-          );
-          
-          if (referrerWalletResult.rows.length > 0) {
-            referrerWallet = referrerWalletResult.rows[0];
-            referrerNewBalance = referrerWallet.tikiBalance + referrerBonus;
-            
-            // Update referrer's wallet balance
-            await client.query(
-              'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
-              [referrerNewBalance, user.referrerId]
-            );
-            
-            // Create referral earning record
-            const referralEarningResult = await client.query(`
-              INSERT INTO referral_earnings (id, "referralId", "stakingId", amount, "createdAt")
-              VALUES ($1, $2, $3, $4, NOW())
-              RETURNING *
-            `, [require('crypto').randomUUID(), referralRecord.id, id, referrerBonus]);
-            
-            referralEarning = referralEarningResult.rows[0];
-            
-            console.log('✅ Referral profit distributed:', {
-              referrerId: user.referrerId,
-              bonus: referrerBonus,
-              newBalance: referrerNewBalance
-            });
-
-            // Send notification to referrer about the bonus
-            try {
-              await client.query(`
-                INSERT INTO notifications (id, "userId", title, message, type, status, "createdAt", "updatedAt")
-                VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-              `, [
-                require('crypto').randomUUID(),
-                user.referrerId,
-                'Referral Bonus Earned!',
-                `You earned ${referrerBonus.toFixed(2)} TIKI referral bonus from ${user.name}'s staking profit!`,
-                'SUCCESS',
-                'UNREAD'
-              ]);
-            } catch (notificationError) {
-              console.error('❌ Error sending referral notification:', notificationError);
-              // Don't fail the transaction for notification errors
-            }
-          }
-        }
-      }
+      // Referral bonus already distributed on stake creation
+      // No need to process it again here
 
       // Update staking record with profit and mark as claimed
       await client.query(`
@@ -280,17 +211,8 @@ export async function POST(request, { params }) {
       }
     };
 
-    // Add referrer information if applicable
-    if (referralEarning && referrerWallet) {
-      responseData.referrer = {
-        referrerId: user.referrerId,
-        referralBonus: referralEarning.amount,
-        newBalance: referrerNewBalance,
-        referralEarningId: referralEarning.id,
-        referralBonusUSDValue: referralEarning.amount * tokenValue.currentTokenValue
-      };
-      responseData.message += ' Referral bonus distributed to referrer.';
-    }
+    // Referral bonus was already distributed on stake creation
+    // No additional referrer information to include
 
     return NextResponse.json(responseData);
 
