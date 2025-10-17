@@ -123,7 +123,7 @@ export const databaseHelpers = {
 
     async createUser(userData) {
       try {
-        const { email, password, name, emailVerified = false, role = 'USER', referrerId = null } = userData;
+        const { email, password, name, emailVerified = true, role = 'USER', referrerId = null } = userData;
         
         // First check if user already exists
         const existingUser = await pool.query(

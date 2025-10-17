@@ -87,7 +87,7 @@ export async function POST(request) {
         email,
         password: hashedPassword,
         name,
-        emailVerified: process.env.NODE_ENV === 'development' ? true : false,
+        emailVerified: true, // Auto-verify for now (email verification flow can be added later)
         role: 'USER',
         referrerId
       };
