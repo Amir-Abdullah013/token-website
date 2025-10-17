@@ -208,6 +208,11 @@ export default function AdminTokenSupplyPage() {
                     <p className="text-2xl font-bold text-white">
                       {supplyData?.data ? formatNumber(supplyData.data.totalSupply) : 'Loading...'}
                     </p>
+                    {supplyData?.data && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        Distributed: {formatNumber(supplyData.data.distributedSupply)}
+                      </p>
+                    )}
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-lg flex items-center justify-center border border-cyan-400/30">
                     <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -254,10 +259,15 @@ export default function AdminTokenSupplyPage() {
               <div className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-300 text-sm font-medium">Usage</p>
+                    <p className="text-slate-300 text-sm font-medium">Total Usage</p>
                     <p className="text-2xl font-bold text-amber-400">
-                      {supplyData?.data ? `${supplyData.data.usagePercentage.toFixed(1)}%` : 'Loading...'}
+                      {supplyData?.data ? `${supplyData.data.totalUsagePercentage.toFixed(1)}%` : 'Loading...'}
                     </p>
+                    {supplyData?.data && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        User: {supplyData.data.userSupplyUsagePercentage.toFixed(1)}%
+                      </p>
+                    )}
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-r from-amber-500/30 to-orange-500/30 rounded-lg flex items-center justify-center border border-amber-400/30">
                     <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,7 +280,7 @@ export default function AdminTokenSupplyPage() {
                     <div className="w-full bg-slate-700/50 rounded-full h-2 border border-slate-600/30">
                       <div 
                         className="bg-gradient-to-r from-amber-400 to-orange-400 h-2 rounded-full transition-all duration-500 shadow-lg"
-                        style={{ width: `${supplyData.data.usagePercentage}%` }}
+                        style={{ width: `${supplyData.data.totalUsagePercentage}%` }}
                       />
                     </div>
                   </div>
@@ -310,11 +320,85 @@ export default function AdminTokenSupplyPage() {
           </motion.div>
         </div>
 
+        {/* Supply Breakdown Section */}
+        {supplyData?.data && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mb-8"
+          >
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
+              <div className="p-6">
+                <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-4">Supply Allocation Breakdown</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* User Supply */}
+                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30">
+                    <p className="text-slate-400 text-sm mb-2">User Supply (20%)</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-300 text-sm">Available:</span>
+                        <span className="text-emerald-400 font-medium">{formatNumber(supplyData.data.userSupplyRemaining)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-300 text-sm">Used:</span>
+                        <span className="text-amber-400 font-medium">{formatNumber(supplyData.data.usedUserSupply)}</span>
+                      </div>
+                      <div className="w-full bg-slate-600/50 rounded-full h-2 mt-3">
+                        <div 
+                          className="bg-gradient-to-r from-amber-400 to-orange-400 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${supplyData.data.userSupplyUsagePercentage}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-slate-400 text-right">{supplyData.data.userSupplyUsagePercentage.toFixed(1)}% used</p>
+                    </div>
+                  </div>
+
+                  {/* Admin Reserve */}
+                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30">
+                    <p className="text-slate-400 text-sm mb-2">Admin Reserve (80%)</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-300 text-sm">Locked:</span>
+                        <span className="text-violet-400 font-medium">{formatNumber(supplyData.data.adminReserve)}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-3">
+                        Reserved tokens can be released to user supply when needed
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* System Health */}
+                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30">
+                    <p className="text-slate-400 text-sm mb-2">System Health</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-300 text-sm">Status:</span>
+                        <span className={`font-medium ${supplyData.data.isValid ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {supplyData.data.isValid ? '✅ Valid' : '⚠️ Invalid'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-300 text-sm">Discrepancy:</span>
+                        <span className="text-slate-400 font-medium">{supplyData.data.discrepancy.toFixed(2)} TIKI</span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-3">
+                        Last updated: {new Date(supplyData.data.lastUpdated).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Mint Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.6 }}
           className="mb-8"
         >
           <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
@@ -381,7 +465,7 @@ export default function AdminTokenSupplyPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.7 }}
         >
           <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
             <div className="p-6">

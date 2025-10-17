@@ -1,18 +1,27 @@
 import { NextResponse } from 'next/server';
+import { databaseHelpers } from '../../../../lib/database';
 
 export async function GET() {
   try {
-    // Simulate a price API response
-    // In a real application, this would fetch from an external price API
-    const basePrice = 0.0035;
-    const variation = (Math.random() - 0.5) * 0.0001; // Small random variation
-    const currentPrice = Math.max(0.0001, basePrice + variation);
+    // Get current price using supply-based calculation
+    const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+    const currentPrice = tokenValue.currentTokenValue;
+    
+    console.log('📊 TIKI price API using supply-based calculation:', {
+      currentPrice,
+      inflationFactor: tokenValue.inflationFactor,
+      userSupplyRemaining: tokenValue.userSupplyRemaining,
+      usagePercentage: tokenValue.usagePercentage
+    });
     
     return NextResponse.json({
       success: true,
       price: parseFloat(currentPrice.toFixed(6)),
       timestamp: Date.now(),
-      source: 'simulated'
+      source: 'supply-based',
+      inflationFactor: tokenValue.inflationFactor,
+      userSupplyRemaining: tokenValue.userSupplyRemaining,
+      usagePercentage: tokenValue.usagePercentage
     });
   } catch (error) {
     console.error('Price API error:', error);

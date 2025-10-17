@@ -34,25 +34,48 @@ export async function GET(request) {
     // Get current token value
     const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
 
-    // Calculate usage statistics
-    const totalSupply = Number(tokenSupply.totalSupply);
-    const remainingSupply = Number(tokenSupply.remainingSupply);
-    const usedSupply = totalSupply - remainingSupply;
-    const usagePercentage = (usedSupply / totalSupply) * 100;
+    // Validate supply integrity
+    const validation = await databaseHelpers.tokenSupply.validateSupply();
+
+    // Calculate comprehensive statistics
+    const totalSupply = validation.totalSupply;
+    const distributedSupply = validation.distributedSupply;
+    const remainingSupply = validation.remainingSupply;
+    const userSupplyRemaining = validation.userSupplyRemaining;
+    const adminReserve = validation.adminReserve;
+    
+    // Calculate usage percentages
+    const totalUsagePercentage = (distributedSupply / totalSupply) * 100;
+    const totalUserSupply = 2000000; // User allocation (20%)
+    const usedUserSupply = totalUserSupply - userSupplyRemaining;
+    const userSupplyUsagePercentage = (usedUserSupply / totalUserSupply) * 100;
 
     return NextResponse.json({
       success: true,
       data: {
+        // Total supply tracking
         totalSupply,
+        distributedSupply: Math.floor(distributedSupply),
         remainingSupply,
-        usedSupply,
-        usagePercentage: Math.round(usagePercentage * 100) / 100,
+        totalUsagePercentage: Math.round(totalUsagePercentage * 100) / 100,
+        
+        // Allocation management
+        userSupplyRemaining,
+        usedUserSupply,
+        userSupplyUsagePercentage: Math.round(userSupplyUsagePercentage * 100) / 100,
+        adminReserve,
+        
+        // Token value
         tokenValue: {
           baseValue: tokenValue.baseValue,
           currentValue: tokenValue.currentTokenValue,
           inflationFactor: tokenValue.inflationFactor,
           calculatedAt: tokenValue.calculatedAt
         },
+        
+        // System health
+        isValid: validation.isValid,
+        discrepancy: validation.discrepancy,
         lastUpdated: tokenSupply.updatedAt
       }
     });

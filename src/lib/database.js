@@ -317,44 +317,9 @@ export const databaseHelpers = {
       }
     },
 
-    async getCurrentPrice() {
-      console.warn('⚠️ tokenStats.getCurrentPrice() is deprecated. Use tokenValue.getCurrentTokenValue() instead.');
-      try {
-        // Return supply-based price instead
-        const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
-        return tokenValue.currentTokenValue;
-      } catch (error) {
-        console.error('Error getting current price:', error);
-        return 0.0035;
-      }
-    },
-
-    // DISABLED: Buy-based inflation removed
-    async updateTokenStats(investmentChange) {
-      console.warn('⚠️ updateTokenStats() is disabled. Buy-based inflation has been removed.');
-      console.log('📊 Token price now uses supply-based calculation only.');
-      // Return current supply-based value instead
-      try {
-        const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
-        return {
-          totalTokens: 10000000,
-          totalInvestment: 0,
-          currentPrice: tokenValue.currentTokenValue,
-          lastUpdated: new Date(),
-          _deprecated: true,
-          _message: 'Buy-based inflation removed. Using supply-based economy.'
-        };
-      } catch (error) {
-        console.error('Error:', error);
-        return {
-          totalTokens: 10000000,
-          totalInvestment: 0,
-          currentPrice: 0.0035,
-          lastUpdated: new Date(),
-          _deprecated: true
-        };
-      }
-    }
+    // REMOVED: Deprecated methods - use tokenValue.getCurrentTokenValue() instead
+    // These methods have been removed to prevent confusion and ensure
+    // all price calculations use the unified supply-based system.
   },
 
   // Wallet operations
@@ -1753,49 +1718,180 @@ export const databaseHelpers = {
       }
     },
 
-    async updateRemainingSupply(amount, operation = 'deduct') {
+    // NEW: Calculate actual distributed supply from all user wallets
+    async calculateDistributedSupply() {
       try {
-        // Get current token supply
+        const result = await pool.query(`
+          SELECT COALESCE(SUM("tikiBalance"), 0) as total_distributed
+          FROM wallets
+        `);
+        return Number(result.rows[0].total_distributed) || 0;
+      } catch (error) {
+        console.error('Error calculating distributed supply:', error);
+        throw error;
+      }
+    },
+
+    // NEW: Sync remainingSupply based on actual distributed tokens
+    async syncRemainingSupply() {
+      try {
         const currentSupply = await this.getTokenSupply();
         if (!currentSupply) {
           throw new Error('TokenSupply record not found');
         }
 
-        const currentRemaining = Number(currentSupply.remainingSupply);
-        let newRemaining;
-
-        if (operation === 'deduct') {
-          if (currentRemaining < amount) {
-            throw new Error('Insufficient token supply');
-          }
-          newRemaining = currentRemaining - amount;
-        } else if (operation === 'add') {
-          newRemaining = currentRemaining + amount;
-        } else {
-          throw new Error('Invalid operation. Use "deduct" or "add"');
-        }
+        const distributedSupply = await this.calculateDistributedSupply();
+        const totalSupply = Number(currentSupply.totalSupply);
+        const correctRemainingSupply = Math.floor(totalSupply - distributedSupply);
 
         const result = await pool.query(`
           UPDATE token_supply 
           SET "remainingSupply" = $1, "updatedAt" = NOW()
           WHERE id = $2
           RETURNING *
-        `, [newRemaining, currentSupply.id]);
+        `, [correctRemainingSupply, currentSupply.id]);
 
-        console.log(`✅ TokenSupply updated: ${operation} ${amount}, new remaining: ${newRemaining}`);
+        console.log('✅ Supply synced:', {
+          totalSupply,
+          distributedSupply: Math.floor(distributedSupply),
+          remainingSupply: correctRemainingSupply,
+          updated: new Date()
+        });
+
         return result.rows[0];
       } catch (error) {
-        console.error('Error updating token supply:', error);
+        console.error('Error syncing remaining supply:', error);
         throw error;
       }
     },
 
-    async deductTokens(amount) {
-      return this.updateRemainingSupply(amount, 'deduct');
+    // NEW: Comprehensive supply update for buy transactions
+    async deductSupply(tokenAmount) {
+      try {
+        const currentSupply = await this.getTokenSupply();
+        if (!currentSupply) {
+          throw new Error('TokenSupply record not found');
+        }
+
+        // Convert to integer for BigInt column
+        const tokenAmountInt = Math.floor(tokenAmount);
+        
+        // Validate we have enough supply
+        const currentRemaining = Number(currentSupply.remainingSupply);
+        const currentUserSupply = Number(currentSupply.userSupplyRemaining);
+        
+        if (currentRemaining < tokenAmountInt) {
+          throw new Error('Insufficient total supply');
+        }
+        
+        if (currentUserSupply < tokenAmountInt) {
+          throw new Error('Insufficient user supply. Admin needs to release more tokens from reserve.');
+        }
+
+        // Update both remainingSupply AND userSupplyRemaining
+        const result = await pool.query(`
+          UPDATE token_supply 
+          SET 
+            "remainingSupply" = "remainingSupply" - $1,
+            "userSupplyRemaining" = "userSupplyRemaining" - $1,
+            "updatedAt" = NOW()
+          WHERE id = $2
+          RETURNING *
+        `, [tokenAmountInt, currentSupply.id]);
+
+        console.log('✅ Supply deducted:', {
+          amount: tokenAmountInt,
+          newRemainingSupply: Number(result.rows[0].remainingSupply),
+          newUserSupplyRemaining: Number(result.rows[0].userSupplyRemaining)
+        });
+
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error deducting supply:', error);
+        throw error;
+      }
     },
 
+    // NEW: Comprehensive supply update for sell transactions
+    async addSupply(tokenAmount) {
+      try {
+        const currentSupply = await this.getTokenSupply();
+        if (!currentSupply) {
+          throw new Error('TokenSupply record not found');
+        }
+
+        // Convert to integer for BigInt column
+        const tokenAmountInt = Math.floor(tokenAmount);
+
+        // Update both remainingSupply AND userSupplyRemaining
+        const result = await pool.query(`
+          UPDATE token_supply 
+          SET 
+            "remainingSupply" = "remainingSupply" + $1,
+            "userSupplyRemaining" = "userSupplyRemaining" + $1,
+            "updatedAt" = NOW()
+          WHERE id = $2
+          RETURNING *
+        `, [tokenAmountInt, currentSupply.id]);
+
+        console.log('✅ Supply added back:', {
+          amount: tokenAmountInt,
+          newRemainingSupply: Number(result.rows[0].remainingSupply),
+          newUserSupplyRemaining: Number(result.rows[0].userSupplyRemaining)
+        });
+
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error adding supply:', error);
+        throw error;
+      }
+    },
+
+    // LEGACY: Keep for backward compatibility but mark as deprecated
+    async updateRemainingSupply(amount, operation = 'deduct') {
+      console.warn('⚠️ DEPRECATED: Use deductSupply() or addSupply() instead');
+      if (operation === 'deduct') {
+        return this.deductSupply(amount);
+      } else {
+        return this.addSupply(amount);
+      }
+    },
+
+    // LEGACY: Keep for backward compatibility
+    async deductTokens(amount) {
+      return this.deductSupply(amount);
+    },
+
+    // LEGACY: Keep for backward compatibility
     async addTokens(amount) {
-      return this.updateRemainingSupply(amount, 'add');
+      return this.addSupply(amount);
+    },
+
+    // NEW: Validate supply integrity
+    async validateSupply() {
+      try {
+        const supply = await this.getTokenSupply();
+        const distributedSupply = await this.calculateDistributedSupply();
+        const totalSupply = Number(supply.totalSupply);
+        const remainingSupply = Number(supply.remainingSupply);
+        const expectedRemaining = totalSupply - distributedSupply;
+        
+        const isValid = Math.abs(remainingSupply - expectedRemaining) < 1; // Allow for rounding
+        
+        return {
+          isValid,
+          totalSupply,
+          distributedSupply,
+          remainingSupply,
+          expectedRemaining,
+          discrepancy: remainingSupply - expectedRemaining,
+          userSupplyRemaining: Number(supply.userSupplyRemaining),
+          adminReserve: Number(supply.adminReserve)
+        };
+      } catch (error) {
+        console.error('Error validating supply:', error);
+        throw error;
+      }
     }
   },
 
@@ -1902,16 +1998,39 @@ export const databaseHelpers = {
           throw new Error('TokenSupply record not found');
         }
 
-        // NEW SUPPLY-BASED ECONOMY: Use only userSupplyRemaining for inflation
+        // IMPROVED SUPPLY-BASED ECONOMY: More visible and realistic price growth
         const totalUserSupply = 2000000; // Initial 20% allocation
         const userSupplyRemaining = Number(tokenSupply.userSupplyRemaining);
-        const adminReserve = Number(tokenSupply.adminReserve);
-        const totalSupply = Number(tokenSupply.totalSupply);
-
-        // Calculate inflation factor based on user supply usage
-        // inflationFactor = initialUserSupply / currentUserSupplyRemaining
-        const inflationFactor = totalUserSupply / userSupplyRemaining;
-        const currentTokenValue = baseValue * inflationFactor;
+      const adminReserve = Number(tokenSupply.adminReserve);
+      const totalSupply = Number(tokenSupply.totalSupply);
+      
+      // FIXED: Ensure userSupplyRemaining never exceeds totalUserSupply
+      const effectiveUserSupply = Math.min(userSupplyRemaining, totalUserSupply);
+      
+      // Add safety limits to prevent unrealistic price spikes
+      const minSupplyCap = totalUserSupply * 0.05; // 5% reserve (100,000 tokens)
+      const effectiveSupply = Math.max(effectiveUserSupply, minSupplyCap);
+      
+      // Improved formula: More visible growth based on supply usage
+      const growthFactor = 3; // Defines how fast price increases
+      const supplyUsed = totalUserSupply - effectiveSupply;
+      const usageRatio = supplyUsed / totalUserSupply;
+        
+        // New formula: price = baseValue * (1 + usageRatio * growthFactor)
+        const currentTokenValue = baseValue * (1 + usageRatio * growthFactor);
+        
+        // Calculate legacy inflation factor for compatibility
+        const inflationFactor = currentTokenValue / baseValue;
+        
+        console.log('💰 Token price calculated:', {
+          baseValue,
+          currentTokenValue,
+          inflationFactor: inflationFactor.toFixed(4),
+          usageRatio: (usageRatio * 100).toFixed(2) + '%',
+          supplyUsed: supplyUsed.toLocaleString(),
+          effectiveSupply: effectiveSupply.toLocaleString(),
+          growthFactor
+        });
 
         return {
           baseValue,
@@ -1922,6 +2041,12 @@ export const databaseHelpers = {
           inflationFactor,
           currentTokenValue,
           usagePercentage: ((totalUserSupply - userSupplyRemaining) / totalUserSupply) * 100,
+          // New calculation details
+          growthFactor,
+          supplyUsed,
+          usageRatio,
+          effectiveSupply,
+          minSupplyCap,
           calculatedAt: new Date()
         };
       } catch (error) {

@@ -20,10 +20,13 @@ export async function POST(request) {
       const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
       currentPrice = tokenValue.currentTokenValue;
       
-      console.log('📊 Using supply-based token value for sell:', {
+      console.log('📊 Using improved supply-based token value for sell:', {
         currentPrice,
         inflationFactor: tokenValue.inflationFactor,
-        userSupplyRemaining: tokenValue.userSupplyRemaining
+        userSupplyRemaining: tokenValue.userSupplyRemaining,
+        growthFactor: tokenValue.growthFactor,
+        supplyUsed: tokenValue.supplyUsed,
+        usageRatio: tokenValue.usageRatio
       });
     } catch (dbError) {
       console.warn('Database not available, using fallback value:', dbError.message);
@@ -39,18 +42,37 @@ export async function POST(request) {
     // User receives net amount after fee
     const usdToReceive = net;
     
-    // Add tokens back to user supply when user sells (supply-based economy)
+    // Add tokens back to supply when user sells
+    // CRITICAL: Updates BOTH remainingSupply AND userSupplyRemaining
+    let newPrice = currentPrice;
     try {
       const { databaseHelpers } = await import('../../../../lib/database.js');
-      await databaseHelpers.pool.query(`
-        UPDATE token_supply 
-        SET "userSupplyRemaining" = "userSupplyRemaining" + $1,
-            "updatedAt" = NOW()
-      `, [tokenAmount]);
       
-      console.log('✅ User supply increased (sell):', tokenAmount, 'TIKI');
+      // Use the new comprehensive supply addition method
+      // This updates BOTH remainingSupply AND userSupplyRemaining atomically
+      const updatedSupply = await databaseHelpers.tokenSupply.addSupply(tokenAmount);
+      
+      console.log('✅ Supply added back successfully:', {
+        amount: tokenAmount,
+        newRemainingSupply: Number(updatedSupply.remainingSupply),
+        newUserSupplyRemaining: Number(updatedSupply.userSupplyRemaining),
+        adminReserve: Number(updatedSupply.adminReserve)
+      });
+      
+      // Recalculate price after supply update
+      const updatedTokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+      newPrice = updatedTokenValue.currentTokenValue;
+      
+      console.log('📉 Price updated after sell:', {
+        oldPrice: currentPrice,
+        newPrice: newPrice,
+        priceDecrease: ((currentPrice - newPrice) / currentPrice * 100).toFixed(2) + '%',
+        usagePercentage: updatedTokenValue.usagePercentage,
+        distributedSupply: Number(updatedSupply.totalSupply) - Number(updatedSupply.remainingSupply)
+      });
     } catch (supplyError) {
-      console.error('⚠️ Could not update user supply:', supplyError.message);
+      console.error('⚠️ Could not update supply:', supplyError.message);
+      // This creates a discrepancy that needs manual reconciliation
     }
 
     // Create transaction record with fee information
@@ -108,8 +130,11 @@ export async function POST(request) {
         createdAt: transaction.createdAt || new Date()
       },
       priceUpdate: {
-        currentPrice: currentPrice,
-        _note: 'Supply-based pricing active. Buy-based inflation removed.'
+        oldPrice: currentPrice,
+        newPrice: newPrice,
+        currentPrice: newPrice,
+        priceDecrease: ((currentPrice - newPrice) / currentPrice * 100).toFixed(2) + '%',
+        _note: 'Improved supply-based pricing with visible growth'
       }
     });
 

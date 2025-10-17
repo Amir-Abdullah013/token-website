@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAdminAuth } from '../../../lib/admin-auth';
 // Removed direct database import - using API calls instead;
@@ -52,7 +53,7 @@ const StatusBadge = ({ status }) => {
 };
 
 // Transaction row component
-const TransactionRow = ({ transaction, onApprove, onReject, isProcessing }) => {
+const TransactionRow = ({ transaction, onApprove, onReject, isProcessing, onScreenshotClick }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -106,11 +107,16 @@ const TransactionRow = ({ transaction, onApprove, onReject, isProcessing }) => {
         {transaction.screenshot ? (
           <div className="flex items-center space-x-2">
             <img
-              src={transaction.screenshot}
+              src={`/api/admin/screenshot/${transaction.id}`}
               alt="Transaction Screenshot"
               className="w-12 h-12 object-cover rounded border border-slate-600/30 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => window.open(transaction.screenshot, '_blank')}
+              onClick={() => onScreenshotClick(transaction.id)}
               title="Click to view full size"
+              onError={(e) => {
+                console.error('Screenshot load error:', e);
+                e.target.style.display = 'none';
+                e.target.nextSibling.textContent = 'Error loading';
+              }}
             />
             <span className="text-xs text-slate-400">Click to view</span>
           </div>
@@ -201,6 +207,10 @@ export default function AdminDepositsPage() {
   // Deposit addresses management state
   const [depositAddresses, setDepositAddresses] = useState({ bep20: '', trc20: '' });
   const [isSavingAddresses, setIsSavingAddresses] = useState(false);
+  
+  // Screenshot modal state
+  const [selectedScreenshot, setSelectedScreenshot] = useState(null);
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -368,6 +378,12 @@ export default function AdminDepositsPage() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Handle screenshot click
+  const handleScreenshotClick = (transactionId) => {
+    setSelectedScreenshot(transactionId);
+    setShowScreenshotModal(true);
   };
 
   // Handle search
@@ -676,6 +692,7 @@ export default function AdminDepositsPage() {
                             onApprove={handleApprove}
                             onReject={handleReject}
                             isProcessing={isProcessing}
+                            onScreenshotClick={handleScreenshotClick}
                           />
                         ))
                       )}
@@ -686,6 +703,48 @@ export default function AdminDepositsPage() {
             </CardContent>
           </Card>
           
+          {/* Screenshot Modal */}
+          <AnimatePresence>
+            {showScreenshotModal && selectedScreenshot && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={() => setShowScreenshotModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-slate-800 rounded-lg border border-slate-600/30 max-w-4xl max-h-[90vh] overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-4 border-b border-slate-600/30 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">Transaction Screenshot</h3>
+                    <Button
+                      onClick={() => setShowScreenshotModal(false)}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                  <div className="p-4">
+                    <img
+                      src={`/api/admin/screenshot/${selectedScreenshot}`}
+                      alt="Transaction Screenshot"
+                      className="max-w-full max-h-[70vh] object-contain rounded border border-slate-600/30"
+                      onError={(e) => {
+                        console.error('Screenshot modal load error:', e);
+                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVycm9yIGxvYWRpbmcgaW1hZ2U8L3RleHQ+Cjwvc3ZnPg==';
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Toast Container */}
           <ToastContainer toasts={toasts} removeToast={removeToast} />
         </div>

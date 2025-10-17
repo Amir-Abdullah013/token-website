@@ -3,6 +3,8 @@ import { getServerSession } from '../../../../lib/session';
 import { calculateFee, creditFeeToAdmin } from '../../../../lib/fees';
 
 export async function POST(request) {
+  console.log('🚨🚨🚨 BUY FUNCTION CALLED - THIS SHOULD ALWAYS SHOW 🚨🚨🚨');
+  console.log('🔧 [BUY] FUNCTION CALLED - Starting buy operation');
   try {
     const session = await getServerSession();
     if (!session?.id) {
@@ -51,11 +53,14 @@ export async function POST(request) {
       const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
       currentPrice = tokenValue.currentTokenValue;
       
-      console.log('📊 Using supply-based token value:', {
+      console.log('📊 Using improved supply-based token value:', {
         currentPrice,
         inflationFactor: tokenValue.inflationFactor,
         userSupplyRemaining: tokenValue.userSupplyRemaining,
-        usagePercentage: tokenValue.usagePercentage
+        usagePercentage: tokenValue.usagePercentage,
+        growthFactor: tokenValue.growthFactor,
+        supplyUsed: tokenValue.supplyUsed,
+        usageRatio: tokenValue.usageRatio
       });
     } catch (dbError) {
       console.warn('Database not available, using fallback value:', dbError.message);
@@ -68,10 +73,11 @@ export async function POST(request) {
     // Calculate tokens to buy (based on net amount after fee)
     const tokensToBuy = net / currentPrice;
     
-    // Check if user supply has enough tokens
+    // Check if user supply has enough tokens and get tokenSupply for later use
+    let tokenSupply;
     try {
       const { databaseHelpers } = await import('../../../../lib/database.js');
-      const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
+      tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
       
       if (tokenSupply && Number(tokenSupply.userSupplyRemaining) < tokensToBuy) {
         return NextResponse.json({
@@ -124,18 +130,48 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Failed to update wallet for buy' }, { status: 500 });
     }
 
-    // Deduct from user supply after successful transaction (supply-based economy)
+    console.log('🔧 [BUY] REACHED LINE 131 - About to start supply deduction');
+    console.log('🔧 [BUY] Transaction completed successfully, now deducting supply...');
+
+    // Deduct from supply after successful transaction
+    // CRITICAL: Updates BOTH remainingSupply AND userSupplyRemaining
+    let newPrice = currentPrice;
+    console.log('🔧 [BUY] STARTING SUPPLY DEDUCTION');
+    console.log('🔧 [BUY] tokensToBuy:', tokensToBuy);
+    console.log('🔧 [BUY] currentPrice:', currentPrice);
+    
     try {
       const { databaseHelpers } = await import('../../../../lib/database.js');
-      await databaseHelpers.pool.query(`
-        UPDATE token_supply 
-        SET "userSupplyRemaining" = "userSupplyRemaining" - $1,
-            "updatedAt" = NOW()
-      `, [tokensToBuy]);
       
-      console.log('✅ User supply deducted:', tokensToBuy, 'TIKI');
+      // Use the new comprehensive supply deduction method
+      // This updates BOTH remainingSupply AND userSupplyRemaining atomically
+      const updatedSupply = await databaseHelpers.tokenSupply.deductSupply(tokensToBuy);
+      
+      console.log('✅ Supply deducted successfully:', {
+        amount: tokensToBuy,
+        newRemainingSupply: Number(updatedSupply.remainingSupply),
+        newUserSupplyRemaining: Number(updatedSupply.userSupplyRemaining),
+        adminReserve: Number(updatedSupply.adminReserve)
+      });
+      
+      // Recalculate price after supply update
+      const updatedTokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+      newPrice = updatedTokenValue.currentTokenValue;
+      
+      console.log('📈 Price updated after buy:', {
+        oldPrice: currentPrice,
+        newPrice: newPrice,
+        priceIncrease: ((newPrice - currentPrice) / currentPrice * 100).toFixed(2) + '%',
+        usagePercentage: updatedTokenValue.usagePercentage,
+        distributedSupply: Number(updatedSupply.totalSupply) - Number(updatedSupply.remainingSupply)
+      });
+      
     } catch (supplyError) {
-      console.error('⚠️ Could not deduct from user supply:', supplyError.message);
+      console.error('❌ CRITICAL: Failed to deduct from supply:', supplyError.message);
+      console.error('Supply error details:', supplyError);
+      // Note: Transaction already completed, but supply tracking failed
+      // This creates a discrepancy that needs manual reconciliation
+      // TODO: Implement proper database transactions for atomicity
     }
 
     return NextResponse.json({
@@ -155,8 +191,16 @@ export async function POST(request) {
         tikiBalance: updatedWallet?.tikiBalance ?? null
       },
       priceUpdate: {
-        currentPrice: currentPrice,
-        _note: 'Supply-based pricing active. Buy-based inflation removed.'
+        oldPrice: currentPrice,
+        newPrice: newPrice,
+        currentPrice: newPrice,
+        priceIncrease: ((newPrice - currentPrice) / currentPrice * 100).toFixed(2) + '%',
+        _note: 'Improved supply-based pricing with visible growth'
+      },
+      debug: {
+        supplyDeductionExecuted: true,
+        tokensToBuy: tokensToBuy,
+        supplyDeductionCode: 'EXECUTED'
       }
     });
 

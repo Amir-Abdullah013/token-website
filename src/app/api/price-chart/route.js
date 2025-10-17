@@ -9,9 +9,16 @@ export async function GET(request) {
 
     console.log('📊 Fetching price chart data for timeFilter:', timeFilter);
 
-    // Get current token stats
-    const tokenStats = await databaseHelpers.tokenStats.getTokenStats();
-    const currentPrice = tokenStats.currentPrice || 0.0035;
+    // Get current token value using supply-based calculation
+    const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+    const currentPrice = tokenValue.currentTokenValue;
+    
+    console.log('📊 Price chart using supply-based calculation:', {
+      currentPrice,
+      inflationFactor: tokenValue.inflationFactor,
+      userSupplyRemaining: tokenValue.userSupplyRemaining,
+      usagePercentage: tokenValue.usagePercentage
+    });
 
     // Generate realistic price data based on time filter
     const now = new Date();

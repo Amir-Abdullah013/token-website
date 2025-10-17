@@ -211,11 +211,19 @@ export const TikiProvider = ({ children }) => {
         // Update price with the new calculated price
         setTikiPrice(data.priceUpdate.newPrice);
         
+        console.log('🎉 Buy successful with price update:', {
+          tokensBought: data.transaction.tokensReceived,
+          oldPrice: data.priceUpdate.oldPrice,
+          newPrice: data.priceUpdate.newPrice,
+          priceIncrease: data.priceUpdate.priceIncrease
+        });
+        
         return { 
           success: true, 
           tokensBought: data.transaction.tokensReceived,
           newPrice: data.priceUpdate.newPrice,
-          oldPrice: data.priceUpdate.oldPrice
+          oldPrice: data.priceUpdate.oldPrice,
+          priceIncrease: data.priceUpdate.priceIncrease
         };
       } else {
         return { success: false, error: data.error || 'Buy failed' };
@@ -274,11 +282,19 @@ export const TikiProvider = ({ children }) => {
         // Update price with the new calculated price
         setTikiPrice(data.priceUpdate.newPrice);
         
+        console.log('🎉 Sell successful with price update:', {
+          usdReceived: data.transaction.amount,
+          oldPrice: data.priceUpdate.oldPrice,
+          newPrice: data.priceUpdate.newPrice,
+          priceDecrease: data.priceUpdate.priceDecrease
+        });
+        
         return { 
           success: true, 
           usdReceived: data.transaction.amount,
           newPrice: data.priceUpdate.newPrice,
-          oldPrice: data.priceUpdate.oldPrice
+          oldPrice: data.priceUpdate.oldPrice,
+          priceDecrease: data.priceUpdate.priceDecrease
         };
       } else {
         return { success: false, error: data.error || 'Sell failed' };
@@ -371,9 +387,17 @@ export const TikiProvider = ({ children }) => {
       }
     }
     
-    // Default fallback price - use current price if available, otherwise default
+    // Default fallback price - use current price if available, otherwise try to fetch dynamic price
     const fallbackPrice = tikiPrice > 0 ? tikiPrice : 0.0035;
     setTikiPrice(fallbackPrice);
+    
+    // Try to fetch current price in background for next time
+    if (tikiPrice === 0.0035) {
+      fetchCurrentPrice().catch(() => {
+        // Silently fail - we already have a fallback
+      });
+    }
+    
     return fallbackPrice;
   };
 

@@ -28,21 +28,36 @@ export async function GET(request) {
     if (!wallet) {
       // Create wallet if it doesn't exist
       const newWallet = await databaseHelpers.wallet.createWallet(userId);
+      // Get dynamic price even for new wallets
+      let tikiPrice = 0.0035;
+      try {
+        const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+        tikiPrice = tokenValue.currentTokenValue;
+      } catch (error) {
+        console.log('⚠️ Using fallback price for new wallet:', error.message);
+      }
+      
       return NextResponse.json({
         success: true,
         usdBalance: newWallet.balance || 0,
         tikiBalance: newWallet.tikiBalance || 0,
-        tikiPrice: 0.0035
+        tikiPrice: tikiPrice
       });
     }
 
-    // Get current TIKI price with fallback
+    // Get current TIKI price using supply-based calculation
     let tikiPrice = 0.0035; // Default price
     try {
-      tikiPrice = await databaseHelpers.tokenStats.getCurrentPrice();
+      const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+      tikiPrice = tokenValue.currentTokenValue;
+      console.log('📊 Wallet balance API using supply-based price:', {
+        currentPrice: tikiPrice,
+        inflationFactor: tokenValue.inflationFactor,
+        userSupplyRemaining: tokenValue.userSupplyRemaining
+      });
     } catch (priceError) {
-      console.log('⚠️ Using default TIKI price due to TokenStats table error:', priceError.message);
-      // Use default price if TokenStats table doesn't exist
+      console.log('⚠️ Using default TIKI price due to price calculation error:', priceError.message);
+      // Use default price if calculation fails
     }
 
     return NextResponse.json({
