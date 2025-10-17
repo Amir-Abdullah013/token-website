@@ -120,13 +120,7 @@ export async function POST(request) {
       );
     }
 
-    // Check if email is verified (skip for development/testing)
-    if (!user.emailVerified && process.env.NODE_ENV === 'production') {
-      return NextResponse.json(
-        { success: false, error: 'Please verify your email before signing in' },
-        { status: 401 }
-      );
-    }
+    // Email verification check removed - users can sign in immediately after signup
 
     // Update last login time (only if we used database)
     if (usedDatabase) {

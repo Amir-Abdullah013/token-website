@@ -87,7 +87,7 @@ export async function POST(request) {
         email,
         password: hashedPassword,
         name,
-        emailVerified: true, // Auto-verify for now (email verification flow can be added later)
+        emailVerified: true,
         role: 'USER',
         referrerId
       };
