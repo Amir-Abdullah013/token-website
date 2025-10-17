@@ -218,14 +218,15 @@ model DepositRequest {
 }
 
 model PasswordReset {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   email     String
-  hashedOtp String
-  expiry    DateTime
+  otpHash   String   @map("hashedOtp")
   used      Boolean  @default(false)
+  expiresAt DateTime @map("expiry")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([email])
   @@map("password_resets")
 }
 

@@ -21,7 +21,12 @@ export async function POST(request) {
       );
     }
 
-    // Validate OTP format
+    // Dynamic imports to avoid build-time issues (import early to use functions)
+    const bcrypt = (await import('bcryptjs')).default;
+    const { databaseHelpers } = await import('../../../../lib/database.js');
+    const { verifyOTP, isOTPExpired, isValidOTP } = await import('../../../../lib/otp-utils-simple.js');
+
+    // Validate OTP format (after import)
     if (!isValidOTP(otp)) {
       return NextResponse.json(
         { success: false, error: 'Invalid OTP format. OTP must be 6 digits.' },
@@ -37,11 +42,6 @@ export async function POST(request) {
       );
     }
 
-    // Dynamic imports to avoid build-time issues
-    const bcrypt = (await import('bcryptjs')).default;
-    const { databaseHelpers } = await import('../../../../lib/database.js');
-    const { verifyOTP, isOTPExpired, isValidOTP } = await import('../../../../lib/otp-utils-simple.js');
-
     // Check if user exists
     const user = await databaseHelpers.user.getUserByEmail(email);
     
@@ -52,7 +52,7 @@ export async function POST(request) {
       );
     }
 
-    // Get the most recent password reset record for this email
+    // Get the most recent unused password reset record for this email
     const passwordReset = await databaseHelpers.passwordReset.getPasswordResetByEmail(email);
     
     if (!passwordReset) {
@@ -62,16 +62,16 @@ export async function POST(request) {
       );
     }
 
-    // Check if OTP is expired
-    if (isOTPExpired(passwordReset.expiry)) {
+    // Check if OTP is expired (10 minutes default)
+    if (isOTPExpired(passwordReset.expiresAt)) {
       return NextResponse.json(
         { success: false, error: 'OTP has expired. Please request a new OTP.' },
         { status: 400 }
       );
     }
 
-    // Verify OTP
-    const isOtpValid = await verifyOTP(otp, passwordReset.hashedOtp);
+    // Verify OTP using bcrypt comparison (secure verification)
+    const isOtpValid = await verifyOTP(otp, passwordReset.otpHash);
     
     if (!isOtpValid) {
       return NextResponse.json(
@@ -80,22 +80,42 @@ export async function POST(request) {
       );
     }
 
-    // Hash the new password
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    // Use transaction to ensure atomicity (password update + mark OTP as used)
+    let client;
+    try {
+      client = await databaseHelpers.pool.connect();
+      await client.query('BEGIN');
 
-    // Update user password
-    const updatedUser = await databaseHelpers.user.updatePassword(user.id, hashedPassword);
+      // Hash the new password with bcrypt (12 salt rounds for security)
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    // Mark password reset as used
-    await databaseHelpers.passwordReset.markPasswordResetAsUsed(passwordReset.id);
+      // Update user password
+      const updatedUser = await databaseHelpers.user.updatePassword(user.id, hashedPassword);
 
-    console.log(`Password reset successful for user: ${email}`);
+      // Mark password reset as used (one-time use security measure)
+      await databaseHelpers.passwordReset.markPasswordResetAsUsed(passwordReset.id);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Password reset successfully. You can now sign in with your new password.'
-    });
+      await client.query('COMMIT');
+      
+      console.log(`✅ Password reset successful for user: ${email}`);
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Password reset successfully. You can now sign in with your new password.'
+      });
+
+    } catch (transactionError) {
+      if (client) {
+        await client.query('ROLLBACK');
+      }
+      console.error('Transaction error during password reset:', transactionError);
+      throw transactionError;
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
 
   } catch (error) {
     console.error('Reset password error:', error);

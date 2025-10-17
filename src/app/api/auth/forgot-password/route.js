@@ -27,9 +27,12 @@ export async function POST(request) {
     const { sendOTPEmail } = await import('../../../../lib/email-service-simple.js');
 
     // Check if user exists
+    // Security Note: In production, you may want to return a generic message
+    // to prevent user enumeration attacks. For now, we return specific errors for better UX.
     const user = await databaseHelpers.user.getUserByEmail(email);
     
     if (!user) {
+      // Generic response to prevent user enumeration (optional - currently showing specific error)
       return NextResponse.json(
         { success: false, error: 'Email not registered' },
         { status: 400 }
@@ -40,18 +43,19 @@ export async function POST(request) {
     const otp = generateOTP();
     console.log(`Generated OTP for ${email}: ${otp}`);
 
-    // Hash the OTP
-    const hashedOtp = await hashOTP(otp);
+    // Hash the OTP using bcrypt (12 salt rounds for security)
+    const otpHash = await hashOTP(otp);
 
     // Set expiry time (10 minutes from now)
-    const expiry = getOTPExpiry(10);
+    const expiresAt = getOTPExpiry(10);
 
-    // Store password reset record in database
-    const passwordReset = await databaseHelpers.passwordReset.createPasswordReset(
+    // Store password reset record in database with hashed OTP
+    // Security: OTP is hashed before storage to prevent exposure if database is compromised
+    const passwordReset = await databaseHelpers.passwordReset.createPasswordReset({
       email,
-      hashedOtp,
-      expiry
-    );
+      otpHash,
+      expiresAt
+    });
 
     console.log(`Password reset record created for ${email} with ID: ${passwordReset.id}`);
 

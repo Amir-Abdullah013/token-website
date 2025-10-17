@@ -1,5 +1,4 @@
 // Simple email service for Next.js compatibility
-import nodemailer from 'nodemailer';
 
 // Email configuration
 const getEmailConfig = () => ({
@@ -13,10 +12,30 @@ const getEmailConfig = () => ({
 });
 
 // Create transporter
-const createTransporter = () => {
+const createTransporter = async () => {
   try {
+    // Dynamic import to avoid build-time issues
+    const nodemailerModule = await import('nodemailer');
+    
+    // Log module structure for debugging
+    console.log('Nodemailer module keys:', Object.keys(nodemailerModule));
+    
+    // Try different ways to access nodemailer
+    const nodemailer = nodemailerModule.default || nodemailerModule;
     const config = getEmailConfig();
-    return nodemailer.createTransporter(config);
+    
+    // Use createTransport (correct method name)
+    if (typeof nodemailerModule.createTransport === 'function') {
+      console.log('✅ Using nodemailerModule.createTransport');
+      return nodemailerModule.createTransport(config);
+    } else if (typeof nodemailer.createTransport === 'function') {
+      console.log('✅ Using nodemailer.createTransport');
+      return nodemailer.createTransport(config);
+    } else {
+      console.error('❌ Could not find createTransport method');
+      console.error('Available methods:', Object.keys(nodemailer));
+      return null;
+    }
   } catch (error) {
     console.error('Failed to create email transporter:', error);
     return null;
@@ -26,7 +45,7 @@ const createTransporter = () => {
 // Send OTP email
 const sendOTPEmail = async (email, otp, userName = 'User') => {
   try {
-    const transporter = createTransporter();
+    const transporter = await createTransporter();
     
     if (!transporter) {
       throw new Error('Email service not configured');
@@ -111,7 +130,7 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
 // Test email configuration
 const testEmailConfig = async () => {
   try {
-    const transporter = createTransporter();
+    const transporter = await createTransporter();
     
     if (!transporter) {
       return {

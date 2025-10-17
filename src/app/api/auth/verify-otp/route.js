@@ -43,7 +43,7 @@ export async function POST(request) {
       );
     }
 
-    // Get the most recent password reset record for this email
+    // Get the most recent unused password reset record for this email
     const passwordReset = await databaseHelpers.passwordReset.getPasswordResetByEmail(email);
     
     if (!passwordReset) {
@@ -53,16 +53,16 @@ export async function POST(request) {
       );
     }
 
-    // Check if OTP is expired
-    if (isOTPExpired(passwordReset.expiry)) {
+    // Check if OTP is expired (10 minutes default)
+    if (isOTPExpired(passwordReset.expiresAt)) {
       return NextResponse.json(
         { success: false, error: 'OTP has expired. Please request a new OTP.' },
         { status: 400 }
       );
     }
 
-    // Verify OTP
-    const isOtpValid = await verifyOTP(otp, passwordReset.hashedOtp);
+    // Verify OTP using bcrypt comparison (secure verification)
+    const isOtpValid = await verifyOTP(otp, passwordReset.otpHash);
     
     if (!isOtpValid) {
       return NextResponse.json(

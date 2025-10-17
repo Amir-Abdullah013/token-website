@@ -260,6 +260,33 @@ export const databaseHelpers = {
         console.error('Error getting admin user:', error);
         return null;
       }
+    },
+
+    /**
+     * Update user password
+     * @param {string} userId - User ID
+     * @param {string} hashedPassword - New hashed password (must be hashed with bcrypt before calling)
+     * @returns {Promise<Object>} Updated user record
+     */
+    async updatePassword(userId, hashedPassword) {
+      try {
+        const result = await pool.query(`
+          UPDATE users 
+          SET password = $1, "updatedAt" = NOW()
+          WHERE id = $2
+          RETURNING id, email, name, role, status, "createdAt", "updatedAt"
+        `, [hashedPassword, userId]);
+        
+        if (result.rows.length === 0) {
+          throw new Error(`User not found: ${userId}`);
+        }
+        
+        console.log('✅ User password updated:', userId);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating user password:', error);
+        throw error;
+      }
     }
   },
 
@@ -2317,6 +2344,144 @@ export const databaseHelpers = {
         throw error;
       } finally {
         if (client) client.release();
+      }
+    }
+  },
+
+  // Password Reset Helper
+  // Security: OTP should be hashed (bcrypt) before calling createPasswordReset
+  // Default expiry: 10 minutes
+  // Rate-limit forgot-password endpoint to prevent abuse
+  passwordReset: {
+    /**
+     * Create a new password reset record
+     * @param {Object} data - Reset data
+     * @param {string} data.email - User email
+     * @param {string} data.otpHash - Hashed OTP (use bcrypt before calling)
+     * @param {Date} data.expiresAt - Expiration timestamp
+     * @returns {Promise<Object>} Created password reset record
+     */
+    async createPasswordReset({ email, otpHash, expiresAt }) {
+      try {
+        const { randomUUID } = await import('crypto');
+        const id = randomUUID();
+        
+        const result = await pool.query(`
+          INSERT INTO password_resets (id, email, "hashedOtp", used, expiry, "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, false, $4, NOW(), NOW())
+          RETURNING id, email, "hashedOtp" as "otpHash", used, expiry as "expiresAt", "createdAt", "updatedAt"
+        `, [id, email, otpHash, expiresAt]);
+        
+        console.log('✅ Password reset created:', { id, email, expiresAt });
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error creating password reset:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get the most recent unused password reset for an email
+     * @param {string} email - User email
+     * @returns {Promise<Object|null>} Password reset record or null
+     */
+    async getPasswordResetByEmail(email) {
+      try {
+        const result = await pool.query(`
+          SELECT id, email, "hashedOtp" as "otpHash", used, expiry as "expiresAt", "createdAt", "updatedAt"
+          FROM password_resets
+          WHERE email = $1 AND used = false
+          ORDER BY "createdAt" DESC
+          LIMIT 1
+        `, [email]);
+        
+        if (result.rows.length === 0) {
+          console.log('No unused password reset found for:', email);
+          return null;
+        }
+        
+        console.log('✅ Password reset found:', { id: result.rows[0].id, email });
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error getting password reset by email:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get a specific password reset by ID
+     * @param {string} id - Reset ID
+     * @returns {Promise<Object|null>} Password reset record or null
+     */
+    async getPasswordResetById(id) {
+      try {
+        const result = await pool.query(`
+          SELECT id, email, "hashedOtp" as "otpHash", used, expiry as "expiresAt", "createdAt", "updatedAt"
+          FROM password_resets
+          WHERE id = $1
+        `, [id]);
+        
+        if (result.rows.length === 0) {
+          console.log('Password reset not found:', id);
+          return null;
+        }
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error getting password reset by ID:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Mark a password reset as used
+     * @param {string} id - Reset ID
+     * @returns {Promise<Object>} Updated password reset record
+     */
+    async markPasswordResetAsUsed(id) {
+      try {
+        const result = await pool.query(`
+          UPDATE password_resets
+          SET used = true, "updatedAt" = NOW()
+          WHERE id = $1
+          RETURNING id, email, "hashedOtp" as "otpHash", used, expiry as "expiresAt", "createdAt", "updatedAt"
+        `, [id]);
+        
+        if (result.rows.length === 0) {
+          throw new Error(`Password reset not found: ${id}`);
+        }
+        
+        console.log('✅ Password reset marked as used:', id);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error marking password reset as used:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Cleanup expired password resets
+     * Deletes all password reset records where expiresAt <= NOW() and used = false
+     * @returns {Promise<Object>} Object with count of deleted records
+     */
+    async cleanupExpiredResets() {
+      try {
+        const result = await pool.query(`
+          DELETE FROM password_resets
+          WHERE expiry <= NOW() AND used = false
+          RETURNING id
+        `);
+        
+        const count = result.rowCount || 0;
+        
+        if (count > 0) {
+          console.log(`✅ Cleaned up ${count} expired password resets`);
+        }
+        
+        return { count };
+      } catch (error) {
+        console.error('Error cleaning up expired password resets:', error);
+        throw error;
       }
     }
   }

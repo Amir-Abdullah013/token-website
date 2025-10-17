@@ -80,9 +80,9 @@ export default function ForgotPasswordPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="mt-6 text-3xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Check your email</h2>
+            <h2 className="mt-6 text-3xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">OTP Sent!</h2>
             <p className="mt-2 text-sm text-slate-300">
-              We've sent a password reset link to <strong className="text-emerald-300">{email}</strong>
+              We've sent a 6-digit OTP to <strong className="text-emerald-300">{email}</strong>
             </p>
           </div>
 
@@ -90,13 +90,23 @@ export default function ForgotPasswordPage() {
             <CardContent className="p-6 text-center">
               <div className="space-y-4">
                 <p className="text-sm text-slate-300">
-                  If you don't see the email in your inbox, check your spam folder.
+                  Check your email inbox for the OTP code.
                 </p>
                 <p className="text-sm text-slate-300">
-                  The link will expire in 1 hour for security reasons.
+                  The OTP will expire in <strong className="text-emerald-300">10 minutes</strong> for security reasons.
                 </p>
                 
                 <div className="flex flex-col space-y-3">
+                  <Link href={`/auth/reset-password?email=${encodeURIComponent(email)}`}>
+                    <Button 
+                      variant="primary" 
+                      fullWidth
+                      className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/30 transition-all duration-300 hover:scale-105"
+                    >
+                      Enter OTP & Reset Password →
+                    </Button>
+                  </Link>
+                  
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -111,9 +121,9 @@ export default function ForgotPasswordPage() {
                   
                   <Link href="/auth/signin">
                     <Button 
-                      variant="primary" 
+                      variant="outline" 
                       fullWidth
-                      className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30 transition-all duration-300 hover:scale-105"
+                      className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white border border-slate-400/30 transition-all duration-300 hover:scale-105"
                     >
                       Back to sign in
                     </Button>
