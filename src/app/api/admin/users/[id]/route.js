@@ -21,7 +21,7 @@ export async function GET(request, { params }) {
       );
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
     const user = await databaseHelpers.user.getUserById(userId);
     
     if (!user) {
@@ -78,7 +78,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
     const { name, email, role, status } = await request.json();
 
     // Check if user exists
@@ -151,7 +151,7 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
 
     // Prevent admin from deleting themselves
     if (userId === session.id) {

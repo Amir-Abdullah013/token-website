@@ -21,7 +21,7 @@ export async function GET(request, { params }) {
       );
     }
 
-    const notificationId = params.id;
+    const { id: notificationId } = await params;
 
     console.log('📬 Fetching notification:', notificationId);
 
@@ -70,7 +70,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    const notificationId = params.id;
+    const { id: notificationId } = await params;
     const { title, message, type } = await request.json();
 
     if (!title || !message || !type) {
@@ -141,7 +141,7 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    const notificationId = params.id;
+    const { id: notificationId } = await params;
 
     console.log('🗑️ Deleting notification:', notificationId);
 

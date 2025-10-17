@@ -20,7 +20,7 @@ export async function GET(request, { params }) {
       );
     }
 
-    const depositId = params.id;
+    const { id: depositId } = await params;
     const depositRequest = await databaseHelpers.deposit.getDepositRequestById(depositId);
 
     if (!depositRequest) {
@@ -62,7 +62,7 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    const depositId = params.id;
+    const { id: depositId } = await params;
     const { action, adminNotes } = await request.json();
 
     if (!action || !['approve', 'reject'].includes(action)) {

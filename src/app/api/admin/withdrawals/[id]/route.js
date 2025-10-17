@@ -21,7 +21,7 @@ export async function GET(request, { params }) {
       );
     }
 
-    const withdrawalId = params.id;
+    const { id: withdrawalId } = await params;
     const transaction = await databaseHelpers.transaction.getTransactionById(withdrawalId);
 
     if (!transaction) {
@@ -63,7 +63,7 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    const withdrawalId = params.id;
+    const { id: withdrawalId } = await params;
     const { action, adminNotes } = await request.json();
 
     if (!action || !['approve', 'reject'].includes(action)) {

@@ -155,58 +155,186 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleToggleUserStatus = async (user) => {
+  const handleToggleUserStatus = async (user, retryCount = 0) => {
+    const maxRetries = 2;
+    
+    // Prevent self-deactivation
+    if (adminUser && user.id === adminUser.id) {
+      error('You cannot deactivate your own account. This is a security measure to prevent account lockout.');
+      return;
+    }
+    
     try {
       setActionLoading(true);
-      const newStatus = adminUser.status === 'active' ? 'inactive' : 'active';
+      const newStatus = user.status === 'active' ? 'inactive' : 'active';
       
-      const response = await fetch(`/api/admin/users/${adminUser.id}/status`, {
+      console.log(`🔄 Toggling user status (attempt ${retryCount + 1}/${maxRetries + 1}):`, {
+        userId: user.id,
+        currentStatus: user.status,
+        newStatus: newStatus
+      });
+      
+      // First, let's test if the API endpoint is reachable
+      console.log('🧪 Testing API endpoint reachability...');
+      try {
+        const testResponse = await fetch(`/api/admin/users/${user.id}/status`, {
+          method: 'OPTIONS'
+        });
+        console.log('🧪 OPTIONS test response:', testResponse.status);
+      } catch (testError) {
+        console.log('🧪 OPTIONS test failed:', testError);
+      }
+      
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      console.log('🌐 Making API request to:', `/api/admin/users/${user.id}/status`);
+      console.log('🌐 Request payload:', { status: newStatus });
+      
+      const response = await fetch(`/api/admin/users/${user.id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
+      
+      console.log('🌐 API Response received:', {
+        url: response.url,
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        type: response.type,
+        redirected: response.redirected
+      });
+      
+      console.log('📡 Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      
+      // Log response body for debugging
+      const responseClone = response.clone();
+      try {
+        const responseText = await responseClone.text();
+        console.log('📡 Response body (raw):', responseText);
+      } catch (textError) {
+        console.error('❌ Failed to read response body:', textError);
+      }
 
       if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Status update successful:', data);
-        success(`User ${adminUser.name} ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
-        
-        // Update the user in local state immediately for better UX
-        setUsers(prevUsers => {
-          const updatedUsers = prevUsers.map(u => 
-            u.id === adminUser.id 
-              ? { ...u, status: newStatus, updatedAt: new Date().toISOString() }
-              : u
-          );
-          console.log('🔄 Updated users state:', updatedUsers.find(u => u.id === adminUser.id));
-          return updatedUsers;
-        });
-        
-        setFilteredUsers(prevFiltered => {
-          const updatedFiltered = prevFiltered.map(u => 
-            u.id === adminUser.id 
-              ? { ...u, status: newStatus, updatedAt: new Date().toISOString() }
-              : u
-          );
-          console.log('🔄 Updated filtered users state:', updatedFiltered.find(u => u.id === adminUser.id));
-          return updatedFiltered;
-        });
-        
-        // Also reload from server to ensure consistency, but preserve local changes
-        setTimeout(() => {
-          console.log('🔄 Reloading users from server...');
-          loadUsers();
-        }, 1000);
+        try {
+          const data = await response.json();
+          console.log('✅ Status update successful:', data);
+          success(`User ${user.name} ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
+          
+          // Update the user in local state immediately for better UX
+          setUsers(prevUsers => {
+            const updatedUsers = prevUsers.map(u => 
+              u.id === user.id 
+                ? { ...u, status: newStatus, updatedAt: new Date().toISOString() }
+                : u
+            );
+            console.log('🔄 Updated users state:', updatedUsers.find(u => u.id === user.id));
+            return updatedUsers;
+          });
+          
+          setFilteredUsers(prevFiltered => {
+            const updatedFiltered = prevFiltered.map(u => 
+              u.id === user.id 
+                ? { ...u, status: newStatus, updatedAt: new Date().toISOString() }
+                : u
+            );
+            console.log('🔄 Updated filtered users state:', updatedFiltered.find(u => u.id === user.id));
+            return updatedFiltered;
+          });
+          
+          // Also reload from server to ensure consistency, but preserve local changes
+          setTimeout(() => {
+            console.log('🔄 Reloading users from server...');
+            loadUsers();
+          }, 1000);
+        } catch (jsonError) {
+          console.error('❌ Failed to parse success response:', jsonError);
+          error('Status updated but failed to parse response');
+        }
       } else {
-        const errorData = await response.json();
-        console.error('Status update error:', errorData);
-        error(`Failed to update user status: ${errorData.error || 'Unknown error'}`);
+        // Handle error response - simplified approach
+        console.log('❌ Error response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+        
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        
+        try {
+          const responseText = await response.text();
+          console.log('📡 Raw error response text:', responseText);
+          
+          if (responseText && responseText.trim()) {
+            try {
+              const parsedError = JSON.parse(responseText);
+              console.log('📡 Parsed error JSON:', parsedError);
+              errorMessage = parsedError.error || parsedError.message || errorMessage;
+            } catch (parseError) {
+              console.log('📡 Response is not JSON, using as text:', responseText);
+              errorMessage = responseText || errorMessage;
+            }
+          } else {
+            console.log('📡 Empty response body');
+          }
+        } catch (textError) {
+          console.error('❌ Failed to read response text:', textError);
+        }
+        
+        console.error('❌ Final error message:', errorMessage);
+        
+        // Handle specific business logic errors
+        if (errorMessage.includes('Cannot deactivate your own account')) {
+          // This is a business rule, not an error - show as warning
+          error('You cannot deactivate your own account. This is a security measure to prevent account lockout.');
+        } else if (errorMessage.includes('HTTP 500') || errorMessage.includes('Internal Server Error')) {
+          error('Server error occurred. Please check the server logs and try again.');
+        } else if (errorMessage.includes('HTTP 401') || errorMessage.includes('Authentication')) {
+          error('Authentication failed. Please refresh the page and try again.');
+        } else if (errorMessage.includes('HTTP 403') || errorMessage.includes('Admin access')) {
+          error('Access denied. You need admin privileges to perform this action.');
+        } else if (errorMessage.includes('HTTP 404')) {
+          error('User not found. Please refresh the page and try again.');
+        } else {
+          error(`Failed to update user status: ${errorMessage}`);
+        }
       }
     } catch (err) {
-      console.error('Error updating user status:', err);
-      error('Failed to update user status');
+      console.error('❌ Error updating user status:', err);
+      
+      // Retry logic for certain errors
+      if (retryCount < maxRetries && (
+        err.name === 'AbortError' || 
+        (err.name === 'TypeError' && err.message.includes('fetch')) ||
+        (err.message && err.message.includes('timeout'))
+      )) {
+        console.log(`🔄 Retrying request (${retryCount + 1}/${maxRetries})...`);
+        setTimeout(() => {
+          handleToggleUserStatus(user, retryCount + 1);
+        }, 1000 * (retryCount + 1)); // Exponential backoff
+        return;
+      }
+      
+      if (err.name === 'AbortError') {
+        error('Request timed out. Please try again.');
+      } else if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        error('Network error. Please check your connection and try again.');
+      } else {
+        error(`Failed to update user status: ${err.message || 'Unknown error'}`);
+      }
     } finally {
       setActionLoading(false);
     }
@@ -442,8 +570,13 @@ export default function AdminUsersPage() {
                               </div>
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-white">
+                              <div className="text-sm font-medium text-white flex items-center gap-2">
                                 {user.name}
+                                {(adminUser && user.id === adminUser.id) && (
+                                  <span className="px-2 py-1 text-xs bg-blue-500/20 text-blue-300 border border-blue-400/30 rounded-full">
+                                    You
+                                  </span>
+                                )}
                               </div>
                               <div className="text-sm text-slate-300">
                                 {user.email}
@@ -488,25 +621,33 @@ export default function AdminUsersPage() {
                             >
                               View
                             </Button>
+                            
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleEditUser(user)}
-                              className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-emerald-200 border border-emerald-400/30"
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleToggleUserStatus(user)}
-                              disabled={actionLoading}
-                              className={(user.status || 'active') === 'active' 
-                                ? 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 hover:from-red-500/30 hover:to-rose-500/30 hover:text-red-200 border border-red-400/30' 
-                                : 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-emerald-200 border border-emerald-400/30'
+                              onClick={() => {
+                                if (adminUser && user.id === adminUser.id) {
+                                  error('You cannot deactivate your own account. This is a security measure to prevent account lockout.');
+                                  return;
+                                }
+                                handleToggleUserStatus(user);
+                              }}
+                              disabled={actionLoading || (adminUser && user.id === adminUser.id)}
+                              className={
+                                (adminUser && user.id === adminUser.id)
+                                  ? 'bg-gray-500/20 text-gray-400 border-gray-500/30 cursor-not-allowed'
+                                  : (user.status || 'active') === 'active' 
+                                    ? 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-300 hover:from-red-500/30 hover:to-rose-500/30 hover:text-red-200 border border-red-400/30' 
+                                    : 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 hover:from-emerald-500/30 hover:to-green-500/30 hover:text-emerald-200 border border-emerald-400/30'
                               }
+                              title={(adminUser && user.id === adminUser.id) ? 'You cannot deactivate your own account' : ''}
                             >
-                              {(user.status || 'active') === 'active' ? 'Deactivate' : 'Activate'}
+                              {(adminUser && user.id === adminUser.id) 
+                                ? 'Self' 
+                                : (user.status || 'active') === 'active' 
+                                  ? 'Deactivate' 
+                                  : 'Activate'
+                              }
                             </Button>
                             <Button
                               size="sm"

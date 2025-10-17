@@ -21,7 +21,7 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    const transactionId = params.id;
+    const { id: transactionId } = await params;
     const { status } = await request.json();
 
     if (!status || !['PENDING', 'COMPLETED', 'FAILED'].includes(status)) {
