@@ -88,7 +88,7 @@ const Navbar = ({ user, onSignOut }) => {
           className="rounded-md"
           priority           // ensures fast load
         />
-                  <span className="text-2xl font-bold text-white">TokenApp</span>
+                  <span className="text-2xl font-bold text-white">Pryvons</span>
                 </div>
               </Link>
             </div>

@@ -258,7 +258,7 @@ export default function CreateTicketPage() {
                     <div className="text-2xl">📧</div>
                     <div>
                       <h4 className="font-medium text-gray-900">Email</h4>
-                      <p className="text-sm text-gray-600">support@tokenapp.com</p>
+                      <p className="text-sm text-gray-600">support@Pryvons.com</p>
                     </div>
                   </div>
                 </div>

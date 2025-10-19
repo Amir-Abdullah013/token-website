@@ -207,7 +207,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">
-              Why Choose <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">TokenApp</span>?
+              Why Choose <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Pryvons</span>?
             </h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
               Built for serious traders who demand the best performance and security.
@@ -262,7 +262,7 @@ export default function Home() {
               Ready to Start Your <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Trading Journey</span>?
             </h2>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join <span className="text-cyan-400 font-semibold">thousands of successful traders</span> who trust TokenApp for their crypto needs.
+              Join <span className="text-cyan-400 font-semibold">thousands of successful traders</span> who trust Pryvons for their crypto needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center px-4">
               <Link href="/auth/signup" className="w-full sm:w-auto">
@@ -293,10 +293,15 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold">T</span>
-              </div>
-              <span className="text-xl font-bold text-white">TokenApp</span>
+            <Image
+          src="/logo.png"   // ✅ Path from /public folder
+          alt="Website Logo"
+          width={40}         // adjust as needed
+          height={40}
+          className="rounded-md"
+          priority           // ensures fast load
+        />
+              <span className="text-xl font-bold text-white">Pryvons</span>
             </div>
             <p className="text-gray-400 mb-6">
               The future of cryptocurrency trading is here.

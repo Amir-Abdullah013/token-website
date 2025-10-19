@@ -242,7 +242,7 @@ export default function UserDashboard() {
         
         // Show success message
         setTimeout(() => {
-          success(`🎉 Successfully signed in with ${provider}! Welcome to TokenApp!`);
+          success(`🎉 Successfully signed in with ${provider}! Welcome to Pryvons!`);
         }, 1000);
         
         // Clean up URL parameters
