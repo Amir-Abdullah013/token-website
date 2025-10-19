@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { databaseHelpers } from '../../../../lib/database';
+import { databaseHelpers } from '@/lib/database';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 

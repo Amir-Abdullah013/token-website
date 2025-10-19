@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import Card, { CardContent, CardHeader, CardTitle } from '../../components/Card';
-import Button from '../../components/Button';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
+import Button from '@/components/Button';
 
 export default function FeaturesPage() {
   const router = useRouter();

@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAdminAuth } from "../../../lib/admin-auth";
-import Layout from "../../../components/Layout";
-import AdminRoute from "../../../components/AdminRoute";
+import { useAdminAuth } from '@/lib/admin-auth';
+import Layout from '@/components/Layout';
+import AdminRoute from '@/components/AdminRoute';
 
-import Button from "../../../components/Button";
+import Button from '@/components/Button';
 import Card, {
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../../components/Card";
+} from '@/components/Card';
 
 export default function AdminDashboard() {
   const { adminUser, isLoading, isAuthenticated } = useAdminAuth();

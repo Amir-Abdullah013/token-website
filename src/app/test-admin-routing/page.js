@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Button from '../../components/Button';
-import Card, { CardContent, CardHeader, CardTitle } from '../../components/Card';
+import Button from '@/components/Button';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
 
 export default function TestAdminRoutingPage() {
   const router = useRouter();

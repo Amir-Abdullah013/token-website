@@ -1,6 +1,6 @@
 'use client';
 
-import { useTiki } from '../lib/tiki-context';
+import { useTiki } from '@/lib/tiki-context';
 
 const TikiStatusBar = () => {
   const { usdBalance, tikiBalance, tikiPrice, formatCurrency, formatTiki, isLoading } = useTiki();

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '../../../lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 import { Button, Card, CardContent, AlertModal, Loader } from '../../../components';
 
 export default function VerifyEmailPage() {

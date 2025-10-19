@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useAdminAuth } from '../../../lib/admin-auth';
+import { useAdminAuth } from '@/lib/admin-auth';
 // Removed direct database import - using API calls instead;
-import Layout from '../../../components/Layout';
-import AdminRoute from '../../../components/AdminRoute';
-import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
-import Button from '../../../components/Button';
-import Input from '../../../components/Input';
-import { useToast, ToastContainer } from '../../../components/Toast';
+import Layout from '@/components/Layout';
+import AdminRoute from '@/components/AdminRoute';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import { useToast, ToastContainer } from '@/components/Toast';
 
 // Status badge component
 const StatusBadge = ({ status }) => {

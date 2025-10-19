@@ -2,19 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
-import { useTiki } from '../../../lib/tiki-context';
+import { useAuth } from '@/lib/auth-context';
+import { useTiki } from '@/lib/tiki-context';
 import { usePriceUpdates } from '../../../hooks/usePriceUpdates';
-import { useFeeCalculator } from '../../../lib/hooks/useFeeCalculator';
+import { useFeeCalculator } from '@/lib/hooks/useFeeCalculator';
 import { useMarketData } from '../../../hooks/useMarketData';
 import { useOrderBook } from '../../../hooks/useOrderBook';
-import Layout from '../../../components/Layout';
-import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
-import Button from '../../../components/Button';
-import Input from '../../../components/Input';
-import TikiPriceChart from '../../../components/TikiPriceChart';
-import { ToastContainer, useToast } from '../../../components/Toast';
-import { AlertModal } from '../../../components/Modal';
+import Layout from '@/components/Layout';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import TikiPriceChart from '@/components/TikiPriceChart';
+import { ToastContainer, useToast } from '@/components/Toast';
+import { AlertModal } from '@/components/Modal';
 
 export default function TradePage() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -47,6 +47,10 @@ export default function TradePage() {
   const [price, setPrice] = useState('');
   const [total, setTotal] = useState(0);
   const [isTrading, setIsTrading] = useState(false);
+  
+  // Orders state
+  const [userOrders, setUserOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   // Calculate fee for trading (1% for buy/sell)
   const amountValue = parseFloat(amount) || 0;
@@ -131,6 +135,53 @@ export default function TradePage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Fetch user orders
+  const fetchUserOrders = async () => {
+    if (!user?.id) return;
+    
+    setOrdersLoading(true);
+    try {
+      const response = await fetch(`/api/orders/user/${user.id}?status=PENDING`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setUserOrders(data.orders);
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  // Fetch orders on mount and when user changes
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserOrders();
+    }
+  }, [user?.id]);
+
+  // Cancel order handler
+  const handleCancelOrder = async (orderId) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}/cancel`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        showTradeModalMessage('success', 'Order Canceled', 'Your order has been canceled successfully');
+        fetchUserOrders(); // Refresh orders list
+      } else {
+        showTradeModalMessage('error', 'Cancellation Failed', data.error || 'Failed to cancel order');
+      }
+    } catch (error) {
+      console.error('Error canceling order:', error);
+      showTradeModalMessage('error', 'Error', 'An error occurred while canceling the order');
+    }
+  };
+
   // Handle trade execution with API-based price calculation
   const handleTrade = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -146,61 +197,99 @@ export default function TradePage() {
     setIsTrading(true);
     try {
       const amountValue = parseFloat(amount);
+      const priceValue = parseFloat(price);
       
-      if (tradeType === 'buy') {
-        // BUYING TIKI TOKENS LOGIC
-        // Check if user has sufficient USD balance
-        if (amountValue > usdBalance) {
-          showTradeModalMessage(
-            'error',
-            'Insufficient Balance',
-            `You don't have enough USD balance. Available: ${formatCurrency(usdBalance, 'USD')}`
-          );
-          return;
-        }
-        
-        // Use the new API-based buy function
-        const result = await buyTiki(amountValue);
-        
+      // LIMIT ORDER LOGIC
+      if (orderType === 'limit') {
+        // Create a limit order
+        const response = await fetch('/api/orders/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderType: tradeType.toUpperCase(),
+            priceType: 'LIMIT',
+            amount: amountValue,
+            limitPrice: priceValue
+          }),
+        });
+
+        const result = await response.json();
+
         if (result.success) {
-          let message = `Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`;
-          if (result.newPrice !== result.oldPrice) {
-            message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
+          showTradeModalMessage(
+            'success',
+            'Limit Order Created! 📋',
+            `Your ${tradeType} limit order has been created. It will execute when the price reaches ${formatCurrency(priceValue, 'USD')}`
+          );
+          // Refresh orders list if it exists
+          if (typeof fetchUserOrders === 'function') {
+            fetchUserOrders();
           }
-          showTradeModalMessage('success', 'Buy Successful! 🎉', message);
         } else {
-          showTradeModalMessage('error', 'Buy Failed', result.error || 'Unknown error occurred');
+          showTradeModalMessage('error', 'Order Failed', result.error || 'Failed to create limit order');
         }
         
       } else {
-        // SELLING TIKI TOKENS LOGIC
-        // Check if user has sufficient Tiki balance
-        if (amountValue > tikiBalance) {
-          showTradeModalMessage(
-            'error',
-            'Insufficient Balance',
-            `You don't have enough Tiki balance. Available: ${formatTiki(tikiBalance)} TIKI`
-          );
-          return;
-        }
-        
-        // Use the new API-based sell function
-        const result = await sellTiki(amountValue);
-        
-        if (result.success) {
-          let message = `Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`;
-          if (result.newPrice !== result.oldPrice) {
-            message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
+        // MARKET ORDER LOGIC
+        if (tradeType === 'buy') {
+          // BUYING TIKI TOKENS LOGIC
+          // Check if user has sufficient USD balance
+          if (amountValue > usdBalance) {
+            showTradeModalMessage(
+              'error',
+              'Insufficient Balance',
+              `You don't have enough USD balance. Available: ${formatCurrency(usdBalance, 'USD')}`
+            );
+            return;
           }
-          showTradeModalMessage('success', 'Sell Successful! 🎉', message);
+          
+          // Use the new API-based buy function
+          const result = await buyTiki(amountValue);
+          
+          if (result.success) {
+            let message = `Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`;
+            if (result.newPrice !== result.oldPrice) {
+              message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
+            }
+            showTradeModalMessage('success', 'Buy Successful! 🎉', message);
+          } else {
+            showTradeModalMessage('error', 'Buy Failed', result.error || 'Unknown error occurred');
+          }
+          
         } else {
-          showTradeModalMessage('error', 'Sell Failed', result.error || 'Unknown error occurred');
+          // SELLING TIKI TOKENS LOGIC
+          // Check if user has sufficient Tiki balance
+          if (amountValue > tikiBalance) {
+            showTradeModalMessage(
+              'error',
+              'Insufficient Balance',
+              `You don't have enough Tiki balance. Available: ${formatTiki(tikiBalance)} TIKI`
+            );
+            return;
+          }
+          
+          // Use the new API-based sell function
+          const result = await sellTiki(amountValue);
+          
+          if (result.success) {
+            let message = `Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`;
+            if (result.newPrice !== result.oldPrice) {
+              message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
+            }
+            showTradeModalMessage('success', 'Sell Successful! 🎉', message);
+          } else {
+            showTradeModalMessage('error', 'Sell Failed', result.error || 'Unknown error occurred');
+          }
         }
       }
       
-      // Reset form after successful trade
+      // Reset form after successful trade/order
       setAmount('');
-      setPrice('');
+      if (orderType === 'limit') {
+        setPrice('');
+      }
     } catch (error) {
       console.error('Trade error:', error);
       showTradeModalMessage('error', 'Trade Failed', 'An unexpected error occurred. Please try again.');
@@ -515,6 +604,72 @@ export default function TradePage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Open Orders Section */}
+              {userOrders.length > 0 && (
+                <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Open Orders</CardTitle>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/cron/match-orders', { method: 'POST' });
+                          const data = await response.json();
+                          if (data.success) {
+                            showTradeModalMessage('success', 'Orders Refreshed', 'Order matching completed. Check if any orders were executed.');
+                            fetchUserOrders(); // Refresh the orders list
+                          } else {
+                            showTradeModalMessage('error', 'Refresh Failed', data.error || 'Failed to refresh orders');
+                          }
+                        } catch (error) {
+                          showTradeModalMessage('error', 'Error', 'Failed to refresh orders');
+                        }
+                      }}
+                      className="text-xs px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded border border-blue-400/30 transition-colors"
+                      title="Check if any orders should execute now"
+                    >
+                      🔄 Check Orders
+                    </button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {userOrders.map((order) => (
+                        <div key={order.id} className="p-3 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg border border-slate-600/30">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className={`font-semibold ${order.orderType === 'BUY' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                  {order.orderType}
+                                </span>
+                                <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded">
+                                  {order.priceType}
+                                </span>
+                              </div>
+                              <div className="text-sm text-slate-300 mt-1">
+                                {order.orderType === 'BUY' ? 'USD' : 'TIKI'}: {order.amount.toFixed(2)}
+                              </div>
+                              {order.limitPrice && (
+                                <div className="text-xs text-slate-400">
+                                  Limit Price: ${order.limitPrice.toFixed(6)}
+                                </div>
+                              )}
+                              <div className="text-xs text-slate-500 mt-1">
+                                {new Date(order.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleCancelOrder(order.id)}
+                              className="text-xs px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded border border-red-400/30 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Center Column - Charts and Market Data */}

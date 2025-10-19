@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession, getUserRole } from '../../../../../../lib/session';
-import { databaseHelpers } from '../../../../../../lib/database';
+import { getServerSession, getUserRole } from '@/lib/session';
+import { databaseHelpers } from '@/lib/database';
 
 // Update transaction status
 export async function PATCH(request, { params }) {

@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
-import { useTiki } from '../../../lib/tiki-context';
-import { useFeeCalculator } from '../../../lib/hooks/useFeeCalculator';
-import Layout from '../../../components/Layout';
-import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
-import Button from '../../../components/Button';
-import Input from '../../../components/Input';
-import { useToast, ToastContainer } from '../../../components/Toast';
+import { useAuth } from '@/lib/auth-context';
+import { useTiki } from '@/lib/tiki-context';
+import { useFeeCalculator } from '@/lib/hooks/useFeeCalculator';
+import Layout from '@/components/Layout';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import { useToast, ToastContainer } from '@/components/Toast';
 
 // Utility function to safely parse response
 const parseResponse = async (response) => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 
 export default function TestAccountStatus() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();

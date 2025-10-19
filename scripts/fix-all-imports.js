@@ -65,8 +65,8 @@ function fixRouteFile(filePath) {
           modules.databaseHelpers = dbModule.databaseHelpers;
         }
         if (content.includes('authHelpers.')) {
-          const authModule = await import('@/lib/supabase');
-          modules.authHelpers = authModule.authHelpers;
+          // Removed Supabase import - using session-based auth
+          modules.// Removed authHelpers - using session-based auth
         }
         if (content.includes('prisma.')) {
           const prismaModule = await import('@/lib/prisma');

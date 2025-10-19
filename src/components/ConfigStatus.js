@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuth } from '../lib/auth-context';
-import { validateConfig } from '../lib/config';
+import { useAuth } from '@/lib/auth-context';
+import { validateConfig } from '@/lib/config';
 
 const ConfigStatus = () => {
   const { configValid, error } = useAuth();

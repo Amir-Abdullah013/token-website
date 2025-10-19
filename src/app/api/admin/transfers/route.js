@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession, getUserRole } from '../../../../lib/session';
-import { databaseHelpers } from '../../../../lib/database';
+import { getServerSession, getUserRole } from '@/lib/session';
+import { databaseHelpers } from '@/lib/database';
 import { handleApiError, handleAuthError } from '../../error-handler';
 
 export async function GET(request) {

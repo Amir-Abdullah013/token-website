@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getServerSession, getUserRole } from '../../../../../lib/session';
-import { databaseHelpers } from '../../../../../lib/database';
-import { calculateFee, creditFeeToAdmin } from '../../../../../lib/fees';
+import { getServerSession, getUserRole } from '@/lib/session';
+import { databaseHelpers } from '@/lib/database';
+import { calculateFee, creditFeeToAdmin } from '@/lib/fees';
 
 export async function GET(request, { params }) {
   try {

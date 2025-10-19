@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { config } from '../../../../lib/config';
-import { getBaseUrl, getSigninUrl, getDashboardUrl, getOAuthCallbackUrl } from '../../../../lib/url-utils';
+import { config } from '@/lib/config';
+import { getBaseUrl, getSigninUrl, getDashboardUrl, getOAuthCallbackUrl } from '@/lib/url-utils';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);

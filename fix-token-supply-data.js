@@ -47,7 +47,7 @@ async function fixTokenSupply() {
     const adminReserve = Number(currentSupply.adminReserve);
     
     // Calculate what should be tracked
-    const totalUserSupply = 2000000; // 20% allocation
+    const totalUserSupply = 10000000; // 20% allocation
     const usedUserSupply = totalUserSupply - userSupplyRemaining;
     const discrepancy = distributedSupply - usedUserSupply;
 

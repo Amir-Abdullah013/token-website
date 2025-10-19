@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '../../../../lib/session';
+import { getServerSession } from '@/lib/session';
 
 export async function POST(request) {
   console.log('🔍 MINIMAL TEST: Testing minimal transfer');

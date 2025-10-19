@@ -1,8 +1,8 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
-import ClientOnlyRoute from '../components/ClientOnlyRoute';
-import { AuthProvider } from '../lib/auth-context';
-import { TikiProvider } from '../lib/tiki-context';
+import ClientOnlyRoute from '@/components/ClientOnlyRoute';
+import { AuthProvider } from '@/lib/auth-context';
+import { TikiProvider } from '@/lib/tiki-context';
 
 const inter = Inter({ subsets: ['latin'] });
 

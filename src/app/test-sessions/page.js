@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { authHelpers } from '../../lib/supabase';
+import { authHelpers } from '@/lib/supabase';
 
 export default function TestSessions() {
   const [sessions, setSessions] = useState([]);

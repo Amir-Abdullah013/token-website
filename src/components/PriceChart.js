@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 import Card, { CardContent, CardHeader, CardTitle } from './Card';
 import Button from './Button';
-import { useTiki } from '../lib/tiki-context';
+import { useTiki } from '@/lib/tiki-context';
 
 // Time filter options
 const TIME_FILTERS = [

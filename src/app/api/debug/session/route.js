@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession, getUserRole } from '../../../../lib/session';
+import { getServerSession, getUserRole } from '@/lib/session';
 
 export async function GET() {
   try {

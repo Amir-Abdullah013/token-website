@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
-import { useTiki } from '../../../lib/tiki-context';
+import { useAuth } from '@/lib/auth-context';
+import { useTiki } from '@/lib/tiki-context';
 import { usePriceUpdates } from '../../../hooks/usePriceUpdates';
-import Layout from '../../../components/Layout';
-import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
-import Button from '../../../components/Button';
-import WalletOverview from '../../../components/WalletOverview';
-import PriceChart from '../../../components/PriceChart';
-import UserIdDisplay from '../../../components/UserIdDisplay';
-import { ToastContainer, useToast } from '../../../components/Toast';
-import { AlertModal } from '../../../components/Modal';
+import Layout from '@/components/Layout';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
+import Button from '@/components/Button';
+import WalletOverview from '@/components/WalletOverview';
+import PriceChart from '@/components/PriceChart';
+import UserIdDisplay from '@/components/UserIdDisplay';
+import { ToastContainer, useToast } from '@/components/Toast';
+import { AlertModal } from '@/components/Modal';
+import WalletFeeReferralBanner from '@/components/WalletFeeReferralBanner';
 import Link from 'next/link';
 
 export default function UserDashboard() {
@@ -327,6 +328,9 @@ export default function UserDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Wallet Fee Referral Banner */}
+        <WalletFeeReferralBanner />
 
         {/* Portfolio Overview Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

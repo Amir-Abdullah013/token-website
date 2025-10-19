@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { calculateFee, creditFeeToAdmin } from '../../../../lib/fees';
+import { calculateFee, creditFeeToAdmin } from '@/lib/fees';
 
 export async function POST(request) {
   try {
@@ -10,6 +10,14 @@ export async function POST(request) {
         { success: false, error: 'Invalid user ID or amount' },
         { status: 400 }
       );
+    }
+
+    // Check if wallet is locked
+    const { checkWalletLock, createWalletLockedResponse } = await import('../../../../lib/walletLockCheck.js');
+    const lockCheck = await checkWalletLock(userId);
+    if (!lockCheck.allowed) {
+      console.log('❌ Wallet is locked for user:', userId);
+      return createWalletLockedResponse();
     }
 
     // Get current price from SUPPLY-BASED calculation (buy-based inflation removed)

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { authHelpers } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 import { Button, Card, Input, Loader, Toast } from '@/components';
 import { formatDistanceToNow } from 'date-fns';
 

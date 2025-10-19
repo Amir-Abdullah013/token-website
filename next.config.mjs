@@ -3,7 +3,6 @@ const nextConfig = {
   // Performance optimizations
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['@/components', '@/lib'],
   },
   
   // Webpack configuration to handle fs module issues and bundle analysis

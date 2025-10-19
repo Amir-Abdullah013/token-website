@@ -1659,14 +1659,19 @@ export const databaseHelpers = {
               r."createdAt" as signup_date,
               u.name as referred_name,
               u.email as referred_email,
-              COALESCE(SUM(CASE WHEN s.status = 'CLAIMED' THEN s.profit ELSE 0 END), 0) as total_staking_profit,
-              COALESCE(SUM(re.amount), 0) as total_earnings_from_user
+              (
+                SELECT COALESCE(SUM(CASE WHEN s.status = 'CLAIMED' THEN s.profit ELSE 0 END), 0)
+                FROM staking s
+                WHERE s."userId" = r."referredId"
+              ) as total_staking_profit,
+              (
+                SELECT COALESCE(SUM(re.amount), 0)
+                FROM referral_earnings re
+                WHERE re."referralId" = r.id
+              ) as total_earnings_from_user
             FROM referrals r
             LEFT JOIN users u ON r."referredId" = u.id
-            LEFT JOIN staking s ON s."userId" = r."referredId"
-            LEFT JOIN referral_earnings re ON re."referralId" = r.id
             WHERE r."referrerId" = $1
-            GROUP BY r."referrerId", r."referredId", r."createdAt", u.name, u.email
           ),
           total_earnings AS (
             SELECT COALESCE(SUM(re.amount), 0) as total_referral_earnings
@@ -1910,16 +1915,28 @@ export const databaseHelpers = {
           }
 
           const supply = currentSupply.rows[0];
+          
+          // Calculate distribution: 20% to user supply, 80% to admin reserve
+          const userSupplyAmount = Math.floor(amount * 0.20); // 20% to user supply
+          const adminReserveAmount = amount - userSupplyAmount; // 80% to admin reserve
+          
           const newTotalSupply = Number(supply.totalSupply) + amount;
           const newRemainingSupply = Number(supply.remainingSupply) + amount;
+          const newUserSupplyRemaining = Number(supply.userSupplyRemaining) + userSupplyAmount;
+          const newAdminReserve = Number(supply.adminReserve) + adminReserveAmount;
 
-          // Update token supply
+          // Update token supply with distribution
           const updatedSupply = await client.query(`
             UPDATE token_supply 
-            SET "totalSupply" = $1, "remainingSupply" = $2, "updatedAt" = NOW()
-            WHERE id = $3
+            SET 
+              "totalSupply" = $1, 
+              "remainingSupply" = $2, 
+              "userSupplyRemaining" = $3,
+              "adminReserve" = $4,
+              "updatedAt" = NOW()
+            WHERE id = $5
             RETURNING *
-          `, [newTotalSupply, newRemainingSupply, supply.id]);
+          `, [newTotalSupply, newRemainingSupply, newUserSupplyRemaining, newAdminReserve, supply.id]);
 
           // Record mint history
           const { randomUUID } = await import('crypto');
@@ -1931,17 +1948,27 @@ export const databaseHelpers = {
 
           await client.query('COMMIT');
 
-          console.log('✅ Tokens minted successfully:', {
+          console.log('✅ Tokens minted successfully with distribution:', {
             adminId,
-            amount,
+            totalAmount: amount,
+            userSupplyAmount: userSupplyAmount,
+            adminReserveAmount: adminReserveAmount,
             newTotalSupply,
-            newRemainingSupply
+            newRemainingSupply,
+            newUserSupplyRemaining,
+            newAdminReserve
           });
 
           return {
             success: true,
             totalSupply: newTotalSupply,
             remainingSupply: newRemainingSupply,
+            userSupplyRemaining: newUserSupplyRemaining,
+            adminReserve: newAdminReserve,
+            distribution: {
+              userSupply: userSupplyAmount,
+              adminReserve: adminReserveAmount
+            },
             mintHistory: mintHistory.rows[0]
           };
 
@@ -1998,23 +2025,20 @@ export const databaseHelpers = {
           throw new Error('TokenSupply record not found');
         }
 
-        // IMPROVED SUPPLY-BASED ECONOMY: More visible and realistic price growth
-        const totalUserSupply = 2000000; // Initial 20% allocation
+        // TOTAL SUPPLY-BASED ECONOMY: Price based on total supply usage
         const userSupplyRemaining = Number(tokenSupply.userSupplyRemaining);
-      const adminReserve = Number(tokenSupply.adminReserve);
-      const totalSupply = Number(tokenSupply.totalSupply);
-      
-      // FIXED: Ensure userSupplyRemaining never exceeds totalUserSupply
-      const effectiveUserSupply = Math.min(userSupplyRemaining, totalUserSupply);
-      
-      // Add safety limits to prevent unrealistic price spikes
-      const minSupplyCap = totalUserSupply * 0.05; // 5% reserve (100,000 tokens)
-      const effectiveSupply = Math.max(effectiveUserSupply, minSupplyCap);
-      
-      // Improved formula: More visible growth based on supply usage
-      const growthFactor = 3; // Defines how fast price increases
-      const supplyUsed = totalUserSupply - effectiveSupply;
-      const usageRatio = supplyUsed / totalUserSupply;
+        const adminReserve = Number(tokenSupply.adminReserve);
+        const totalSupply = Number(tokenSupply.totalSupply);
+        const remainingSupply = Number(tokenSupply.remainingSupply);
+        
+        // Add safety limits to prevent unrealistic price spikes
+        const minSupplyCap = totalSupply * 0.05; // 5% reserve of total supply
+        const effectiveRemainingSupply = Math.max(remainingSupply, minSupplyCap);
+        
+        // Formula: Price based on total supply usage (not just user supply)
+        const growthFactor = 1; // Defines how fast price increases
+        const supplyUsed = totalSupply - effectiveRemainingSupply;
+        const usageRatio = supplyUsed / totalSupply;
         
         // New formula: price = baseValue * (1 + usageRatio * growthFactor)
         const currentTokenValue = baseValue * (1 + usageRatio * growthFactor);
@@ -2022,13 +2046,14 @@ export const databaseHelpers = {
         // Calculate legacy inflation factor for compatibility
         const inflationFactor = currentTokenValue / baseValue;
         
-        console.log('💰 Token price calculated:', {
+        console.log('💰 Token price calculated (TOTAL SUPPLY BASED):', {
           baseValue,
           currentTokenValue,
           inflationFactor: inflationFactor.toFixed(4),
           usageRatio: (usageRatio * 100).toFixed(2) + '%',
           supplyUsed: supplyUsed.toLocaleString(),
-          effectiveSupply: effectiveSupply.toLocaleString(),
+          effectiveRemainingSupply: effectiveRemainingSupply.toLocaleString(),
+          totalSupply: totalSupply.toLocaleString(),
           growthFactor
         });
 
@@ -2037,15 +2062,15 @@ export const databaseHelpers = {
           totalSupply,
           userSupplyRemaining,
           adminReserve,
-          totalUserSupply,
+          remainingSupply,
           inflationFactor,
           currentTokenValue,
-          usagePercentage: ((totalUserSupply - userSupplyRemaining) / totalUserSupply) * 100,
-          // New calculation details
+          usagePercentage: ((totalSupply - remainingSupply) / totalSupply) * 100,
+          // Total supply calculation details
           growthFactor,
           supplyUsed,
           usageRatio,
-          effectiveSupply,
+          effectiveRemainingSupply,
           minSupplyCap,
           calculatedAt: new Date()
         };
@@ -2606,6 +2631,284 @@ export const databaseHelpers = {
         return { count };
       } catch (error) {
         console.error('Error cleaning up expired password resets:', error);
+        throw error;
+      }
+    }
+  },
+
+  /**
+   * Wallet Fee Management
+   */
+  walletFee: {
+    /**
+     * Get wallet fee status for a user
+     * @param {string} userId - User ID
+     * @returns {Promise<Object>} Wallet fee status
+     */
+    async getWalletFeeStatus(userId) {
+      try {
+        const result = await pool.query(`
+          SELECT "walletFeeDueAt", "walletFeeProcessed", "walletFeeWaived", 
+                 "walletFeeLocked", "walletFeeProcessedAt"
+          FROM users
+          WHERE id = $1
+        `, [userId]);
+
+        if (result.rows.length === 0) {
+          throw new Error(`User ${userId} not found`);
+        }
+
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error getting wallet fee status:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Update wallet fee status
+     * @param {string} userId - User ID
+     * @param {Object} updates - Fields to update
+     * @returns {Promise<Object>} Updated user
+     */
+    async updateWalletFeeStatus(userId, updates) {
+      try {
+        const fields = [];
+        const values = [];
+        let index = 1;
+
+        if (updates.walletFeeDueAt !== undefined) {
+          fields.push(`"walletFeeDueAt" = $${index++}`);
+          values.push(updates.walletFeeDueAt);
+        }
+        if (updates.walletFeeProcessed !== undefined) {
+          fields.push(`"walletFeeProcessed" = $${index++}`);
+          values.push(updates.walletFeeProcessed);
+        }
+        if (updates.walletFeeWaived !== undefined) {
+          fields.push(`"walletFeeWaived" = $${index++}`);
+          values.push(updates.walletFeeWaived);
+        }
+        if (updates.walletFeeLocked !== undefined) {
+          fields.push(`"walletFeeLocked" = $${index++}`);
+          values.push(updates.walletFeeLocked);
+        }
+        if (updates.walletFeeProcessedAt !== undefined) {
+          fields.push(`"walletFeeProcessedAt" = $${index++}`);
+          values.push(updates.walletFeeProcessedAt);
+        }
+
+        fields.push(`"updatedAt" = NOW()`);
+        values.push(userId);
+
+        const query = `
+          UPDATE users 
+          SET ${fields.join(', ')}
+          WHERE id = $${index}
+          RETURNING *
+        `;
+
+        const result = await pool.query(query, values);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating wallet fee status:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get all users with due wallet fees
+     * @returns {Promise<Array>} Users with due wallet fees
+     */
+    async getUsersWithDueWalletFees() {
+      try {
+        const result = await pool.query(`
+          SELECT id, email, "walletFeeDueAt", "createdAt"
+          FROM users
+          WHERE "walletFeeDueAt" <= NOW()
+            AND "walletFeeProcessed" = false
+          ORDER BY "walletFeeDueAt" ASC
+        `);
+
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting users with due wallet fees:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Check if wallet is locked for a user
+     * @param {string} userId - User ID
+     * @returns {Promise<boolean>} True if wallet is locked
+     */
+    async isWalletLocked(userId) {
+      try {
+        const result = await pool.query(`
+          SELECT "walletFeeLocked"
+          FROM users
+          WHERE id = $1
+        `, [userId]);
+
+        if (result.rows.length === 0) {
+          return false;
+        }
+
+        return result.rows[0].walletFeeLocked || false;
+      } catch (error) {
+        console.error('Error checking wallet lock status:', error);
+        throw error;
+      }
+    }
+  },
+
+  // Order operations for trading
+  order: {
+    async createOrder(orderData) {
+      try {
+        const { userId, orderType, priceType, amount, tokenAmount, limitPrice } = orderData;
+        
+        const result = await pool.query(`
+          INSERT INTO orders (id, "userId", "orderType", "priceType", amount, "tokenAmount", "limitPrice", status, "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDING', NOW(), NOW())
+          RETURNING *
+        `, [randomUUID(), userId, orderType, priceType, amount, tokenAmount, limitPrice]);
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error creating order:', error);
+        throw error;
+      }
+    },
+
+    async getOrderById(orderId) {
+      try {
+        const result = await pool.query(`
+          SELECT * FROM orders WHERE id = $1
+        `, [orderId]);
+        
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('Error getting order:', error);
+        throw error;
+      }
+    },
+
+    async getUserOrders(userId, status = null) {
+      try {
+        let query = `
+          SELECT * FROM orders 
+          WHERE "userId" = $1
+        `;
+        
+        const params = [userId];
+        
+        if (status) {
+          query += ` AND status = $2`;
+          params.push(status);
+        }
+        
+        query += ` ORDER BY "createdAt" DESC`;
+        
+        const result = await pool.query(query, params);
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting user orders:', error);
+        throw error;
+      }
+    },
+
+    async getPendingLimitOrders() {
+      try {
+        const result = await pool.query(`
+          SELECT * FROM orders 
+          WHERE status = 'PENDING' 
+          AND "priceType" = 'LIMIT'
+          ORDER BY "createdAt" ASC
+        `);
+        
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting pending limit orders:', error);
+        throw error;
+      }
+    },
+
+    async updateOrderStatus(orderId, status, executedAt = null) {
+      try {
+        const updates = [`status = $2`, `"updatedAt" = NOW()`];
+        const params = [orderId, status];
+        
+        if (executedAt) {
+          updates.push(`"executedAt" = $3`);
+          params.push(executedAt);
+        }
+        
+        if (status === 'CANCELED') {
+          updates.push(`"canceledAt" = NOW()`);
+        }
+        
+        const result = await pool.query(`
+          UPDATE orders 
+          SET ${updates.join(', ')}
+          WHERE id = $1
+          RETURNING *
+        `, params);
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating order status:', error);
+        throw error;
+      }
+    },
+
+    async cancelOrder(orderId) {
+      try {
+        const result = await pool.query(`
+          UPDATE orders 
+          SET status = 'CANCELED', "canceledAt" = NOW(), "updatedAt" = NOW()
+          WHERE id = $1 AND status IN ('PENDING', 'PARTIAL')
+          RETURNING *
+        `, [orderId]);
+        
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('Error canceling order:', error);
+        throw error;
+      }
+    },
+
+    async updateFilledAmount(orderId, filledAmount) {
+      try {
+        const result = await pool.query(`
+          UPDATE orders 
+          SET "filledAmount" = $2, "updatedAt" = NOW()
+          WHERE id = $1
+          RETURNING *
+        `, [orderId, filledAmount]);
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating filled amount:', error);
+        throw error;
+      }
+    },
+
+    async getOrderStats(userId) {
+      try {
+        const result = await pool.query(`
+          SELECT 
+            COUNT(*) FILTER (WHERE status = 'PENDING') as pending_orders,
+            COUNT(*) FILTER (WHERE status = 'FILLED') as filled_orders,
+            COUNT(*) FILTER (WHERE status = 'CANCELED') as canceled_orders,
+            COUNT(*) as total_orders
+          FROM orders
+          WHERE "userId" = $1
+        `, [userId]);
+        
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error getting order stats:', error);
         throw error;
       }
     }

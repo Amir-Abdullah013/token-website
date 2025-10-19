@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '../../../../lib/session';
-import { calculateFee, creditFeeToAdmin } from '../../../../lib/fees';
+import { getServerSession } from '@/lib/session';
+import { calculateFee, creditFeeToAdmin } from '@/lib/fees';
 
 export async function POST(request) {
   console.log('🚨🚨🚨 BUY FUNCTION CALLED - THIS SHOULD ALWAYS SHOW 🚨🚨🚨');
@@ -43,6 +43,14 @@ export async function POST(request) {
     } catch (resolveErr) {
       console.error('Error resolving/creating DB user for buy:', resolveErr);
       return NextResponse.json({ success: false, error: 'Failed to resolve user for buy' }, { status: 500 });
+    }
+
+    // Check if wallet is locked
+    const { checkWalletLock, createWalletLockedResponse } = await import('../../../../lib/walletLockCheck.js');
+    const lockCheck = await checkWalletLock(userId);
+    if (!lockCheck.allowed) {
+      console.log('❌ Wallet is locked for user:', userId);
+      return createWalletLockedResponse();
     }
 
     // Get current price from SUPPLY-BASED calculation (buy-based inflation removed)

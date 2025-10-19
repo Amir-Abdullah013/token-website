@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 
 export default function RedirectDashboard() {
   const { user, loading, isAuthenticated } = useAuth();

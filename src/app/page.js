@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '../components';
-import SEO from '../components/SEO';
+import SEO from '@/components/SEO';
 
 export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

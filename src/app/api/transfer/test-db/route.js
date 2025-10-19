@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '../../../../lib/session';
-import { databaseHelpers } from '../../../../lib/database';
+import { getServerSession } from '@/lib/session';
+import { databaseHelpers } from '@/lib/database';
 import { randomUUID } from 'crypto';
 
 export async function POST(request) {

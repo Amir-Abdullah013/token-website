@@ -7,7 +7,7 @@ import Sidebar from './Sidebar';
 import AdminSidebar from './AdminSidebar';
 import MobileNavigation from './MobileNavigation';
 import TikiStatusBar from './TikiStatusBar';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 
 const Layout = ({ children, showSidebar = false }) => {
   const { user, loading, signOut } = useAuth();

@@ -16,3 +16,5 @@ export { default as NotificationBell } from './NotificationBell';
 export { default as NotificationCard } from './NotificationCard';
 export { default as Toast } from './Toast';
 export { default as ErrorBoundary } from './ErrorBoundary';
+export { default as WalletFeeReferralBanner } from './WalletFeeReferralBanner';
+export { default as WalletFeeStatus } from './WalletFeeStatus';

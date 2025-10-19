@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession, getUserRole } from '../../../../../lib/session';
-import { databaseHelpers } from '../../../../../lib/database';
+import { getServerSession, getUserRole } from '@/lib/session';
+import { databaseHelpers } from '@/lib/database';
 
 // Admin staking controls removed - staking is now automatic
 // This endpoint is kept for backward compatibility but returns read-only message

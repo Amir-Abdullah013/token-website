@@ -108,6 +108,7 @@ export async function POST(request) {
             referredId: user.id
           });
           console.log('✅ Referral record created successfully:', referralRecord.id);
+
         } catch (referralError) {
           console.error('❌ Error creating referral record:', referralError);
           console.error('❌ Referral error details:', {
@@ -127,6 +128,17 @@ export async function POST(request) {
       } catch (walletError) {
         console.error('❌ Error creating wallet for user:', walletError);
         // Don't fail the signup if wallet creation fails
+      }
+
+      // Schedule wallet fee (30-day free trial)
+      console.log('📅 Scheduling wallet fee for user...');
+      try {
+        const walletFeeService = (await import('../../../../lib/walletFeeService.js')).default;
+        await walletFeeService.scheduleWalletFee(user);
+        console.log('✅ Wallet fee scheduled successfully for user:', user.id);
+      } catch (feeError) {
+        console.error('❌ Error scheduling wallet fee:', feeError);
+        // Don't fail the signup if fee scheduling fails
       }
 
     } catch (dbError) {

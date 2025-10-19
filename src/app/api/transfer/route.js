@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '../../../lib/session';
-import { databaseHelpers } from '../../../lib/database';
-import { calculateFee, creditFeeToAdmin } from '../../../lib/fees';
+import { getServerSession } from '@/lib/session';
+import { databaseHelpers } from '@/lib/database';
+import { calculateFee, creditFeeToAdmin } from '@/lib/fees';
 import { randomUUID } from 'crypto';
 
 export async function GET(request) {
@@ -84,6 +84,14 @@ export async function POST(request) {
         success: false,
         error: 'Cannot send to yourself'
       }, { status: 400 });
+    }
+
+    // Check if wallet is locked
+    const { checkWalletLock, createWalletLockedResponse } = await import('../../../lib/walletLockCheck.js');
+    const lockCheck = await checkWalletLock(session.id);
+    if (!lockCheck.allowed) {
+      console.log('❌ Wallet is locked for user:', session.id);
+      return createWalletLockedResponse();
     }
 
     // Get sender's wallet

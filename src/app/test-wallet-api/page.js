@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 
 export default function TestWalletAPI() {
   const { user } = useAuth();

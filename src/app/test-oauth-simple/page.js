@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { authHelpers } from '../../lib/supabase';
+import { authHelpers } from '@/lib/supabase';
 
 export default function TestOAuthSimple() {
   const [loading, setLoading] = useState(false);

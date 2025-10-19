@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 import Card, { CardContent, CardHeader, CardTitle } from './Card';
 import Button from './Button';
 

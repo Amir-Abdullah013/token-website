@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '../../../lib/auth-context';
-import Button from '../../../components/Button';
-import Input from '../../../components/Input';
-import Card, { CardContent } from '../../../components/Card';
-import { AlertModal } from '../../../components/Modal';
+import { useAuth } from '@/lib/auth-context';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import Card, { CardContent } from '@/components/Card';
+import { AlertModal } from '@/components/Modal';
 
 export default function ForgotPasswordPage() {
   const { forgotPassword, loading } = useAuth();

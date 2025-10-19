@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 
 export default function AuthDebug() {
   const { user, loading, isAuthenticated, error, configValid } = useAuth();

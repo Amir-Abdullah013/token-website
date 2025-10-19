@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, Button, Input, Loader, Toast } from '@/components';
-import Layout from '../../../components/Layout';
+import Layout from '@/components/Layout';
 
 export default function AdminTokenSupplyPage() {
   const [mintAmount, setMintAmount] = useState('');
@@ -332,7 +332,7 @@ export default function AdminTokenSupplyPage() {
               <div className="p-6">
                 <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-4">Supply Allocation Breakdown</h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* User Supply */}
                   <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30">
                     <p className="text-slate-400 text-sm mb-2">User Supply (20%)</p>
@@ -365,26 +365,6 @@ export default function AdminTokenSupplyPage() {
                       </div>
                       <p className="text-xs text-slate-400 mt-3">
                         Reserved tokens can be released to user supply when needed
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* System Health */}
-                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30">
-                    <p className="text-slate-400 text-sm mb-2">System Health</p>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-300 text-sm">Status:</span>
-                        <span className={`font-medium ${supplyData.data.isValid ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {supplyData.data.isValid ? '✅ Valid' : '⚠️ Invalid'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-300 text-sm">Discrepancy:</span>
-                        <span className="text-slate-400 font-medium">{supplyData.data.discrepancy.toFixed(2)} TIKI</span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-3">
-                        Last updated: {new Date(supplyData.data.lastUpdated).toLocaleTimeString()}
                       </p>
                     </div>
                   </div>

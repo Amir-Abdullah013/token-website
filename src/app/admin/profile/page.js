@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAdminAuth } from '../../../lib/admin-auth';
-import { authHelpers } from '@/lib/supabase';;
-import Layout from '../../../components/Layout';
-import ProfileCard from '../../../components/ProfileCard';
-import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
-import Button from '../../../components/Button';
-import Loader from '../../../components/Loader';
+import { useAdminAuth } from '@/lib/admin-auth';
+import { useAuth } from '@/lib/auth-context';
+import Layout from '@/components/Layout';
+import ProfileCard from '@/components/ProfileCard';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
+import Button from '@/components/Button';
+import Loader from '@/components/Loader';
 
 export default function AdminProfile() {
   const { adminUser, isLoading: authLoading, isAuthenticated } = useAdminAuth();

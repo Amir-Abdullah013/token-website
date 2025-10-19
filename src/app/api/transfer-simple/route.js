@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '../../../lib/session';
-import { databaseHelpers } from '../../../lib/database';
-import { calculateFee, creditFeeToAdmin } from '../../../lib/fees';
+import { getServerSession } from '@/lib/session';
+import { databaseHelpers } from '@/lib/database';
+import { calculateFee, creditFeeToAdmin } from '@/lib/fees';
 import { randomUUID } from 'crypto';
 
 export async function POST(request) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { authHelpers } from '@/lib/supabase';;
+import { useAuth } from '@/lib/auth-context';;
 import { Button, Card, Loader, Toast } from '@/components';
 
 export default function TestSecurityPage() {

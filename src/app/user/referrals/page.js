@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../../lib/auth-context';
-import Layout from '../../../components/Layout';
+import { useAuth } from '@/lib/auth-context';
+import Layout from '@/components/Layout';
 import { motion } from 'framer-motion';
 import { 
   Copy, 
@@ -198,7 +198,7 @@ export default function ReferralDashboard() {
                 <div>
                   <p className="text-cyan-200 text-sm font-medium">Total Referral Earnings</p>
                   <p className="text-3xl font-bold text-white mt-2">
-                    {formatCurrency(referralData?.totalEarnings || 0)}
+                    {(referralData?.totalEarnings || 0)} TIKI
                   </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-cyan-300" />
@@ -234,7 +234,7 @@ export default function ReferralDashboard() {
                 <div>
                   <p className="text-amber-200 text-sm font-medium">Avg. Earnings per Referral</p>
                   <p className="text-3xl font-bold text-white mt-2">
-                    {formatCurrency(referralData?.statistics?.averageEarningPerReferral || 0)}
+                    {(referralData?.statistics?.averageEarningPerReferral || 0)} TIKI
                   </p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-amber-300" />
@@ -297,9 +297,7 @@ export default function ReferralDashboard() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                       Signup Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                      Staking Profit
-                    </th>
+                    
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                       Your Earnings
                     </th>
@@ -337,14 +335,10 @@ export default function ReferralDashboard() {
                           {formatDate(referral.signupDate)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-white">
-                          {formatCurrency(referral.stakingProfit)}
-                        </div>
-                      </td>
+                      
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-emerald-400">
-                          {formatCurrency(referral.earningFromThisUser)}
+                          {(referral.earningFromThisUser)} TIKI
                         </div>
                       </td>
                     </motion.tr>

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAdminAuth } from '../../../lib/admin-auth';
-import Layout from '../../../components/Layout';
-import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
-import Button from '../../../components/Button';
+import { useAdminAuth } from '@/lib/admin-auth';
+import Layout from '@/components/Layout';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
+import Button from '@/components/Button';
 
 export default function AccessDeniedPage() {
   const { adminUser, isLoading, isAuthenticated } = useAdminAuth();

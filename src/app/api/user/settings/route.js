@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { databaseHelpers } from '../../../../lib/database';
+import { databaseHelpers } from '@/lib/database';
 
 // Get user settings
 export async function GET(request) {

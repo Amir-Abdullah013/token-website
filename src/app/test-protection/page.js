@@ -1,5 +1,8 @@
-import { getServerSession, getUserRole } from '../../lib/session';
+import { getServerSession, getUserRole } from '@/lib/session';
 import { redirect } from 'next/navigation';
+
+// Disable static generation for this page
+export const dynamic = 'force-dynamic';
 
 export default async function TestProtectionPage() {
   const user = await getServerSession();

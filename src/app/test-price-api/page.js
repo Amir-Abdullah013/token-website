@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTiki } from '../../lib/tiki-context';
+import { useTiki } from '@/lib/tiki-context';
 
 export default function TestPriceAPI() {
   const { tikiPrice, fetchCurrentPrice, buyTiki, sellTiki, usdBalance, tikiBalance, formatCurrency, formatTiki, depositUSD } = useTiki();

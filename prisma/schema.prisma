@@ -46,6 +46,13 @@ model User {
   // Referral system
   referrerId    String?  // ID of the user who referred this user
 
+  // Wallet fee system
+  walletFeeDueAt        DateTime?
+  walletFeeProcessed    Boolean   @default(false)
+  walletFeeWaived       Boolean   @default(false)
+  walletFeeLocked       Boolean   @default(false)
+  walletFeeProcessedAt  DateTime?
+
   // Relations
   wallet         Wallet?
   transactions   Transaction[]
@@ -60,6 +67,7 @@ model User {
   tokenMintings     TokenMinting[]  // Admin token minting operations
   mintHistory       MintHistory[]   // Admin mint history
   supplyTransfers   AdminSupplyTransfer[] @relation("AdminSupplyTransfers")
+  orders            Order[]         // Trading orders
   
   // Referral relations
   referrer       User?   @relation("UserReferrals", fields: [referrerId], references: [id], onDelete: SetNull)
@@ -253,6 +261,7 @@ enum TransactionType {
   WITHDRAW
   BUY
   SELL
+  WALLET_FEE
 }
 
 enum TransactionStatus {
@@ -360,6 +369,45 @@ model ReferralEarning {
   staking     Staking? @relation(fields: [stakingId], references: [id], onDelete: SetNull)
 
   @@map("referral_earnings")
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  userId        String
+  orderType     OrderType   // BUY or SELL
+  priceType     PriceType   // MARKET or LIMIT
+  amount        Float       // Amount of tokens (for sell) or USD (for buy)
+  tokenAmount   Float?      // Actual token amount for the order
+  limitPrice    Float?      // Price at which limit order should execute
+  status        OrderStatus @default(PENDING)
+  filledAmount  Float       @default(0) // Amount that has been filled
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  executedAt    DateTime?   // When the order was fully executed
+  canceledAt    DateTime?   // When the order was canceled
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("orders")
+}
+
+enum OrderType {
+  BUY
+  SELL
+}
+
+enum PriceType {
+  MARKET
+  LIMIT
+}
+
+enum OrderStatus {
+  PENDING      // Order is open and waiting
+  PARTIAL      // Partially filled
+  FILLED       // Fully executed
+  CANCELED     // Canceled by user
+  EXPIRED      // Expired (if we add expiry feature)
 }
 
 model TokenSupply {

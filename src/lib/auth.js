@@ -13,7 +13,8 @@ export const useAuth = () => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const user = await authHelpers.getCurrentUser();
+        const session = await getServerSession();
+    const user = session;
         setUser(user);
       } catch (error) {
         console.error('Error getting initial session:', error);

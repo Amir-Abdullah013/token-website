@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '../../../lib/session';
-import { databaseHelpers } from '../../../lib/database';
+import { getServerSession } from '@/lib/session';
+import { databaseHelpers } from '@/lib/database';
 
 export async function POST(request) {
   try {
@@ -66,6 +66,14 @@ export async function POST(request) {
         { success: false, error: 'Failed to resolve user for staking' },
         { status: 500 }
       );
+    }
+
+    // Check if wallet is locked
+    const { checkWalletLock, createWalletLockedResponse } = await import('../../../lib/walletLockCheck.js');
+    const lockCheck = await checkWalletLock(userId);
+    if (!lockCheck.allowed) {
+      console.log('❌ Wallet is locked for user:', userId);
+      return createWalletLockedResponse();
     }
 
     // Check user's Tiki balance
@@ -222,6 +230,21 @@ export async function POST(request) {
                   bonus: referrerBonus,
                   percentage: referralBonusPercent
                 };
+
+                // Check wallet fee waiver condition (stake >= $20)
+                if (amount >= 20) {
+                  try {
+                    console.log('🎁 Checking wallet fee waiver for referrer...');
+                    const walletFeeService = (await import('../../../lib/walletFeeService.js')).default;
+                    const waived = await walletFeeService.handleReferralFeeWaiver(user.referrerId);
+                    if (waived) {
+                      console.log(`✅ Wallet fee waived for referrer ${user.referrerId}`);
+                    }
+                  } catch (feeWaiverError) {
+                    console.error('❌ Error processing wallet fee waiver:', feeWaiverError);
+                    // Don't fail the staking if fee waiver fails
+                  }
+                }
               }
             }
             

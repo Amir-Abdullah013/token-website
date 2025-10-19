@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
-import { authHelpers } from '../../../lib/supabase';
-import Layout from '../../../components/Layout';
-import ProfileCard from '../../../components/ProfileCard';
-import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
-import Button from '../../../components/Button';
-import Input from '../../../components/Input';
-import Loader from '../../../components/Loader';
+import { useAuth } from '@/lib/auth-context';
+import { authHelpers } from '@/lib/supabase';
+import Layout from '@/components/Layout';
+import ProfileCard from '@/components/ProfileCard';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import Loader from '@/components/Loader';
 
 // Password Change Form Component
 const PasswordChangeForm = () => {

@@ -14,7 +14,7 @@
  */
 
 import bcrypt from 'bcryptjs';
-import { databaseHelpers } from '../lib/database';
+import { databaseHelpers } from '@/lib/database';
 
 // Test configuration
 const TEST_EMAIL = 'passwordreset-test@example.com';

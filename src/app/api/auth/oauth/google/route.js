@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { config } from '../../../../../lib/config';
-import { getBaseUrl, getOAuthCallbackUrl, logUrlConfig } from '../../../../../lib/url-utils';
-import { getGoogleOAuthConfig, logOAuthConfig, validateOAuthConfig } from '../../../../../lib/oauth-config';
+import { config } from '@/lib/config';
+import { getBaseUrl, getOAuthCallbackUrl, logUrlConfig } from '@/lib/url-utils';
+import { getGoogleOAuthConfig, logOAuthConfig, validateOAuthConfig } from '@/lib/oauth-config';
 
 export async function GET(request) {
   try {

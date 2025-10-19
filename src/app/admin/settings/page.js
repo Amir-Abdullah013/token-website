@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // Removed direct database import - using API calls instead
-import { authHelpers } from '@/lib/supabase';;
+import { useAuth } from '@/lib/auth-context';
 import { Button, Card, Input, Loader, Toast } from '@/components';
 
 export default function AdminSystemSettingsPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const { user, isAuthenticated, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);

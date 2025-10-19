@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Button from '../../components/Button';
-import Card, { CardContent, CardHeader, CardTitle } from '../../components/Card';
+import Button from '@/components/Button';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
 
 export default function TestWithdrawPage() {
   const [result, setResult] = useState(null);

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getServerSession, getUserRole } from '../../../lib/session';
-import { databaseHelpers } from '../../../lib/database';
-import { calculateFee, creditFeeToAdmin } from '../../../lib/fees';
+import { getServerSession, getUserRole } from '@/lib/session';
+import { databaseHelpers } from '@/lib/database';
+import { calculateFee, creditFeeToAdmin } from '@/lib/fees';
 import { handleApiError, handleValidationError, handleAuthError } from '../error-handler';
 
 export async function POST(request) {
@@ -23,6 +23,14 @@ export async function POST(request) {
     if (userRole !== 'USER' && userRole !== 'ADMIN') {
       console.log('❌ Invalid user role:', userRole);
       return handleAuthError('User access required');
+    }
+
+    // Check if wallet is locked
+    const { checkWalletLock, createWalletLockedResponse } = await import('../../../lib/walletLockCheck.js');
+    const lockCheck = await checkWalletLock(session.id);
+    if (!lockCheck.allowed) {
+      console.log('❌ Wallet is locked for user:', session.id);
+      return createWalletLockedResponse();
     }
 
     let requestData;

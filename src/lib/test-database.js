@@ -8,7 +8,8 @@ export const testDatabase = {
       console.log('🧪 Testing wallet operations...');
       
       // Get current user
-      const user = await authHelpers.getCurrentUser();
+      const session = await getServerSession();
+    const user = session;
       if (!user) {
         throw new Error('No authenticated user found');
       }
@@ -44,7 +45,8 @@ export const testDatabase = {
       console.log('🧪 Testing transaction operations...');
       
       // Get current user
-      const user = await authHelpers.getCurrentUser();
+      const session = await getServerSession();
+    const user = session;
       if (!user) {
         throw new Error('No authenticated user found');
       }
@@ -92,7 +94,8 @@ export const testDatabase = {
       console.log('🧪 Testing combined operations...');
       
       // Get current user
-      const user = await authHelpers.getCurrentUser();
+      const session = await getServerSession();
+    const user = session;
       if (!user) {
         throw new Error('No authenticated user found');
       }

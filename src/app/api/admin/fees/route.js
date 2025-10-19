@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '../../../../lib/session';
-import { databaseHelpers } from '../../../../lib/database';
-import { getAllFeeSettings, updateFeeRate, initializeFeeSettings } from '../../../../lib/fees';
+import { getServerSession } from '@/lib/session';
+import { databaseHelpers } from '@/lib/database';
+import { getAllFeeSettings, updateFeeRate, initializeFeeSettings } from '@/lib/fees';
 
 export async function GET(request) {
   try {
@@ -191,6 +191,7 @@ export async function POST(request) {
     }, { status: 500 });
   }
 }
+
 
 
 

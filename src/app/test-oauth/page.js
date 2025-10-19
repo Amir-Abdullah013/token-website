@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { getBaseUrl, getOAuthCallbackUrl } from '../../lib/url-utils';
-import { getOAuthConfig, validateOAuthConfig } from '../../lib/oauth-config';
+import { getBaseUrl, getOAuthCallbackUrl } from '@/lib/url-utils';
+import { getOAuthConfig, validateOAuthConfig } from '@/lib/oauth-config';
 
 export default function TestOAuth() {
   const [testResults, setTestResults] = useState([]);

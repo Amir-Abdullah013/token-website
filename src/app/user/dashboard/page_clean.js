@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
-import { useTiki } from '../../../lib/tiki-context';
+import { useAuth } from '@/lib/auth-context';
+import { useTiki } from '@/lib/tiki-context';
 import { usePriceUpdates } from '../../../hooks/usePriceUpdates';
-import Layout from '../../../components/Layout';
-import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
-import Button from '../../../components/Button';
-import WalletOverview from '../../../components/WalletOverview';
-import PriceChart from '../../../components/PriceChart';
-import { ToastContainer, useToast } from '../../../components/Toast';
+import Layout from '@/components/Layout';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
+import Button from '@/components/Button';
+import WalletOverview from '@/components/WalletOverview';
+import PriceChart from '@/components/PriceChart';
+import { ToastContainer, useToast } from '@/components/Toast';
 import Link from 'next/link';
 
 export default function UserDashboard() {

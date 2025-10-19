@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAdminAuth } from '../lib/admin-auth';
+import { useAdminAuth } from '@/lib/admin-auth';
 import Layout from './Layout';
 
 const AdminRoute = ({ children }) => {

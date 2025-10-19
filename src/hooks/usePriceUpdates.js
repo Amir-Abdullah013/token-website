@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { useTiki } from '../lib/tiki-context';
+import { useTiki } from '@/lib/tiki-context';
 
 export function usePriceUpdates(interval = 10000) {
   const { fetchCurrentPrice } = useTiki();

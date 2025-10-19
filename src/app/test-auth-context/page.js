@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuth } from '../../lib/auth-context';
-import { useAuthContext } from '../../components/AuthProvider';
+import { useAuth } from '@/lib/auth-context';
+import { useAuthContext } from '@/components/AuthProvider';
 
 export default function TestAuthContext() {
   const authFromContext = useAuth();

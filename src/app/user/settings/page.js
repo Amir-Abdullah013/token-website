@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth-context';
-import Layout from '../../../components/Layout';
-import Card, { CardContent, CardHeader, CardTitle } from '../../../components/Card';
-import Button from '../../../components/Button';
-import Input from '../../../components/Input';
-import { ToastContainer, useToast } from '../../../components/Toast';
+import { useAuth } from '@/lib/auth-context';
+import Layout from '@/components/Layout';
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import { ToastContainer, useToast } from '@/components/Toast';
 
 export default function SettingsPage() {
   const { user, loading, isAuthenticated } = useAuth();

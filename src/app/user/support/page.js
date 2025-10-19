@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // Removed direct database import - using API calls instead
-import { authHelpers } from '@/lib/supabase';;
+import { useAuth } from '@/lib/auth-context';;
 import { Button, Card, Loader, Toast } from '@/components';
 import { formatDistanceToNow } from 'date-fns';
 

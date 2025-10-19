@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllFeeSettings } from '../../../lib/fees';
+import { getAllFeeSettings } from '@/lib/fees';
 
 export async function GET(request) {
   try {
@@ -57,6 +57,7 @@ export async function GET(request) {
     });
   }
 }
+
 
 
 

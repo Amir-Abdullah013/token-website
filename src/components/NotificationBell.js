@@ -3,24 +3,26 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
-import { authHelpers } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function NotificationBell() {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState(null);
   const [mounted, setMounted] = useState(false);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, right: 0 });
   const buttonRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
-    loadUserAndNotifications();
-  }, []);
+    if (isAuthenticated && user?.id) {
+      loadUserAndNotifications();
+    }
+  }, [isAuthenticated, user?.id]);
 
   useEffect(() => {
     if (isOpen && buttonRef.current) {
@@ -34,17 +36,13 @@ export default function NotificationBell() {
 
   const loadUserAndNotifications = async () => {
     try {
-      const currentUser = await authHelpers.getCurrentUser();
-      
-      if (!currentUser) {
+      if (!user?.id) {
         return;
       }
-
-      setUser(currentUser);
       
       // Load recent notifications (last 5)
       try {
-        const notificationsResponse = await fetch(`/api/notifications?userId=${currentUser.id}&limit=5&offset=0`);
+        const notificationsResponse = await fetch(`/api/notifications?userId=${user.id}&limit=5&offset=0`);
         if (notificationsResponse.ok) {
           const notificationsData = await notificationsResponse.json();
           setNotifications(notificationsData.notifications || []);
@@ -59,7 +57,7 @@ export default function NotificationBell() {
       
       // Get unread count
       try {
-        const unreadResponse = await fetch(`/api/notifications/unread-count?userId=${currentUser.id}`);
+        const unreadResponse = await fetch(`/api/notifications/unread-count?userId=${user.id}`);
         if (unreadResponse.ok) {
           const unreadData = await unreadResponse.json();
           setUnreadCount(unreadData.count || 0);
@@ -146,7 +144,7 @@ export default function NotificationBell() {
     }
   };
 
-  if (!user || !mounted) {
+  if (!isAuthenticated || !user || !mounted) {
     return null;
   }
 
