@@ -6,3 +6,5 @@ CREATE INDEX IF NOT EXISTS "idx_users_wallet_fee_due" ON "users"("walletFeeDueAt
 CREATE INDEX IF NOT EXISTS "idx_users_wallet_fee_locked" ON "users"("walletFeeLocked") WHERE "walletFeeLocked" = true;
 
 
+
+

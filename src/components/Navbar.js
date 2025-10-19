@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { NotificationBell } from './index';
+import Image from "next/image";
 
 const Navbar = ({ user, onSignOut }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -79,9 +80,14 @@ const Navbar = ({ user, onSignOut }) => {
             <div className="flex items-center">
               <Link href="/" className="flex-shrink-0 flex items-center">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">T</span>
-                  </div>
+                <Image
+          src="/logo.png"   // ✅ Path from /public folder
+          alt="Website Logo"
+          width={40}         // adjust as needed
+          height={40}
+          className="rounded-md"
+          priority           // ensures fast load
+        />
                   <span className="text-2xl font-bold text-white">TokenApp</span>
                 </div>
               </Link>
@@ -100,10 +106,22 @@ const Navbar = ({ user, onSignOut }) => {
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">T</span>
-                </div>
-                <span className="text-2xl font-bold text-white">TokenApp</span>
+              <Image
+          src="/logo.png"   // ✅ Path from /public folder
+          alt="Website Logo"
+          width={40}         // adjust as needed
+          height={40}
+          className="rounded-md"
+          priority           // ensures fast load
+        />
+                <Image
+          src="/logo-text.png"   // ✅ Path from /public folder
+          alt="Website Logo"
+          width={60}         // adjust as needed
+          height={40}
+          className="rounded-md"
+          priority           // ensures fast load
+        />
               </div>
             </Link>
           </div>
