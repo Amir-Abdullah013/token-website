@@ -485,6 +485,26 @@ export default function UserDashboard() {
                   />
                 </div>
 
+                {/* Fee Display */}
+                {tradeAmount && parseFloat(tradeAmount) > 0 && (
+                  <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg p-3 backdrop-blur-sm">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-amber-300 text-xs font-medium">Trading Fee (1%)</span>
+                      <span className="text-amber-400 font-semibold text-sm">
+                        ${(parseFloat(tradeAmount) * 0.01).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-300 text-xs font-medium">
+                        {tradeType === 'buy' ? 'Net Amount' : 'You\'ll Receive'}
+                      </span>
+                      <span className="text-white font-semibold text-sm">
+                        ${(parseFloat(tradeAmount) * 0.99).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Trade Button */}
                 <button
                   onClick={handleTrade}
