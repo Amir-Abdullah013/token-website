@@ -29,10 +29,10 @@ export async function GET(request) {
       // Create wallet if it doesn't exist
       const newWallet = await databaseHelpers.wallet.createWallet(userId);
       // Get dynamic price even for new wallets
-      let tikiPrice = 0.0035;
+      let VonPrice = 0.0035;
       try {
         const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
-        tikiPrice = tokenValue.currentTokenValue;
+        VonPrice = tokenValue.currentTokenValue;
       } catch (error) {
         console.log('⚠️ Using fallback price for new wallet:', error.message);
       }
@@ -40,31 +40,31 @@ export async function GET(request) {
       return NextResponse.json({
         success: true,
         usdBalance: newWallet.balance || 0,
-        tikiBalance: newWallet.tikiBalance || 0,
-        tikiPrice: tikiPrice
+        VonBalance: newWallet.VonBalance || 0,
+        VonPrice: VonPrice
       });
     }
 
-    // Get current TIKI price using supply-based calculation
-    let tikiPrice = 0.0035; // Default price
+    // Get current Von price using supply-based calculation
+    let VonPrice = 0.0035; // Default price
     try {
       const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
-      tikiPrice = tokenValue.currentTokenValue;
+      VonPrice = tokenValue.currentTokenValue;
       console.log('📊 Wallet balance API using supply-based price:', {
-        currentPrice: tikiPrice,
+        currentPrice: VonPrice,
         inflationFactor: tokenValue.inflationFactor,
         userSupplyRemaining: tokenValue.userSupplyRemaining
       });
     } catch (priceError) {
-      console.log('⚠️ Using default TIKI price due to price calculation error:', priceError.message);
+      console.log('⚠️ Using default Von price due to price calculation error:', priceError.message);
       // Use default price if calculation fails
     }
 
     return NextResponse.json({
       success: true,
       usdBalance: wallet.balance || 0,
-      tikiBalance: wallet.tikiBalance || 0,
-      tikiPrice: tikiPrice
+      VonBalance: wallet.VonBalance || 0,
+      VonPrice: VonPrice
     });
 
   } catch (error) {

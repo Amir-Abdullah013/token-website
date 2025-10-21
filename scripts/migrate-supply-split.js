@@ -70,10 +70,10 @@ const migrateSupplySplit = async () => {
     if (verifyResult.rows.length > 0) {
       const supply = verifyResult.rows[0];
       console.log('✅ Migration verified successfully:');
-      console.log(`   Total Supply: ${supply.totalSupply} TIKI`);
-      console.log(`   User Supply Remaining: ${supply.userSupplyRemaining} TIKI`);
-      console.log(`   Admin Reserve: ${supply.adminReserve} TIKI`);
-      console.log(`   Legacy Remaining Supply: ${supply.remainingSupply} TIKI`);
+      console.log(`   Total Supply: ${supply.totalSupply} Von`);
+      console.log(`   User Supply Remaining: ${supply.userSupplyRemaining} Von`);
+      console.log(`   Admin Reserve: ${supply.adminReserve} Von`);
+      console.log(`   Legacy Remaining Supply: ${supply.remainingSupply} Von`);
       
       // Validate the split
       const expectedUser = Number(supply.totalSupply) * 0.20;

@@ -1,9 +1,9 @@
 'use client';
 
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 
-const TikiStatusBar = () => {
-  const { usdBalance, tikiBalance, tikiPrice, formatCurrency, formatTiki, isLoading } = useTiki();
+const VonStatusBar = () => {
+  const { usdBalance, VonBalance, VonPrice, formatCurrency, formatVon, isLoading } = useVon();
 
   // Don't show status bar while loading
   if (isLoading) {
@@ -14,12 +14,12 @@ const TikiStatusBar = () => {
     <div className="bg-black/20 backdrop-blur-md border-b border-white/10 text-white py-2 px-4 shadow-sm">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-wrap items-center justify-between text-sm">
-          {/* Left side - Tiki Price */}
+          {/* Left side - Von Price */}
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <span className="font-semibold text-gray-300">Tiki Price:</span>
+              <span className="font-semibold text-gray-300">Von Price:</span>
               <span className="font-bold text-yellow-400">
-                {formatCurrency(tikiPrice, 'USD')}
+                {formatCurrency(VonPrice, 'USD')}
               </span>
             </div>
           </div>
@@ -33,9 +33,9 @@ const TikiStatusBar = () => {
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="font-semibold text-gray-300">Tiki:</span>
+              <span className="font-semibold text-gray-300">Von:</span>
               <span className="font-bold text-yellow-400">
-                {formatTiki(tikiBalance)} TIKI
+                {formatVon(VonBalance)} Von
               </span>
             </div>
           </div>
@@ -45,7 +45,7 @@ const TikiStatusBar = () => {
   );
 };
 
-export default TikiStatusBar;
+export default VonStatusBar;
 
 
 

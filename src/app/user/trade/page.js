@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 import { usePriceUpdates } from '../../../hooks/usePriceUpdates';
 import { useFeeCalculator } from '@/lib/hooks/useFeeCalculator';
 import { useMarketData } from '../../../hooks/useMarketData';
@@ -12,13 +12,13 @@ import Layout from '@/components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import TikiPriceChart from '@/components/TikiPriceChart';
+import VonPriceChart from '@/components/VonPriceChart';
 import { ToastContainer, useToast } from '@/components/Toast';
 import { AlertModal } from '@/components/Modal';
 
 export default function TradePage() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { usdBalance, tikiBalance, tikiPrice, setUsdBalance, setTikiBalance, setTikiPrice, formatCurrency, formatTiki, buyTiki, sellTiki } = useTiki();
+  const { usdBalance, VonBalance, VonPrice, setUsdBalance, setVonBalance, setVonPrice, formatCurrency, formatVon, buyVon, sellVon } = useVon();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const { toasts, removeToast } = useToast();
@@ -40,7 +40,7 @@ export default function TradePage() {
     setShowTradeModal(true);
   };
 
-  // Tiki trading state - only for Tiki tokens
+  // Von trading state - only for Von tokens
   const [tradeType, setTradeType] = useState('buy');
   const [orderType, setOrderType] = useState('market');
   const [amount, setAmount] = useState('');
@@ -234,7 +234,7 @@ export default function TradePage() {
       } else {
         // MARKET ORDER LOGIC
         if (tradeType === 'buy') {
-          // BUYING TIKI TOKENS LOGIC
+          // BUYING Von TOKENS LOGIC
           // Check if user has sufficient USD balance
           if (amountValue > usdBalance) {
             showTradeModalMessage(
@@ -246,10 +246,10 @@ export default function TradePage() {
           }
           
           // Use the new API-based buy function
-          const result = await buyTiki(amountValue);
+          const result = await buyVon(amountValue);
           
           if (result.success) {
-            let message = `Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`;
+            let message = `Successfully bought ${formatVon(result.tokensBought)} Von tokens for ${formatCurrency(amountValue, 'USD')}!`;
             if (result.newPrice !== result.oldPrice) {
               message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
             }
@@ -259,22 +259,22 @@ export default function TradePage() {
           }
           
         } else {
-          // SELLING TIKI TOKENS LOGIC
-          // Check if user has sufficient Tiki balance
-          if (amountValue > tikiBalance) {
+          // SELLING Von TOKENS LOGIC
+          // Check if user has sufficient Von balance
+          if (amountValue > VonBalance) {
             showTradeModalMessage(
               'error',
               'Insufficient Balance',
-              `You don't have enough Tiki balance. Available: ${formatTiki(tikiBalance)} TIKI`
+              `You don't have enough Von balance. Available: ${formatVon(VonBalance)} Von`
             );
             return;
           }
           
           // Use the new API-based sell function
-          const result = await sellTiki(amountValue);
+          const result = await sellVon(amountValue);
           
           if (result.success) {
-            let message = `Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`;
+            let message = `Successfully sold ${formatVon(amountValue)} Von tokens for ${formatCurrency(result.usdReceived, 'USD')}!`;
             if (result.newPrice !== result.oldPrice) {
               message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
             }
@@ -356,7 +356,7 @@ export default function TradePage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Trading</h1>
-                <p className="text-xs text-slate-300">Trade Tiki Tokens</p>
+                <p className="text-xs text-slate-300">Trade Von Tokens</p>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-full flex items-center justify-center border border-cyan-400/30">
@@ -389,12 +389,12 @@ export default function TradePage() {
 
             <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
               <CardHeader>
-                <CardTitle className="text-lg text-amber-200">Tiki Balance</CardTitle>
+                <CardTitle className="text-lg text-amber-200">Von Balance</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-white">
-                    {formatTiki(tikiBalance)} TIKI
+                    {formatVon(VonBalance)} Von
                   </h2>
                   <p className="text-sm text-amber-300">Available Tokens</p>
                 </div>
@@ -403,31 +403,31 @@ export default function TradePage() {
 
             <Card className="bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-indigo-500/20 border border-cyan-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/20">
               <CardHeader>
-                <CardTitle className="text-lg text-cyan-200">Current Tiki Price</CardTitle>
+                <CardTitle className="text-lg text-cyan-200">Current Von Price</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-white">
-                    {formatCurrency(tikiPrice, 'USD')}
+                    {formatCurrency(VonPrice, 'USD')}
                   </h2>
                   <p className="text-sm text-cyan-300">Per Token</p>
                 </div>
               </CardContent>
             </Card>
           </div>
-          {/* Premium Tiki Token Information */}
+          {/* Premium Von Token Information */}
           <div className="lg:hidden mb-6">
             <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
               <CardHeader className="p-4">
-                <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Tiki Token Trading</CardTitle>
+                <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Von Token Trading</CardTitle>
               </CardHeader>
               <CardContent className="p-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
-                    TIKI Token
+                    Von Token
                   </div>
                   <div className="text-sm text-slate-300">
-                    Trade Tiki tokens with real-time price updates
+                    Trade Von tokens with real-time price updates
                   </div>
                 </div>
               </CardContent>
@@ -437,21 +437,21 @@ export default function TradePage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
             {/* Left Column - Trading Interface */}
             <div className="lg:col-span-1 space-y-4 lg:space-y-6">
-              {/* Premium Tiki Token Information - Desktop Only */}
+              {/* Premium Von Token Information - Desktop Only */}
               <Card className="hidden lg:block bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Tiki Token</CardTitle>
+                  <CardTitle className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Von Token</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center">
                     <div className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
-                      TIKI
+                      Von
                     </div>
                     <div className="text-sm text-slate-300 mb-4">
-                      Tiki Token Trading
+                      Von Token Trading
                     </div>
                     <div className="text-lg font-semibold text-white">
-                      {formatCurrency(tikiPrice, 'USD')}
+                      {formatCurrency(VonPrice, 'USD')}
                     </div>
                     <div className="text-xs text-slate-400">
                       Current Price
@@ -463,7 +463,7 @@ export default function TradePage() {
               {/* Premium Trading Form */}
               <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Tiki Trading Panel</CardTitle>
+                  <CardTitle className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Von Trading Panel</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -509,11 +509,11 @@ export default function TradePage() {
                     {/* Amount */}
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-2">
-                        {tradeType === 'buy' ? 'USD Amount to Spend' : 'Tiki Tokens to Sell'}
+                        {tradeType === 'buy' ? 'USD Amount to Spend' : 'Von Tokens to Sell'}
                       </label>
                       <Input
                         type="number"
-                        placeholder={tradeType === 'buy' ? 'Enter USD amount' : 'Enter Tiki amount'}
+                        placeholder={tradeType === 'buy' ? 'Enter USD amount' : 'Enter Von amount'}
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         step="0.0001"
@@ -521,12 +521,12 @@ export default function TradePage() {
                       />
                       {tradeType === 'buy' && amount && (
                         <p className="text-xs text-slate-400 mt-1">
-                          You will receive: {formatTiki(parseFloat(amount) / tikiPrice)} TIKI
+                          You will receive: {formatVon(parseFloat(amount) / VonPrice)} Von
                         </p>
                       )}
                       {tradeType === 'sell' && amount && (
                         <p className="text-xs text-slate-400 mt-1">
-                          You will receive: {formatCurrency(parseFloat(amount) * tikiPrice, 'USD')}
+                          You will receive: {formatCurrency(parseFloat(amount) * VonPrice, 'USD')}
                         </p>
                       )}
                       
@@ -535,7 +535,7 @@ export default function TradePage() {
                         <div className="mt-3 p-3 bg-gray-50 rounded-xl shadow-sm border border-gray-100">
                           <div className="text-sm text-gray-600">
                             <div className="flex justify-between items-center mb-1">
-                              <span>{tradeType === 'buy' ? 'USD Amount:' : 'TIKI Amount:'}</span>
+                              <span>{tradeType === 'buy' ? 'USD Amount:' : 'Von Amount:'}</span>
                               <span className="font-medium">${amountValue.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between items-center mb-1">
@@ -548,7 +548,7 @@ export default function TradePage() {
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
                               {tradeType === 'buy' 
-                                ? `You will receive: ${formatTiki((amountValue - feeCalculation.fee) / tikiPrice)} TIKI`
+                                ? `You will receive: ${formatVon((amountValue - feeCalculation.fee) / VonPrice)} Von`
                                 : `You will receive: $${(amountValue - feeCalculation.fee).toFixed(2)}`
                               }
                             </div>
@@ -598,7 +598,7 @@ export default function TradePage() {
                           Processing...
                         </div>
                       ) : (
-                        `${tradeType === 'buy' ? 'Buy Tiki Tokens' : 'Sell Tiki Tokens'}`
+                        `${tradeType === 'buy' ? 'Buy Von Tokens' : 'Sell Von Tokens'}`
                       )}
                     </Button>
                   </div>
@@ -646,7 +646,7 @@ export default function TradePage() {
                                 </span>
                               </div>
                               <div className="text-sm text-slate-300 mt-1">
-                                {order.orderType === 'BUY' ? 'USD' : 'TIKI'}: {order.amount.toFixed(2)}
+                                {order.orderType === 'BUY' ? 'USD' : 'Von'}: {order.amount.toFixed(2)}
                               </div>
                               {order.limitPrice && (
                                 <div className="text-xs text-slate-400">
@@ -674,8 +674,8 @@ export default function TradePage() {
 
             {/* Center Column - Charts and Market Data */}
             <div className="lg:col-span-2 space-y-4 lg:space-y-6">
-              {/* Tiki Price Chart */}
-              <TikiPriceChart />
+              {/* Von Price Chart */}
+              <VonPriceChart />
 
               {/* Premium Market Overview - Live Data */}
               <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
@@ -1011,7 +1011,7 @@ export default function TradePage() {
                                 ${formatPrice(trade.price)}
                               </div>
                               <div className="text-slate-400 text-xs">
-                                {formatAmount(trade.amount)} TIKI
+                                {formatAmount(trade.amount)} Von
                               </div>
                         </div>
                       </div>

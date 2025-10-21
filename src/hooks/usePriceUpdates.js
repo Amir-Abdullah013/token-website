@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 
 export function usePriceUpdates(interval = 10000) {
-  const { fetchCurrentPrice } = useTiki();
+  const { fetchCurrentPrice } = useVon();
   const intervalRef = useRef(null);
   const retryCountRef = useRef(0);
   const maxRetries = 3;

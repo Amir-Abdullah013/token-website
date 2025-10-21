@@ -35,12 +35,12 @@ const testReferralSystem = async () => {
     console.log('\n💰 STEP 2: Creating wallets...');
     
     await client.query(`
-      INSERT INTO wallets (id, "userId", balance, "tikiBalance", currency, "createdAt", "updatedAt")
+      INSERT INTO wallets (id, "userId", balance, "VonBalance", currency, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
     `, [randomUUID(), referrerId, 1000, 1000, 'USD']);
     
     await client.query(`
-      INSERT INTO wallets (id, "userId", balance, "tikiBalance", currency, "createdAt", "updatedAt")
+      INSERT INTO wallets (id, "userId", balance, "VonBalance", currency, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
     `, [randomUUID(), referredId, 1000, 1000, 'USD']);
     
@@ -61,7 +61,7 @@ const testReferralSystem = async () => {
     console.log('\n🏦 STEP 4: Creating staking for referred user...');
     
     const stakingId = randomUUID();
-    const stakingAmount = 1000; // 1000 TIKI
+    const stakingAmount = 1000; // 1000 Von
     const rewardPercent = 20; // 20% reward
     const durationDays = 30;
     const startDate = new Date();
@@ -74,7 +74,7 @@ const testReferralSystem = async () => {
     `, [stakingId, referredId, stakingAmount, durationDays, rewardPercent, startDate, endDate, 'ACTIVE', false]);
     
     console.log('✅ Staking created:');
-    console.log(`   Amount: ${stakingAmount} TIKI`);
+    console.log(`   Amount: ${stakingAmount} Von`);
     console.log(`   Reward: ${rewardPercent}%`);
     console.log(`   Duration: ${durationDays} days`);
     
@@ -104,11 +104,11 @@ const testReferralSystem = async () => {
       [referredId]
     );
     
-    const referrerBalanceBefore = referrerWalletBefore.rows[0].tikiBalance;
-    const referredBalanceBefore = referredWalletBefore.rows[0].tikiBalance;
+    const referrerBalanceBefore = referrerWalletBefore.rows[0].VonBalance;
+    const referredBalanceBefore = referredWalletBefore.rows[0].VonBalance;
     
-    console.log(`   Referrer balance before: ${referrerBalanceBefore} TIKI`);
-    console.log(`   Referred balance before: ${referredBalanceBefore} TIKI`);
+    console.log(`   Referrer balance before: ${referrerBalanceBefore} Von`);
+    console.log(`   Referred balance before: ${referredBalanceBefore} Von`);
     
     // Test 7: Process staking completion with referral bonus
     console.log('\n🔄 STEP 7: Processing staking completion with referral bonus...');
@@ -120,11 +120,11 @@ const testReferralSystem = async () => {
     const referrerBonus = (profit * 10) / 100; // 10% of profit
     const totalTokensNeeded = profit + referrerBonus;
     
-    console.log(`   Staked Amount: ${stakingAmount} TIKI`);
-    console.log(`   Reward Amount: ${rewardAmount} TIKI`);
-    console.log(`   Total to User: ${totalAmount} TIKI`);
-    console.log(`   Referrer Bonus (10% of profit): ${referrerBonus} TIKI`);
-    console.log(`   Total Tokens Needed: ${totalTokensNeeded} TIKI`);
+    console.log(`   Staked Amount: ${stakingAmount} Von`);
+    console.log(`   Reward Amount: ${rewardAmount} Von`);
+    console.log(`   Total to User: ${totalAmount} Von`);
+    console.log(`   Referrer Bonus (10% of profit): ${referrerBonus} Von`);
+    console.log(`   Total Tokens Needed: ${totalTokensNeeded} Von`);
     
     // Check token supply
     const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
@@ -141,14 +141,14 @@ const testReferralSystem = async () => {
       // Update referred user's wallet (add profit)
       const referredNewBalance = referredBalanceBefore + profit;
       await client.query(
-        'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
         [referredNewBalance, referredId]
       );
       
       // Update referrer's wallet (add referral bonus)
       const referrerNewBalance = referrerBalanceBefore + referrerBonus;
       await client.query(
-        'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
         [referrerNewBalance, referrerId]
       );
       
@@ -187,8 +187,8 @@ const testReferralSystem = async () => {
       [referredId]
     );
     
-    const referrerBalanceAfter = referrerWalletAfter.rows[0].tikiBalance;
-    const referredBalanceAfter = referredWalletAfter.rows[0].tikiBalance;
+    const referrerBalanceAfter = referrerWalletAfter.rows[0].VonBalance;
+    const referredBalanceAfter = referredWalletAfter.rows[0].VonBalance;
     
     console.log('\n📊 BALANCE CHANGES:');
     console.log(`   Referrer: ${referrerBalanceBefore} → ${referrerBalanceAfter} (+${referrerBalanceAfter - referrerBalanceBefore})`);
@@ -209,7 +209,7 @@ const testReferralSystem = async () => {
       console.log('✅ Referral earning record created:');
       console.log(`   Referrer ID: ${earning.referrerId}`);
       console.log(`   Referred ID: ${earning.referredId}`);
-      console.log(`   Amount: ${earning.amount} TIKI`);
+      console.log(`   Amount: ${earning.amount} Von`);
       console.log(`   Staking ID: ${earning.stakingId}`);
     } else {
       console.log('❌ No referral earning record found');
@@ -228,8 +228,8 @@ const testReferralSystem = async () => {
       console.log('✅ Staking record updated:');
       console.log(`   Status: ${staking.status}`);
       console.log(`   Claimed: ${staking.claimed}`);
-      console.log(`   Reward Amount: ${staking.rewardAmount} TIKI`);
-      console.log(`   Profit: ${staking.profit} TIKI`);
+      console.log(`   Reward Amount: ${staking.rewardAmount} Von`);
+      console.log(`   Profit: ${staking.profit} Von`);
     }
     
     // Test 11: Calculate and verify totals

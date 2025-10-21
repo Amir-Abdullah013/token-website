@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function initializeTokenStats() {
   try {
-    console.log('🔧 Initializing Tiki token statistics...');
+    console.log('🔧 Initializing Von token statistics...');
     
     // Check if token stats already exist
     const existingStats = await prisma.tokenStats.findFirst();
@@ -21,7 +21,7 @@ async function initializeTokenStats() {
     // Create initial token stats
     const initialStats = await prisma.tokenStats.create({
       data: {
-        totalTokens: 100000000,    // 100M TIKI tokens
+        totalTokens: 100000000,    // 100M Von tokens
         totalInvestment: 350000,    // Initial investment: 350,000 USD
         currentPrice: 0.0035       // Initial price: 0.0035 USD
       }

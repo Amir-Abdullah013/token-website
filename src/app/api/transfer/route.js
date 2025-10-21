@@ -18,9 +18,9 @@ export async function GET(request) {
       }, { status: 401 });
     }
 
-    // Get user's TIKI ID for filtering
-    const senderTikiId = `TIKI-${session.email.split('@')[0].toUpperCase().substring(0, 4)}-${session.id.substring(0, 8).toUpperCase()}`;
-    console.log('🆔 Transfer API: User TIKI ID:', senderTikiId);
+    // Get user's Von ID for filtering
+    const senderVonId = `Von-${session.email.split('@')[0].toUpperCase().substring(0, 4)}-${session.id.substring(0, 8).toUpperCase()}`;
+    console.log('🆔 Transfer API: User Von ID:', senderVonId);
 
     // For now, return empty array since transfers table doesn't exist
     // This will be populated when users make actual transfers
@@ -108,10 +108,10 @@ export async function POST(request) {
     
     // Check sufficient balance (user needs to have the full amount + fee)
     const totalRequired = numericAmount + fee;
-    if (senderWallet.tikiBalance < totalRequired) {
+    if (senderWallet.VonBalance < totalRequired) {
       return NextResponse.json({
         success: false,
-        error: `Insufficient TIKI balance. Required: ${totalRequired.toFixed(2)} TIKI (${numericAmount.toFixed(2)} + ${fee.toFixed(2)} fee)`
+        error: `Insufficient Von balance. Required: ${totalRequired.toFixed(2)} Von (${numericAmount.toFixed(2)} + ${fee.toFixed(2)} fee)`
       }, { status: 400 });
     }
 
@@ -144,47 +144,47 @@ export async function POST(request) {
     console.log('📊 Transfer API: Sender wallet before:', { 
       id: senderWallet.id, 
       balance: senderWallet.balance, 
-      tikiBalance: senderWallet.tikiBalance 
+      VonBalance: senderWallet.VonBalance 
     });
     console.log('📊 Transfer API: Recipient wallet before:', { 
       id: recipientWallet.id, 
       balance: recipientWallet.balance, 
-      tikiBalance: recipientWallet.tikiBalance 
+      VonBalance: recipientWallet.VonBalance 
     });
     
-    // Update sender's wallet (decrease TIKI balance by full amount + fee)
+    // Update sender's wallet (decrease Von balance by full amount + fee)
     const totalDeducted = numericAmount + fee;
-    const newSenderTikiBalance = senderWallet.tikiBalance - totalDeducted;
+    const newSenderVonBalance = senderWallet.VonBalance - totalDeducted;
     console.log('🔽 Transfer API: Updating sender wallet...', { 
       userId: session.id, 
       amount: numericAmount,
       fee: fee,
       totalDeducted: totalDeducted,
-      newTikiBalance: newSenderTikiBalance 
+      newVonBalance: newSenderVonBalance 
     });
     
     // Use direct SQL update for sender
     await databaseHelpers.pool.query(`
         UPDATE wallets 
-      SET "tikiBalance" = $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
+      SET "VonBalance" = $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
         WHERE "userId" = $2
-    `, [newSenderTikiBalance, session.id]);
+    `, [newSenderVonBalance, session.id]);
     console.log('✅ Transfer API: Sender wallet updated via direct SQL');
     
-    // Update recipient's wallet (increase TIKI balance by net amount)
-    const newRecipientTikiBalance = recipientWallet.tikiBalance + net;
+    // Update recipient's wallet (increase Von balance by net amount)
+    const newRecipientVonBalance = recipientWallet.VonBalance + net;
     console.log('🔼 Transfer API: Updating recipient wallet...', { 
       userId: recipient.id, 
       netAmount: net,
-      newTikiBalance: newRecipientTikiBalance 
+      newVonBalance: newRecipientVonBalance 
     });
     
     // Use direct SQL update for recipient
     await databaseHelpers.pool.query(`
         UPDATE wallets 
-      SET "tikiBalance" = $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
+      SET "VonBalance" = $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
         WHERE "userId" = $2
-    `, [newRecipientTikiBalance, recipient.id]);
+    `, [newRecipientVonBalance, recipient.id]);
     console.log('✅ Transfer API: Recipient wallet updated via direct SQL');
     
     // Credit fee to admin wallet
@@ -216,11 +216,11 @@ export async function POST(request) {
     
     console.log('📊 Transfer API: Final sender wallet:', { 
       id: finalSenderWallet.id, 
-      tikiBalance: finalSenderWallet.tikiBalance 
+      VonBalance: finalSenderWallet.VonBalance 
     });
     console.log('📊 Transfer API: Final recipient wallet:', { 
       id: finalRecipientWallet.id, 
-      tikiBalance: finalRecipientWallet.tikiBalance 
+      VonBalance: finalRecipientWallet.VonBalance 
     });
     
     console.log('✅ Transfer API: Transfer completed:', transfer);
@@ -238,8 +238,8 @@ export async function POST(request) {
           createdAt: transfer.createdAt
       },
       balances: {
-        senderTikiBalance: finalSenderWallet.tikiBalance,
-        recipientTikiBalance: finalRecipientWallet.tikiBalance
+        senderVonBalance: finalSenderWallet.VonBalance,
+        recipientVonBalance: finalRecipientWallet.VonBalance
         }
       });
 

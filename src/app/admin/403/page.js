@@ -109,8 +109,8 @@ export default function AccessDeniedPage() {
               <div className="pt-4 border-t border-gray-200">
                 <p className="text-xs text-gray-500">
                   Need help? Contact support at{' '}
-                  <a href="mailto:support@tiki.com" className="text-blue-600 hover:text-blue-500">
-                    support@tiki.com
+                  <a href="mailto:support@Von.com" className="text-blue-600 hover:text-blue-500">
+                    support@Von.com
                   </a>
                 </p>
               </div>

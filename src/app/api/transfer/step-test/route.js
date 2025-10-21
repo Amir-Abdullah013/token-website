@@ -80,12 +80,12 @@ export async function POST(request) {
     
     // Step 3: Check balance
     console.log('🔍 STEP TEST: Step 3 - Check balance');
-    if (senderWallet.tikiBalance < numericAmount) {
+    if (senderWallet.VonBalance < numericAmount) {
       return NextResponse.json({
         success: false,
         error: 'Insufficient balance',
         details: {
-          currentBalance: senderWallet.tikiBalance,
+          currentBalance: senderWallet.VonBalance,
           requestedAmount: numericAmount
         },
         step: 3
@@ -141,12 +141,12 @@ export async function POST(request) {
         sender: {
           id: session.id,
           email: session.email,
-          walletBalance: senderWallet.tikiBalance
+          walletBalance: senderWallet.VonBalance
         },
         recipient: {
           id: recipient.id,
           email: recipient.email,
-          walletBalance: recipientWallet?.tikiBalance || 0
+          walletBalance: recipientWallet?.VonBalance || 0
         },
         transfer: {
           amount: numericAmount,

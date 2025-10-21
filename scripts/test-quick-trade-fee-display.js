@@ -16,7 +16,7 @@ async function testQuickTradeFeeDisplay() {
     // Test 1: Check if development server is running
     console.log('📍 TEST 1: Server Health Check\n');
     
-    const healthResponse = await fetch(`${baseUrl}/api/tiki/buy`, {
+    const healthResponse = await fetch(`${baseUrl}/api/Von/buy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ async function testQuickTradeFeeDisplay() {
     console.log(`   Expected Net: $${expectedNet.toFixed(2)}`);
     
     try {
-      const buyResponse = await fetch(`${baseUrl}/api/tiki/buy`, {
+      const buyResponse = await fetch(`${baseUrl}/api/Von/buy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ async function testQuickTradeFeeDisplay() {
     console.log('   💰 Interface shows:');
     console.log('      - Trading Fee (1%): $1.00');
     console.log('      - Net Amount: $99.00');
-    console.log('   🪙 User receives $99 worth of TIKI tokens');
+    console.log('   🪙 User receives $99 worth of Von tokens');
     console.log('   💳 $1 fee goes to admin wallet');
     console.log('   ✅ Complete transparency for users');
     

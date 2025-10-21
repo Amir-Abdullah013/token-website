@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 import { useFeeCalculator } from '@/lib/hooks/useFeeCalculator';
 import Layout from '@/components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
@@ -68,7 +68,7 @@ const StatusBadge = ({ status }) => {
 };
 
 const TransferRow = ({ transfer, type }) => {
-  const { formatTiki } = useTiki();
+  const { formatVon } = useVon();
   
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -93,10 +93,10 @@ const TransferRow = ({ transfer, type }) => {
         </span>
       </td>
       <td className="px-4 py-3 text-sm text-white">
-        {type === 'sent' ? transfer.recipientTikiId : transfer.senderTikiId}
+        {type === 'sent' ? transfer.recipientVonId : transfer.senderVonId}
       </td>
       <td className="px-4 py-3 text-sm text-white font-medium">
-        {formatTiki(transfer.amount)} TIKI
+        {formatVon(transfer.amount)} Von
       </td>
       <td className="px-4 py-3 text-sm text-slate-300">
         {transfer.note || '—'}
@@ -113,13 +113,13 @@ const TransferRow = ({ transfer, type }) => {
 
 export default function SendTokensPage() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { tikiBalance, formatTiki, fetchUserWallet, setTikiBalance } = useTiki();
+  const { VonBalance, formatVon, fetchUserWallet, setVonBalance } = useVon();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
 
   const [formData, setFormData] = useState({
-    recipientTikiId: '',
+    recipientVonId: '',
     amount: '',
     note: ''
   });
@@ -199,10 +199,10 @@ export default function SendTokensPage() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.recipientTikiId) {
-      newErrors.recipientTikiId = 'Recipient TIKI ID is required';
-    } else if (!/^TIKI-[A-Z0-9]{4}-[A-Z0-9]{8}$/.test(formData.recipientTikiId.toUpperCase())) {
-      newErrors.recipientTikiId = 'Please enter a valid TIKI ID (format: TIKI-XXXX-XXXXXXXX)';
+    if (!formData.recipientVonId) {
+      newErrors.recipientVonId = 'Recipient Von ID is required';
+    } else if (!/^Von-[A-Z0-9]{4}-[A-Z0-9]{8}$/.test(formData.recipientVonId.toUpperCase())) {
+      newErrors.recipientVonId = 'Please enter a valid Von ID (format: Von-XXXX-XXXXXXXX)';
     }
 
     if (!formData.amount) {
@@ -211,8 +211,8 @@ export default function SendTokensPage() {
       newErrors.amount = 'Amount must be greater than 0';
     } else {
       const totalRequired = parseFloat(formData.amount) + feeCalculation.fee;
-      if (totalRequired > tikiBalance) {
-        newErrors.amount = `Insufficient TIKI balance. Required: ${formatTiki(totalRequired)} TIKI (${formatTiki(parseFloat(formData.amount))} + ${formatTiki(feeCalculation.fee)} fee)`;
+      if (totalRequired > VonBalance) {
+        newErrors.amount = `Insufficient Von balance. Required: ${formatVon(totalRequired)} Von (${formatVon(parseFloat(formData.amount))} + ${formatVon(feeCalculation.fee)} fee)`;
       }
     }
 
@@ -239,7 +239,7 @@ export default function SendTokensPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          recipientTikiId: formData.recipientTikiId.toUpperCase(),
+          recipientVonId: formData.recipientVonId.toUpperCase(),
           amount: parseFloat(formData.amount),
           note: formData.note || null
         })
@@ -262,14 +262,14 @@ export default function SendTokensPage() {
       }
 
       if (data.success) {
-        success(`🎉 Transfer successful! You sent ${formatTiki(parseFloat(formData.amount))} TIKI to ${formData.recipientTikiId}`);
-        setFormData({ recipientTikiId: '', amount: '', note: '' });
+        success(`🎉 Transfer successful! You sent ${formatVon(parseFloat(formData.amount))} Von to ${formData.recipientVonId}`);
+        setFormData({ recipientVonId: '', amount: '', note: '' });
         
         // Update balance immediately if provided in response
         if (data.newBalance !== undefined) {
           console.log('🔄 Updating balance from transfer response:', data.newBalance);
-          // Update the Tiki context balance directly
-          setTikiBalance(data.newBalance);
+          // Update the Von context balance directly
+          setVonBalance(data.newBalance);
         }
         
         // Only refresh after successful transfer
@@ -303,16 +303,16 @@ export default function SendTokensPage() {
   return (
     <Layout showSidebar={true}>
       <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-6">Send TIKI Tokens</h1>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-6">Send Von Tokens</h1>
 
         {/* Premium User Balance */}
         <Card className="mb-6 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
           <CardHeader>
-            <CardTitle className="text-amber-200">Your TIKI Balance</CardTitle>
+            <CardTitle className="text-amber-200">Your Von Balance</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-center">
-              <p className="text-3xl font-bold text-white">{formatTiki(tikiBalance)} TIKI</p>
+              <p className="text-3xl font-bold text-white">{formatVon(VonBalance)} Von</p>
               <p className="text-sm text-amber-300 mt-1">Available for transfer</p>
             </div>
           </CardContent>
@@ -326,30 +326,30 @@ export default function SendTokensPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="recipientTikiId" className="block text-sm font-medium text-slate-300 mb-2">
-                  Recipient TIKI ID *
+                <label htmlFor="recipientVonId" className="block text-sm font-medium text-slate-300 mb-2">
+                  Recipient Von ID *
                 </label>
                 <Input
-                  id="recipientTikiId"
-                  name="recipientTikiId"
+                  id="recipientVonId"
+                  name="recipientVonId"
                   type="text"
-                  value={formData.recipientTikiId}
+                  value={formData.recipientVonId}
                   onChange={handleInputChange}
-                  placeholder="Enter recipient's TIKI ID (e.g., TIKI-USER-12345678)"
-                  className={`bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30 ${errors.recipientTikiId ? 'border-red-500' : ''}`}
+                  placeholder="Enter recipient's Von ID (e.g., Von-USER-12345678)"
+                  className={`bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30 ${errors.recipientVonId ? 'border-red-500' : ''}`}
                   disabled={isSubmitting}
                 />
-                {errors.recipientTikiId && (
-                  <p className="mt-1 text-sm text-red-400">{errors.recipientTikiId}</p>
+                {errors.recipientVonId && (
+                  <p className="mt-1 text-sm text-red-400">{errors.recipientVonId}</p>
                 )}
                 <p className="mt-1 text-sm text-slate-400">
-                  The recipient must be registered on Tiki with this TIKI ID
+                  The recipient must be registered on Von with this Von ID
                 </p>
               </div>
 
               <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-slate-300 mb-2">
-                  Amount (TIKI) *
+                  Amount (Von) *
                 </label>
                 <Input
                   id="amount"
@@ -367,7 +367,7 @@ export default function SendTokensPage() {
                   <p className="mt-1 text-sm text-red-400">{errors.amount}</p>
                 )}
                 <p className="mt-1 text-sm text-slate-400">
-                  Maximum: {formatTiki(tikiBalance)} TIKI
+                  Maximum: {formatVon(VonBalance)} Von
                 </p>
                 
                 {/* Fee Information Display */}
@@ -376,18 +376,18 @@ export default function SendTokensPage() {
                     <div className="text-sm text-gray-600">
                       <div className="flex justify-between items-center mb-1">
                         <span>Transfer Amount:</span>
-                        <span className="font-medium">{formatTiki(amount)} TIKI</span>
+                        <span className="font-medium">{formatVon(amount)} Von</span>
                       </div>
                       <div className="flex justify-between items-center mb-1">
                         <span>Fee ({feeCalculation.feePercentage}%):</span>
-                        <span className="font-medium text-orange-600">{formatTiki(feeCalculation.fee)} TIKI</span>
+                        <span className="font-medium text-orange-600">{formatVon(feeCalculation.fee)} Von</span>
                       </div>
                       <div className="flex justify-between items-center border-t pt-1">
                         <span className="font-medium">Total Required:</span>
-                        <span className="font-bold text-blue-600">{formatTiki(amount + feeCalculation.fee)} TIKI</span>
+                        <span className="font-bold text-blue-600">{formatVon(amount + feeCalculation.fee)} Von</span>
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
-                        Recipient will receive: {formatTiki(amount)} TIKI
+                        Recipient will receive: {formatVon(amount)} Von
                       </div>
                     </div>
                   </div>
@@ -416,7 +416,7 @@ export default function SendTokensPage() {
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-600 hover:from-violet-600 hover:via-purple-600 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/25 border border-violet-400/30"
-                disabled={isSubmitting || !formData.recipientTikiId || !formData.amount}
+                disabled={isSubmitting || !formData.recipientVonId || !formData.amount}
               >
                 {isSubmitting ? 'Processing...' : 'Send Tokens'}
               </Button>
@@ -478,18 +478,18 @@ export default function SendTokensPage() {
                 </h3>
                 
                 <p className="text-slate-300 text-center mb-6">
-                  You are about to send TIKI tokens to another user.
+                  You are about to send Von tokens to another user.
                 </p>
                 
                 <div className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-lg p-4 mb-6 border border-slate-600/30">
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Recipient:</span>
-                      <span className="font-semibold text-white">{formData.recipientTikiId}</span>
+                      <span className="font-semibold text-white">{formData.recipientVonId}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Amount:</span>
-                      <span className="font-semibold text-white">{formatTiki(parseFloat(formData.amount))} TIKI</span>
+                      <span className="font-semibold text-white">{formatVon(parseFloat(formData.amount))} Von</span>
                     </div>
                     {formData.note && (
                       <div className="flex justify-between">
@@ -500,7 +500,7 @@ export default function SendTokensPage() {
                     <div className="border-t border-slate-600/30 pt-3">
                       <div className="flex justify-between">
                         <span className="text-white font-semibold">Your Balance After:</span>
-                        <span className="font-bold text-cyan-400">{formatTiki(tikiBalance - parseFloat(formData.amount))} TIKI</span>
+                        <span className="font-bold text-cyan-400">{formatVon(VonBalance - parseFloat(formData.amount))} Von</span>
                       </div>
                     </div>
                   </div>

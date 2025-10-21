@@ -350,7 +350,7 @@ export const databaseHelpers = {
         
         // Create wallet without foreign key constraint check for now
         const result = await pool.query(`
-          INSERT INTO wallets (id, "userId", balance, "tikiBalance", currency, "lastUpdated", "createdAt", "updatedAt")
+          INSERT INTO wallets (id, "userId", balance, "VonBalance", currency, "lastUpdated", "createdAt", "updatedAt")
           VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())
           RETURNING *
         `, [walletId, userId, 0, 0, currency]);
@@ -390,7 +390,7 @@ export const databaseHelpers = {
             
             // Try creating wallet again
             const retryResult = await pool.query(`
-              INSERT INTO wallets (id, "userId", balance, "tikiBalance", currency, "lastUpdated", "createdAt", "updatedAt")
+              INSERT INTO wallets (id, "userId", balance, "VonBalance", currency, "lastUpdated", "createdAt", "updatedAt")
               VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())
               RETURNING *
             `, [randomUUID(), userId, 0, 0, currency]);
@@ -408,14 +408,14 @@ export const databaseHelpers = {
       }
     },
 
-    async updateWallet(userId, balance, tikiBalance) {
+    async updateWallet(userId, balance, VonBalance) {
       try {
         const result = await pool.query(`
           UPDATE wallets 
-          SET balance = $1, "tikiBalance" = $2, "lastUpdated" = NOW(), "updatedAt" = NOW()
+          SET balance = $1, "VonBalance" = $2, "lastUpdated" = NOW(), "updatedAt" = NOW()
           WHERE "userId" = $3
           RETURNING *
-        `, [balance, tikiBalance, userId]);
+        `, [balance, VonBalance, userId]);
         
         return result.rows[0];
       } catch (error) {
@@ -424,16 +424,16 @@ export const databaseHelpers = {
       }
     },
 
-    async updateBothBalances(userId, usdBalance, tikiBalance) {
+    async updateBothBalances(userId, usdBalance, VonBalance) {
       try {
         const result = await pool.query(`
           UPDATE wallets 
-          SET balance = $1, "tikiBalance" = $2, "lastUpdated" = NOW(), "updatedAt" = NOW()
+          SET balance = $1, "VonBalance" = $2, "lastUpdated" = NOW(), "updatedAt" = NOW()
           WHERE "userId" = $3
           RETURNING *
-        `, [usdBalance, tikiBalance, userId]);
+        `, [usdBalance, VonBalance, userId]);
         
-        console.log('✅ Wallet balances updated:', { userId, usdBalance, tikiBalance });
+        console.log('✅ Wallet balances updated:', { userId, usdBalance, VonBalance });
         return result.rows[0];
       } catch (error) {
         console.error('Error updating both balances:', error);
@@ -468,29 +468,29 @@ export const databaseHelpers = {
       }
     },
 
-    async getTikiBalance(userId) {
+    async getVonBalance(userId) {
       try {
-        const result = await pool.query('SELECT "tikiBalance" FROM wallets WHERE "userId" = $1', [userId]);
-        return result.rows[0]?.tikiBalance || 0;
+        const result = await pool.query('SELECT "VonBalance" FROM wallets WHERE "userId" = $1', [userId]);
+        return result.rows[0]?.VonBalance || 0;
       } catch (error) {
-        console.error('Error getting TIKI balance:', error);
+        console.error('Error getting Von balance:', error);
         return 0;
       }
     },
 
-    async updateTikiBalance(userId, amount) {
+    async updateVonBalance(userId, amount) {
       try {
         const result = await pool.query(`
           UPDATE wallets 
-          SET "tikiBalance" = "tikiBalance" + $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
+          SET "VonBalance" = "VonBalance" + $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
           WHERE "userId" = $2
           RETURNING *
         `, [amount, userId]);
         
-        console.log('✅ TIKI balance updated:', userId, { amount });
+        console.log('✅ Von balance updated:', userId, { amount });
         return result.rows[0];
       } catch (error) {
-        console.error('Error updating TIKI balance:', error);
+        console.error('Error updating Von balance:', error);
         throw error;
       }
     }
@@ -503,7 +503,7 @@ export const databaseHelpers = {
       try {
         const { 
           userId, type, amount, currency = 'USD', status = 'PENDING', description = null, 
-          gateway = null, binanceAddress = null, screenshot = null,
+          gateway = null, binanceAddress = null, network = null, screenshot = null,
           feeAmount = null, netAmount = null, feeReceiverId = null, transactionType = null
         } = transactionData;
         const id = randomUUID();
@@ -526,10 +526,10 @@ export const databaseHelpers = {
 
         try {
           const result = await client.query(`
-            INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", screenshot, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
+            INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", network, screenshot, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
             RETURNING *
-          `, [id, userId, txTypePrimary, amount, currency, txStatusPrimary, description, gateway, binanceAddress, screenshot, feeAmount, netAmount, feeReceiverId, transactionType]);
+          `, [id, userId, txTypePrimary, amount, currency, txStatusPrimary, description, gateway, binanceAddress, network, screenshot, feeAmount, netAmount, feeReceiverId, transactionType]);
           console.log('✅ Transaction created:', id);
           return result.rows[0];
         } catch (enumErr) {
@@ -538,10 +538,10 @@ export const databaseHelpers = {
             const txTypeFallback = typeof type === 'string' ? type.toLowerCase() : type;
             const txStatusFallback = typeof status === 'string' ? status.toLowerCase() : status;
             const result = await client.query(`
-              INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", screenshot, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
+              INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", network, screenshot, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
               RETURNING *
-            `, [id, userId, txTypeFallback, amount, currency, txStatusFallback, description, gateway, binanceAddress, screenshot, feeAmount, netAmount, feeReceiverId, transactionType]);
+            `, [id, userId, txTypeFallback, amount, currency, txStatusFallback, description, gateway, binanceAddress, network, screenshot, feeAmount, netAmount, feeReceiverId, transactionType]);
             console.log('✅ Transaction created with fallback enum casing:', id);
             return result.rows[0];
           }
@@ -797,16 +797,22 @@ export const databaseHelpers = {
           params.push(type);
         }
 
-        const result = await pool.query(`
+        const query = `
           SELECT 
             COUNT(*) as total,
             COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as pending,
             COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completed,
             COUNT(CASE WHEN status = 'FAILED' THEN 1 END) as failed,
-            COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount END), 0) as totalCompletedAmount
+            COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount END), 0) as totalCompletedAmount,
+            COALESCE(SUM(CASE WHEN status = 'PENDING' THEN amount END), 0) as totalPendingAmount,
+            COALESCE(SUM(amount), 0) as totalAmount
           FROM transactions
           ${whereClause}
-        `, params);
+        `;
+        
+        console.log('🔍 Executing transaction stats query:', { query, params, type });
+        const result = await pool.query(query, params);
+        console.log('🔍 Transaction stats query result:', result.rows[0]);
         
         return result.rows[0];
       } catch (error) {
@@ -816,7 +822,9 @@ export const databaseHelpers = {
           pending: 0,
           completed: 0,
           failed: 0,
-          totalCompletedAmount: 0
+          totalCompletedAmount: 0,
+          totalPendingAmount: 0,
+          totalAmount: 0
         };
       }
     }
@@ -1727,7 +1735,7 @@ export const databaseHelpers = {
     async calculateDistributedSupply() {
       try {
         const result = await pool.query(`
-          SELECT COALESCE(SUM("tikiBalance"), 0) as total_distributed
+          SELECT COALESCE(SUM("VonBalance"), 0) as total_distributed
           FROM wallets
         `);
         return Number(result.rows[0].total_distributed) || 0;
@@ -2190,7 +2198,7 @@ export const databaseHelpers = {
             action: 'TRANSFER_SUPPLY',
             targetType: 'TOKEN_SUPPLY',
             targetId: tokenSupply.id.toString(),
-            details: `Transferred ${amount} TIKI from admin reserve to user supply. Reason: ${reason || 'None'}`
+            details: `Transferred ${amount} Von from admin reserve to user supply. Reason: ${reason || 'None'}`
           });
 
           await client.query('COMMIT');

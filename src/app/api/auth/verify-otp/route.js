@@ -61,8 +61,15 @@ export async function POST(request) {
       );
     }
 
+    // Debug logging
+    console.log(`🔍 Verifying OTP for ${email}:`);
+    console.log(`🔍 Received OTP: ${otp} (type: ${typeof otp}, length: ${otp.length})`);
+    console.log(`🔍 Stored OTP hash: ${passwordReset.otpHash.substring(0, 20)}...`);
+    console.log(`🔍 OTP expires at: ${passwordReset.expiresAt}`);
+    
     // Verify OTP using bcrypt comparison (secure verification)
     const isOtpValid = await verifyOTP(otp, passwordReset.otpHash);
+    console.log(`🔍 OTP verification result: ${isOtpValid}`);
     
     if (!isOtpValid) {
       return NextResponse.json(

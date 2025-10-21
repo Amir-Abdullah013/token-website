@@ -42,7 +42,7 @@ async function testProductionLimitOrders() {
     
     if (walletResult.rows.length === 0) {
       await client.query(`
-        INSERT INTO wallets (id, "userId", balance, "tikiBalance", "createdAt", "updatedAt")
+        INSERT INTO wallets (id, "userId", balance, "VonBalance", "createdAt", "updatedAt")
         VALUES ($1, $2, 10000, 10000, NOW(), NOW())
       `, [randomUUID(), testUser.id]);
       
@@ -54,7 +54,7 @@ async function testProductionLimitOrders() {
       await client.query(`
         UPDATE wallets 
         SET balance = GREATEST(balance, 5000),
-            "tikiBalance" = GREATEST("tikiBalance", 5000)
+            "VonBalance" = GREATEST("VonBalance", 5000)
         WHERE "userId" = $1
       `, [testUser.id]);
       
@@ -66,7 +66,7 @@ async function testProductionLimitOrders() {
     const initialWallet = walletResult.rows[0];
     console.log(`💰 Initial Balances:`);
     console.log(`   USD: $${parseFloat(initialWallet.balance).toFixed(2)}`);
-    console.log(`   TIKI: ${parseFloat(initialWallet.tikiBalance).toFixed(2)} TIKI`);
+    console.log(`   Von: ${parseFloat(initialWallet.VonBalance).toFixed(2)} Von`);
     
     // Step 2: Get current price
     console.log('\n📍 STEP 2: Get Current Market Price\n');
@@ -75,7 +75,7 @@ async function testProductionLimitOrders() {
     const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
     const currentPrice = tokenValue.currentTokenValue;
     
-    console.log(`✅ Current TIKI Price: $${currentPrice.toFixed(6)}`);
+    console.log(`✅ Current Von Price: $${currentPrice.toFixed(6)}`);
     
     // Step 3: Create test orders with different scenarios
     console.log('\n📍 STEP 3: Create Test Orders\n');
@@ -116,7 +116,7 @@ async function testProductionLimitOrders() {
     for (const testOrder of testOrders) {
       console.log(`\n📝 Creating ${testOrder.name}:`);
       console.log(`   Type: ${testOrder.orderType}`);
-      console.log(`   Amount: ${testOrder.orderType === 'BUY' ? '$' + testOrder.amount : testOrder.amount + ' TIKI'}`);
+      console.log(`   Amount: ${testOrder.orderType === 'BUY' ? '$' + testOrder.amount : testOrder.amount + ' Von'}`);
       console.log(`   Limit Price: $${testOrder.limitPrice.toFixed(6)}`);
       console.log(`   Expected: ${testOrder.shouldExecute ? '✅ WILL EXECUTE' : '⏸️ WILL WAIT'}`);
       
@@ -181,7 +181,7 @@ async function testProductionLimitOrders() {
       if (isWaiting) waitingCount++;
       
       console.log(`${idx + 1}. ${order.orderType} Order:`);
-      console.log(`   Amount: ${order.orderType === 'BUY' ? '$' + parseFloat(order.amount).toFixed(2) : parseFloat(order.amount).toFixed(2) + ' TIKI'}`);
+      console.log(`   Amount: ${order.orderType === 'BUY' ? '$' + parseFloat(order.amount).toFixed(2) : parseFloat(order.amount).toFixed(2) + ' Von'}`);
       console.log(`   Limit Price: $${parseFloat(order.limitPrice).toFixed(6)}`);
       console.log(`   Status: ${order.status}`);
       if (isExecuted) {
@@ -201,13 +201,13 @@ async function testProductionLimitOrders() {
     const finalWallet = finalWalletResult.rows[0];
     
     const usdChange = parseFloat(finalWallet.balance) - parseFloat(initialWallet.balance);
-    const tikiChange = parseFloat(finalWallet.tikiBalance) - parseFloat(initialWallet.tikiBalance);
+    const VonChange = parseFloat(finalWallet.VonBalance) - parseFloat(initialWallet.VonBalance);
     
     console.log(`💰 Balance Changes:`);
     console.log(`   USD Change: $${usdChange.toFixed(2)}`);
-    console.log(`   TIKI Change: ${tikiChange.toFixed(2)} TIKI`);
+    console.log(`   Von Change: ${VonChange.toFixed(2)} Von`);
     console.log(`   Final USD: $${parseFloat(finalWallet.balance).toFixed(2)}`);
-    console.log(`   Final TIKI: ${parseFloat(finalWallet.tikiBalance).toFixed(2)} TIKI`);
+    console.log(`   Final Von: ${parseFloat(finalWallet.VonBalance).toFixed(2)} Von`);
     
     // Step 7: Test results summary
     console.log('\n' + '='.repeat(80));
@@ -219,7 +219,7 @@ async function testProductionLimitOrders() {
     console.log(`📈 Orders Executed: ${executedCount}`);
     console.log(`⏸️ Orders Waiting: ${waitingCount}`);
     console.log(`💰 USD Balance Change: $${usdChange.toFixed(2)}`);
-    console.log(`🪙 TIKI Balance Change: ${tikiChange.toFixed(2)} TIKI`);
+    console.log(`🪙 Von Balance Change: ${VonChange.toFixed(2)} Von`);
     
     // Verify expected behavior
     const expectedExecuted = testOrders.filter(o => o.shouldExecute).length;

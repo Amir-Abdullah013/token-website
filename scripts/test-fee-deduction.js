@@ -42,7 +42,7 @@ async function testFeeDeduction() {
     
     if (walletResult.rows.length === 0) {
       await client.query(`
-        INSERT INTO wallets (id, "userId", balance, "tikiBalance", "createdAt", "updatedAt")
+        INSERT INTO wallets (id, "userId", balance, "VonBalance", "createdAt", "updatedAt")
         VALUES ($1, $2, 10000, 10000, NOW(), NOW())
       `, [randomUUID(), testUser.id]);
       
@@ -54,7 +54,7 @@ async function testFeeDeduction() {
       await client.query(`
         UPDATE wallets 
         SET balance = GREATEST(balance, 5000),
-            "tikiBalance" = GREATEST("tikiBalance", 5000)
+            "VonBalance" = GREATEST("VonBalance", 5000)
         WHERE "userId" = $1
       `, [testUser.id]);
       
@@ -66,7 +66,7 @@ async function testFeeDeduction() {
     const initialWallet = walletResult.rows[0];
     console.log(`💰 Initial Balances:`);
     console.log(`   USD: $${parseFloat(initialWallet.balance).toFixed(2)}`);
-    console.log(`   TIKI: ${parseFloat(initialWallet.tikiBalance).toFixed(2)} TIKI`);
+    console.log(`   Von: ${parseFloat(initialWallet.VonBalance).toFixed(2)} Von`);
     
     // Step 2: Get current price
     console.log('\n📍 STEP 2: Get Current Market Price\n');
@@ -75,7 +75,7 @@ async function testFeeDeduction() {
     const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
     const currentPrice = tokenValue.currentTokenValue;
     
-    console.log(`✅ Current TIKI Price: $${currentPrice.toFixed(6)}`);
+    console.log(`✅ Current Von Price: $${currentPrice.toFixed(6)}`);
     
     // Step 3: Test Quick Trade (Dashboard) - BUY
     console.log('\n📍 STEP 3: Test Quick Trade (Dashboard) - BUY Order\n');
@@ -87,37 +87,37 @@ async function testFeeDeduction() {
     console.log(`📝 Quick Trade BUY Test:`);
     console.log(`   Amount: $${quickTradeBuyAmount}`);
     console.log(`   Expected Fee (1%): $${expectedFee.toFixed(2)}`);
-    console.log(`   Expected Tokens: ${expectedTokens.toFixed(2)} TIKI`);
+    console.log(`   Expected Tokens: ${expectedTokens.toFixed(2)} Von`);
     console.log(`   Expected Net Cost: $${(quickTradeBuyAmount - expectedFee).toFixed(2)}`);
     
     // Simulate quick trade buy
     const quickTradeBuyResult = await client.query(`
       UPDATE wallets 
       SET balance = balance - $1,
-          "tikiBalance" = "tikiBalance" + $2
+          "VonBalance" = "VonBalance" + $2
       WHERE "userId" = $3
       RETURNING *
     `, [quickTradeBuyAmount, expectedTokens, testUser.id]);
     
     const afterQuickBuy = quickTradeBuyResult.rows[0];
     const quickBuyUsdChange = parseFloat(initialWallet.balance) - parseFloat(afterQuickBuy.balance);
-    const quickBuyTikiChange = parseFloat(afterQuickBuy.tikiBalance) - parseFloat(initialWallet.tikiBalance);
+    const quickBuyVonChange = parseFloat(afterQuickBuy.VonBalance) - parseFloat(initialWallet.VonBalance);
     
     console.log(`✅ Quick Trade BUY Results:`);
     console.log(`   USD Spent: $${quickBuyUsdChange.toFixed(2)}`);
-    console.log(`   TIKI Received: ${quickBuyTikiChange.toFixed(2)} TIKI`);
-    console.log(`   Fee Deducted: $${(quickBuyUsdChange - (quickBuyTikiChange * currentPrice)).toFixed(2)}`);
+    console.log(`   Von Received: ${quickBuyVonChange.toFixed(2)} Von`);
+    console.log(`   Fee Deducted: $${(quickBuyUsdChange - (quickBuyVonChange * currentPrice)).toFixed(2)}`);
     
     // Step 4: Test Quick Trade (Dashboard) - SELL
     console.log('\n📍 STEP 4: Test Quick Trade (Dashboard) - SELL Order\n');
     
-    const quickTradeSellAmount = 50; // 50 TIKI
+    const quickTradeSellAmount = 50; // 50 Von
     const sellValue = quickTradeSellAmount * currentPrice;
     const expectedSellFee = sellValue * 0.01; // 1% fee
     const expectedUsdReceived = sellValue - expectedSellFee;
     
     console.log(`📝 Quick Trade SELL Test:`);
-    console.log(`   Amount: ${quickTradeSellAmount} TIKI`);
+    console.log(`   Amount: ${quickTradeSellAmount} Von`);
     console.log(`   Sell Value: $${sellValue.toFixed(2)}`);
     console.log(`   Expected Fee (1%): $${expectedSellFee.toFixed(2)}`);
     console.log(`   Expected USD Received: $${expectedUsdReceived.toFixed(2)}`);
@@ -126,22 +126,22 @@ async function testFeeDeduction() {
     const quickTradeSellResult = await client.query(`
       UPDATE wallets 
       SET balance = balance + $1,
-          "tikiBalance" = "tikiBalance" - $2
+          "VonBalance" = "VonBalance" - $2
       WHERE "userId" = $3
       RETURNING *
     `, [expectedUsdReceived, quickTradeSellAmount, testUser.id]);
     
     const afterQuickSell = quickTradeSellResult.rows[0];
     const quickSellUsdChange = parseFloat(afterQuickSell.balance) - parseFloat(afterQuickBuy.balance);
-    const quickSellTikiChange = parseFloat(afterQuickBuy.tikiBalance) - parseFloat(afterQuickSell.tikiBalance);
+    const quickSellVonChange = parseFloat(afterQuickBuy.VonBalance) - parseFloat(afterQuickSell.VonBalance);
     
     console.log(`✅ Quick Trade SELL Results:`);
     console.log(`   USD Received: $${quickSellUsdChange.toFixed(2)}`);
-    console.log(`   TIKI Sold: ${quickSellTikiChange.toFixed(2)} TIKI`);
+    console.log(`   Von Sold: ${quickSellVonChange.toFixed(2)} Von`);
     console.log(`   Fee Deducted: $${(sellValue - quickSellUsdChange).toFixed(2)}`);
     
-    // Step 5: Test Tiki Trading Panel - Market Orders
-    console.log('\n📍 STEP 5: Test Tiki Trading Panel - Market Orders\n');
+    // Step 5: Test Von Trading Panel - Market Orders
+    console.log('\n📍 STEP 5: Test Von Trading Panel - Market Orders\n');
     
     const marketBuyAmount = 200; // $200
     const marketBuyFee = marketBuyAmount * 0.01; // 1% fee
@@ -150,28 +150,28 @@ async function testFeeDeduction() {
     console.log(`📝 Market BUY Test:`);
     console.log(`   Amount: $${marketBuyAmount}`);
     console.log(`   Expected Fee (1%): $${marketBuyFee.toFixed(2)}`);
-    console.log(`   Expected Tokens: ${marketBuyTokens.toFixed(2)} TIKI`);
+    console.log(`   Expected Tokens: ${marketBuyTokens.toFixed(2)} Von`);
     
     // Simulate market buy
     const marketBuyResult = await client.query(`
       UPDATE wallets 
       SET balance = balance - $1,
-          "tikiBalance" = "tikiBalance" + $2
+          "VonBalance" = "VonBalance" + $2
       WHERE "userId" = $3
       RETURNING *
     `, [marketBuyAmount, marketBuyTokens, testUser.id]);
     
     const afterMarketBuy = marketBuyResult.rows[0];
     const marketBuyUsdChange = parseFloat(afterQuickSell.balance) - parseFloat(afterMarketBuy.balance);
-    const marketBuyTikiChange = parseFloat(afterMarketBuy.tikiBalance) - parseFloat(afterQuickSell.tikiBalance);
+    const marketBuyVonChange = parseFloat(afterMarketBuy.VonBalance) - parseFloat(afterQuickSell.VonBalance);
     
     console.log(`✅ Market BUY Results:`);
     console.log(`   USD Spent: $${marketBuyUsdChange.toFixed(2)}`);
-    console.log(`   TIKI Received: ${marketBuyTikiChange.toFixed(2)} TIKI`);
-    console.log(`   Fee Deducted: $${(marketBuyUsdChange - (marketBuyTikiChange * currentPrice)).toFixed(2)}`);
+    console.log(`   Von Received: ${marketBuyVonChange.toFixed(2)} Von`);
+    console.log(`   Fee Deducted: $${(marketBuyUsdChange - (marketBuyVonChange * currentPrice)).toFixed(2)}`);
     
-    // Step 6: Test Tiki Trading Panel - Limit Orders
-    console.log('\n📍 STEP 6: Test Tiki Trading Panel - Limit Orders\n');
+    // Step 6: Test Von Trading Panel - Limit Orders
+    console.log('\n📍 STEP 6: Test Von Trading Panel - Limit Orders\n');
     
     const limitBuyAmount = 150; // $150
     const limitBuyFee = limitBuyAmount * 0.01; // 1% fee
@@ -180,39 +180,39 @@ async function testFeeDeduction() {
     console.log(`📝 Limit BUY Test:`);
     console.log(`   Amount: $${limitBuyAmount}`);
     console.log(`   Expected Fee (1%): $${limitBuyFee.toFixed(2)}`);
-    console.log(`   Expected Tokens: ${limitBuyTokens.toFixed(2)} TIKI`);
+    console.log(`   Expected Tokens: ${limitBuyTokens.toFixed(2)} Von`);
     
     // Simulate limit buy execution
     const limitBuyResult = await client.query(`
       UPDATE wallets 
       SET balance = balance - $1,
-          "tikiBalance" = "tikiBalance" + $2
+          "VonBalance" = "VonBalance" + $2
       WHERE "userId" = $3
       RETURNING *
     `, [limitBuyAmount, limitBuyTokens, testUser.id]);
     
     const afterLimitBuy = limitBuyResult.rows[0];
     const limitBuyUsdChange = parseFloat(afterMarketBuy.balance) - parseFloat(afterLimitBuy.balance);
-    const limitBuyTikiChange = parseFloat(afterLimitBuy.tikiBalance) - parseFloat(afterMarketBuy.tikiBalance);
+    const limitBuyVonChange = parseFloat(afterLimitBuy.VonBalance) - parseFloat(afterMarketBuy.VonBalance);
     
     console.log(`✅ Limit BUY Results:`);
     console.log(`   USD Spent: $${limitBuyUsdChange.toFixed(2)}`);
-    console.log(`   TIKI Received: ${limitBuyTikiChange.toFixed(2)} TIKI`);
-    console.log(`   Fee Deducted: $${(limitBuyUsdChange - (limitBuyTikiChange * currentPrice)).toFixed(2)}`);
+    console.log(`   Von Received: ${limitBuyVonChange.toFixed(2)} Von`);
+    console.log(`   Fee Deducted: $${(limitBuyUsdChange - (limitBuyVonChange * currentPrice)).toFixed(2)}`);
     
     // Step 7: Verify Fee Calculations
     console.log('\n📍 STEP 7: Verify Fee Calculations\n');
     
     const totalUsdSpent = quickBuyUsdChange + marketBuyUsdChange + limitBuyUsdChange;
-    const totalTikiReceived = quickBuyTikiChange + marketBuyTikiChange + limitBuyTikiChange;
-    const totalTikiValue = totalTikiReceived * currentPrice;
-    const totalFeesDeducted = totalUsdSpent - totalTikiValue;
+    const totalVonReceived = quickBuyVonChange + marketBuyVonChange + limitBuyVonChange;
+    const totalVonValue = totalVonReceived * currentPrice;
+    const totalFeesDeducted = totalUsdSpent - totalVonValue;
     const expectedTotalFees = (quickTradeBuyAmount + marketBuyAmount + limitBuyAmount) * 0.01;
     
     console.log(`📊 Fee Verification Summary:`);
     console.log(`   Total USD Spent: $${totalUsdSpent.toFixed(2)}`);
-    console.log(`   Total TIKI Received: ${totalTikiReceived.toFixed(2)} TIKI`);
-    console.log(`   Total TIKI Value: $${totalTikiValue.toFixed(2)}`);
+    console.log(`   Total Von Received: ${totalVonReceived.toFixed(2)} Von`);
+    console.log(`   Total Von Value: $${totalVonValue.toFixed(2)}`);
     console.log(`   Total Fees Deducted: $${totalFeesDeducted.toFixed(2)}`);
     console.log(`   Expected Total Fees: $${expectedTotalFees.toFixed(2)}`);
     console.log(`   Fee Accuracy: ${((totalFeesDeducted / expectedTotalFees) * 100).toFixed(1)}%`);

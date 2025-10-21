@@ -2,14 +2,14 @@ import { randomUUID } from 'crypto';
 
 /**
  * Generate a unique user ID for transfers
- * Format: TIKI-XXXX-XXXX-XXXX (where X is alphanumeric)
+ * Format: Von-XXXX-XXXX-XXXX (where X is alphanumeric)
  */
 export function generateUserId() {
   const uuid = randomUUID();
   const cleanUuid = uuid.replace(/-/g, '').toUpperCase();
   
-  // Format as TIKI-XXXX-XXXX-XXXX
-  const formatted = `TIKI-${cleanUuid.substring(0, 4)}-${cleanUuid.substring(4, 8)}-${cleanUuid.substring(8, 12)}`;
+  // Format as Von-XXXX-XXXX-XXXX
+  const formatted = `Von-${cleanUuid.substring(0, 4)}-${cleanUuid.substring(4, 8)}-${cleanUuid.substring(8, 12)}`;
   
   return formatted;
 }
@@ -18,7 +18,7 @@ export function generateUserId() {
  * Validate user ID format
  */
 export function isValidUserId(userId) {
-  const pattern = /^TIKI-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+  const pattern = /^Von-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
   return pattern.test(userId);
 }
 
@@ -38,17 +38,17 @@ export function extractUserId(input) {
   
   // Try to extract from different formats
   const patterns = [
-    /TIKI-?([A-Z0-9]{4})-?([A-Z0-9]{4})-?([A-Z0-9]{4})/,
+    /Von-?([A-Z0-9]{4})-?([A-Z0-9]{4})-?([A-Z0-9]{4})/,
     /([A-Z0-9]{4})-?([A-Z0-9]{4})-?([A-Z0-9]{4})/
   ];
   
   for (const pattern of patterns) {
     const match = clean.match(pattern);
     if (match) {
-      if (clean.startsWith('TIKI')) {
-        return `TIKI-${match[1]}-${match[2]}-${match[3]}`;
+      if (clean.startsWith('Von')) {
+        return `Von-${match[1]}-${match[2]}-${match[3]}`;
       } else {
-        return `TIKI-${match[1]}-${match[2]}-${match[3]}`;
+        return `Von-${match[1]}-${match[2]}-${match[3]}`;
       }
     }
   }

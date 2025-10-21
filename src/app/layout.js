@@ -2,7 +2,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import ClientOnlyRoute from '@/components/ClientOnlyRoute';
 import { AuthProvider } from '@/lib/auth-context';
-import { TikiProvider } from '@/lib/tiki-context';
+import { VonProvider } from '@/lib/Von-context';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -37,7 +37,7 @@ export default function RootLayout({ children }) {
           }
         >
           <AuthProvider>
-            <TikiProvider>{children}</TikiProvider>
+            <VonProvider>{children}</VonProvider>
           </AuthProvider>
         </ClientOnlyRoute>
       </body>

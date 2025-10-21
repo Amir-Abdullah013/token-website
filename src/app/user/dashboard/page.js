@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 import { usePriceUpdates } from '../../../hooks/usePriceUpdates';
 import Layout from '@/components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
@@ -18,7 +18,7 @@ import Link from 'next/link';
 
 export default function UserDashboard() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { usdBalance, tikiBalance, tikiPrice, formatCurrency, formatTiki, buyTiki, sellTiki } = useTiki();
+  const { usdBalance, VonBalance, VonPrice, formatCurrency, formatVon, buyVon, sellVon } = useVon();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isOAuthCallback, setIsOAuthCallback] = useState(false);
@@ -45,7 +45,7 @@ export default function UserDashboard() {
     }
   }, [user?.id]);
 
-  // Tiki trading state - only for Tiki tokens
+  // Von trading state - only for Von tokens
   const [tradeType, setTradeType] = useState('buy');
   const [tradeAmount, setTradeAmount] = useState('');
   const [isTrading, setIsTrading] = useState(false);
@@ -65,8 +65,8 @@ export default function UserDashboard() {
     successRate: 0
   });
 
-  // Calculate total value using Tiki price
-  const totalValue = parseFloat(tradeAmount) * tikiPrice || 0;
+  // Calculate total value using Von price
+  const totalValue = parseFloat(tradeAmount) * VonPrice || 0;
 
   // Helper function to show trade modal
   const showTradeModalMessage = (type, title, message) => {
@@ -113,7 +113,7 @@ export default function UserDashboard() {
     }
   };
 
-  // Handle Tiki trade execution with API-based price calculation
+  // Handle Von trade execution with API-based price calculation
   const handleTrade = async () => {
     if (!tradeAmount || parseFloat(tradeAmount) <= 0) return;
 
@@ -122,7 +122,7 @@ export default function UserDashboard() {
       const amountValue = parseFloat(tradeAmount);
       
       if (tradeType === 'buy') {
-        // BUYING TIKI TOKENS LOGIC
+        // BUYING Von TOKENS LOGIC
         // Check if user has sufficient USD balance
         if (amountValue > usdBalance) {
           showTradeModalMessage(
@@ -134,10 +134,10 @@ export default function UserDashboard() {
         }
         
         // Use the new API-based buy function
-        const result = await buyTiki(amountValue);
+        const result = await buyVon(amountValue);
         
         if (result.success) {
-          let message = `Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`;
+          let message = `Successfully bought ${formatVon(result.tokensBought)} Von tokens for ${formatCurrency(amountValue, 'USD')}!`;
           if (result.newPrice !== result.oldPrice) {
             message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
           }
@@ -147,22 +147,22 @@ export default function UserDashboard() {
         }
         
       } else {
-        // SELLING TIKI TOKENS LOGIC
-        // Check if user has sufficient Tiki balance
-        if (amountValue > tikiBalance) {
+        // SELLING Von TOKENS LOGIC
+        // Check if user has sufficient Von balance
+        if (amountValue > VonBalance) {
           showTradeModalMessage(
             'error',
             'Insufficient Balance',
-            `You don't have enough Tiki balance. Available: ${formatTiki(tikiBalance)} TIKI`
+            `You don't have enough Von balance. Available: ${formatVon(VonBalance)} Von`
           );
           return;
         }
         
         // Use the new API-based sell function
-        const result = await sellTiki(amountValue);
+        const result = await sellVon(amountValue);
         
         if (result.success) {
-          let message = `Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`;
+          let message = `Successfully sold ${formatVon(amountValue)} Von tokens for ${formatCurrency(result.usdReceived, 'USD')}!`;
           if (result.newPrice !== result.oldPrice) {
             message += `\n\nPrice updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`;
           }
@@ -182,18 +182,18 @@ export default function UserDashboard() {
     }
   };
 
-  // Update Tiki price using global state
+  // Update Von price using global state
   useEffect(() => {
-    const updateTikiPrice = () => {
-      // Use real Tiki price from global state
+    const updateVonPrice = () => {
+      // Use real Von price from global state
       // Price updates are handled by the global state when trades occur
       // This effect just ensures the UI reflects the current price
     };
 
-    updateTikiPrice();
-    const interval = setInterval(updateTikiPrice, 5000);
+    updateVonPrice();
+    const interval = setInterval(updateVonPrice, 5000);
     return () => clearInterval(interval);
-  }, [tikiPrice]);
+  }, [VonPrice]);
 
   // ✅ Prevent hydration mismatches by only running client-side code after mount
   useEffect(() => {
@@ -314,7 +314,7 @@ export default function UserDashboard() {
               {/* Premium User ID Display */}
               <div className="mt-3">
                 <UserIdDisplay 
-                  userId={user?.tikiId || user?.id} 
+                  userId={user?.VonId || user?.id} 
                   showFull={false}
                   className="text-slate-200"
                 />
@@ -322,7 +322,7 @@ export default function UserDashboard() {
             </div>
             <div className="text-left lg:text-right w-full lg:w-auto">
               <div className="text-lg sm:text-xl font-bold text-white">
-                {formatCurrency(usdBalance + (tikiBalance * tikiPrice), 'USD')}
+                {formatCurrency(usdBalance + (VonBalance * VonPrice), 'USD')}
               </div>
               <div className="text-emerald-400 text-xs font-medium">+2.5% today</div>
             </div>
@@ -339,8 +339,8 @@ export default function UserDashboard() {
             <CardContent className="p-3 sm:p-4">
               <div className="text-xs text-indigo-200 mb-1">Total Balance</div>
               <div className="text-lg sm:text-xl font-bold text-white mb-1 break-words overflow-hidden">
-                <span className="block truncate" title={formatCurrency(usdBalance + (tikiBalance * tikiPrice), 'USD')}>
-                  {formatCurrency(usdBalance + (tikiBalance * tikiPrice), 'USD')}
+                <span className="block truncate" title={formatCurrency(usdBalance + (VonBalance * VonPrice), 'USD')}>
+                  {formatCurrency(usdBalance + (VonBalance * VonPrice), 'USD')}
                 </span>
               </div>
               <div className="text-emerald-400 text-xs font-medium break-words">
@@ -364,30 +364,30 @@ export default function UserDashboard() {
             </CardContent>
           </Card>
 
-          {/* TIKI Holdings */}
+          {/* Von Holdings */}
           <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-red-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
             <CardContent className="p-3 sm:p-4">
-              <div className="text-xs text-amber-200 mb-1">TIKI Holdings</div>
+              <div className="text-xs text-amber-200 mb-1">Von Holdings</div>
               <div className="text-lg sm:text-xl font-bold text-white mb-1 break-words overflow-hidden">
-                <span className="block truncate" title={formatTiki(tikiBalance)}>
-                  {formatTiki(tikiBalance)}
+                <span className="block truncate" title={formatVon(VonBalance)}>
+                  {formatVon(VonBalance)}
                 </span>
               </div>
               <div className="text-amber-300 text-xs break-words">
-                <span className="block truncate" title={`Worth ${formatCurrency(tikiBalance * tikiPrice, 'USD')}`}>
-                  Worth {formatCurrency(tikiBalance * tikiPrice, 'USD')}
+                <span className="block truncate" title={`Worth ${formatCurrency(VonBalance * VonPrice, 'USD')}`}>
+                  Worth {formatCurrency(VonBalance * VonPrice, 'USD')}
                 </span>
               </div>
             </CardContent>
           </Card>
 
-          {/* TIKI Price */}
+          {/* Von Price */}
           <Card className="bg-gradient-to-br from-rose-500/20 via-pink-500/20 to-purple-500/20 border border-rose-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/20">
             <CardContent className="p-3 sm:p-4">
-              <div className="text-xs text-rose-200 mb-1">TIKI Price</div>
+              <div className="text-xs text-rose-200 mb-1">Von Price</div>
               <div className="text-lg sm:text-xl font-bold text-white mb-1 break-words overflow-hidden">
-                <span className="block truncate" title={formatCurrency(tikiPrice, 'USD')}>
-                  {formatCurrency(tikiPrice, 'USD')}
+                <span className="block truncate" title={formatCurrency(VonPrice, 'USD')}>
+                  {formatCurrency(VonPrice, 'USD')}
                 </span>
               </div>
               <div className="text-emerald-400 text-xs font-medium break-words">
@@ -403,7 +403,7 @@ export default function UserDashboard() {
           <Card className="w-full hidden md:block bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <CardTitle className="text-white text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">TIKI/USD Chart</CardTitle>
+                <CardTitle className="text-white text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Von/USD Chart</CardTitle>
                 <div className="flex flex-wrap gap-2">
                   <button className="px-3 py-1 bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 rounded text-sm hover:from-slate-500/50 hover:to-slate-600/50 transition-all duration-200 border border-slate-500/30">1m</button>
                   <button className="px-3 py-1 bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 rounded text-sm hover:from-slate-500/50 hover:to-slate-600/50 transition-all duration-200 border border-slate-500/30">5m</button>
@@ -456,7 +456,7 @@ export default function UserDashboard() {
                   <label className="block text-xs text-slate-300 mb-1 font-medium">Price (USD)</label>
                   <input
                     type="number"
-                    value={tikiPrice}
+                    value={VonPrice}
                     readOnly
                     className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded text-white placeholder-slate-400 text-sm backdrop-blur-sm"
                   />
@@ -464,12 +464,12 @@ export default function UserDashboard() {
                 
                 {/* Amount Input */}
                 <div>
-                  <label className="block text-xs text-slate-300 mb-1 font-medium">Amount ({tradeType === 'buy' ? 'USD' : 'TIKI'})</label>
+                  <label className="block text-xs text-slate-300 mb-1 font-medium">Amount ({tradeType === 'buy' ? 'USD' : 'Von'})</label>
                   <input
                     type="number"
                     value={tradeAmount}
                     onChange={(e) => setTradeAmount(e.target.value)}
-                    placeholder={tradeType === 'buy' ? 'Enter USD amount' : 'Enter TIKI amount'}
+                    placeholder={tradeType === 'buy' ? 'Enter USD amount' : 'Enter Von amount'}
                     className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded text-white placeholder-slate-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 text-sm backdrop-blur-sm transition-all duration-200"
                   />
                 </div>
@@ -479,7 +479,7 @@ export default function UserDashboard() {
                   <label className="block text-xs text-slate-300 mb-1 font-medium">Total</label>
                   <input
                     type="number"
-                    value={tradeType === 'buy' ? (parseFloat(tradeAmount) / tikiPrice || 0) : (parseFloat(tradeAmount) * tikiPrice || 0)}
+                    value={tradeType === 'buy' ? (parseFloat(tradeAmount) / VonPrice || 0) : (parseFloat(tradeAmount) * VonPrice || 0)}
                     readOnly
                     className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded text-white placeholder-slate-400 text-sm backdrop-blur-sm"
                   />
@@ -515,7 +515,7 @@ export default function UserDashboard() {
                       : 'bg-gradient-to-r from-rose-500 via-red-500 to-pink-600 hover:from-rose-600 hover:via-red-600 hover:to-pink-700 text-white shadow-lg shadow-rose-500/25 border border-rose-400/30'
                   } ${isTrading || !tradeAmount ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-xl'}`}
                 >
-                  {isTrading ? 'Processing...' : `${tradeType === 'buy' ? 'Buy' : 'Sell'} TIKI`}
+                  {isTrading ? 'Processing...' : `${tradeType === 'buy' ? 'Buy' : 'Sell'} Von`}
                 </button>
               </CardContent>
             </Card>
@@ -530,8 +530,8 @@ export default function UserDashboard() {
               <CardContent className="pt-0 space-y-3">
                 <div className="bg-gradient-to-r from-slate-700/40 to-slate-800/40 rounded-lg p-3 border border-slate-500/30 backdrop-blur-sm">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-slate-300 text-xs font-medium">Staked TIKI</span>
-                    <span className="text-white font-semibold text-sm">0 TIKI</span>
+                    <span className="text-slate-300 text-xs font-medium">Staked Von</span>
+                    <span className="text-white font-semibold text-sm">0 Von</span>
                   </div>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-slate-300 text-xs font-medium">APY</span>
@@ -539,7 +539,7 @@ export default function UserDashboard() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-300 text-xs font-medium">Rewards Earned</span>
-                    <span className="text-amber-400 font-semibold text-sm">0 TIKI</span>
+                    <span className="text-amber-400 font-semibold text-sm">0 Von</span>
                   </div>
                 </div>
                 

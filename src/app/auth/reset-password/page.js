@@ -95,6 +95,7 @@ export default function ResetPasswordPage() {
     setMessage('');
 
     try {
+      console.log(`🔍 Frontend: Sending OTP verification request:`, { email, otp });
       const response = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: {
@@ -129,6 +130,7 @@ export default function ResetPasswordPage() {
     setMessage('');
 
     try {
+      console.log(`🔍 Frontend: Sending password reset request:`, { email, otp, newPassword: '***' });
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: {

@@ -198,7 +198,7 @@ export default function ReferralDashboard() {
                 <div>
                   <p className="text-cyan-200 text-sm font-medium">Total Referral Earnings</p>
                   <p className="text-3xl font-bold text-white mt-2">
-                    {(referralData?.totalEarnings || 0)} TIKI
+                    {(referralData?.totalEarnings || 0)} Von
                   </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-cyan-300" />
@@ -234,7 +234,7 @@ export default function ReferralDashboard() {
                 <div>
                   <p className="text-amber-200 text-sm font-medium">Avg. Earnings per Referral</p>
                   <p className="text-3xl font-bold text-white mt-2">
-                    {(referralData?.statistics?.averageEarningPerReferral || 0)} TIKI
+                    {(referralData?.statistics?.averageEarningPerReferral || 0)} Von
                   </p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-amber-300" />
@@ -338,7 +338,7 @@ export default function ReferralDashboard() {
                       
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-emerald-400">
-                          {(referral.earningFromThisUser)} TIKI
+                          {(referral.earningFromThisUser)} Von
                         </div>
                       </td>
                     </motion.tr>

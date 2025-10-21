@@ -562,8 +562,8 @@ export default function AdminTransactionsPage() {
                       <option value="all" className="bg-slate-800 text-white py-2">All Transaction Types</option>
                       <option value="DEPOSIT" className="bg-slate-800 text-white py-2">💰 Deposit</option>
                       <option value="WITHDRAWAL" className="bg-slate-800 text-white py-2">💸 Withdrawal</option>
-                      <option value="BUY" className="bg-slate-800 text-white py-2">📈 Buy TIKI</option>
-                      <option value="SELL" className="bg-slate-800 text-white py-2">📉 Sell TIKI</option>
+                      <option value="BUY" className="bg-slate-800 text-white py-2">📈 Buy Von</option>
+                      <option value="SELL" className="bg-slate-800 text-white py-2">📉 Sell Von</option>
                       <option value="TRANSFER" className="bg-slate-800 text-white py-2">🔄 Transfer</option>
                       <option value="STAKE" className="bg-slate-800 text-white py-2">🔒 Stake</option>
                       <option value="UNSTAKE" className="bg-slate-800 text-white py-2">🔓 Unstake</option>

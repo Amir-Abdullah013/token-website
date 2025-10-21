@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 // Removed complex session logic - using simple authentication
 import Layout from '@/components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
@@ -13,7 +13,7 @@ import { useToast, ToastContainer } from '@/components/Toast';
 
 export default function DepositPage() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { usdBalance, tikiBalance, tikiPrice, formatCurrency, formatTiki } = useTiki();
+  const { usdBalance, VonBalance, VonPrice, formatCurrency, formatVon } = useVon();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
@@ -404,12 +404,12 @@ export default function DepositPage() {
 
           <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
             <CardHeader>
-              <CardTitle className="text-lg text-amber-200">Tiki Balance</CardTitle>
+              <CardTitle className="text-lg text-amber-200">Von Balance</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-white">
-                  {formatTiki(tikiBalance)} TIKI
+                  {formatVon(VonBalance)} Von
                 </h2>
                 <p className="text-sm text-amber-300">Available Tokens</p>
               </div>

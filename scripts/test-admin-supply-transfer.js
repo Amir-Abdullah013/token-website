@@ -32,15 +32,15 @@ async function testAdminSupplyTransfer() {
     const beforeSupply = await databaseHelpers.tokenSupply.getTokenSupply();
     const beforeValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
     
-    console.log(`   Total Supply: ${Number(beforeSupply.totalSupply).toLocaleString()} TIKI`);
-    console.log(`   User Supply: ${Number(beforeSupply.userSupplyRemaining).toLocaleString()} TIKI`);
-    console.log(`   Admin Reserve: ${Number(beforeSupply.adminReserve).toLocaleString()} TIKI`);
+    console.log(`   Total Supply: ${Number(beforeSupply.totalSupply).toLocaleString()} Von`);
+    console.log(`   User Supply: ${Number(beforeSupply.userSupplyRemaining).toLocaleString()} Von`);
+    console.log(`   Admin Reserve: ${Number(beforeSupply.adminReserve).toLocaleString()} Von`);
     console.log(`   Token Value: $${beforeValue.currentTokenValue}`);
     console.log(`   Inflation Factor: ${beforeValue.inflationFactor.toFixed(4)}x\n`);
 
     // Test transfer
-    const transferAmount = 100000; // Transfer 100k TIKI
-    console.log(`💰 Transferring ${transferAmount.toLocaleString()} TIKI from admin reserve to user supply...`);
+    const transferAmount = 100000; // Transfer 100k Von
+    console.log(`💰 Transferring ${transferAmount.toLocaleString()} Von from admin reserve to user supply...`);
     console.log('-------------------------------------------------------------------------');
 
     const transferResult = await databaseHelpers.adminSupplyTransfer.transferToUserSupply(
@@ -54,7 +54,7 @@ async function testAdminSupplyTransfer() {
       
       console.log('📋 Transfer Details:');
       console.log(`   Transfer ID: ${transferResult.transfer.id}`);
-      console.log(`   Amount: ${Number(transferResult.transfer.amount).toLocaleString()} TIKI`);
+      console.log(`   Amount: ${Number(transferResult.transfer.amount).toLocaleString()} Von`);
       console.log(`   Admin: ${admin.name}`);
       console.log(`   Reason: ${transferResult.transfer.reason}`);
       console.log(`   Timestamp: ${transferResult.transfer.createdAt}\n`);
@@ -65,9 +65,9 @@ async function testAdminSupplyTransfer() {
       const afterSupply = transferResult.updatedSupply;
       const afterValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
       
-      console.log(`   Total Supply: ${Number(afterSupply.totalSupply).toLocaleString()} TIKI (unchanged)`);
-      console.log(`   User Supply: ${Number(afterSupply.userSupplyRemaining).toLocaleString()} TIKI (+${transferAmount.toLocaleString()})`);
-      console.log(`   Admin Reserve: ${Number(afterSupply.adminReserve).toLocaleString()} TIKI (-${transferAmount.toLocaleString()})`);
+      console.log(`   Total Supply: ${Number(afterSupply.totalSupply).toLocaleString()} Von (unchanged)`);
+      console.log(`   User Supply: ${Number(afterSupply.userSupplyRemaining).toLocaleString()} Von (+${transferAmount.toLocaleString()})`);
+      console.log(`   Admin Reserve: ${Number(afterSupply.adminReserve).toLocaleString()} Von (-${transferAmount.toLocaleString()})`);
       console.log(`   Token Value: $${afterValue.currentTokenValue}`);
       console.log(`   Inflation Factor: ${afterValue.inflationFactor.toFixed(4)}x\n`);
 
@@ -78,13 +78,13 @@ async function testAdminSupplyTransfer() {
       const adminReserveChange = Number(beforeSupply.adminReserve) - Number(afterSupply.adminReserve);
       
       if (userSupplyChange === transferAmount) {
-        console.log(`✅ User supply increased by ${transferAmount.toLocaleString()} TIKI`);
+        console.log(`✅ User supply increased by ${transferAmount.toLocaleString()} Von`);
       } else {
         console.warn(`⚠️ User supply change mismatch: expected ${transferAmount}, got ${userSupplyChange}`);
       }
 
       if (adminReserveChange === transferAmount) {
-        console.log(`✅ Admin reserve decreased by ${transferAmount.toLocaleString()} TIKI`);
+        console.log(`✅ Admin reserve decreased by ${transferAmount.toLocaleString()} Von`);
       } else {
         console.warn(`⚠️ Admin reserve change mismatch: expected ${transferAmount}, got ${adminReserveChange}`);
       }
@@ -92,7 +92,7 @@ async function testAdminSupplyTransfer() {
       const totalSupplyBefore = Number(beforeSupply.totalSupply);
       const totalSupplyAfter = Number(afterSupply.totalSupply);
       if (totalSupplyBefore === totalSupplyAfter) {
-        console.log(`✅ Total supply unchanged (${totalSupplyBefore.toLocaleString()} TIKI)\n`);
+        console.log(`✅ Total supply unchanged (${totalSupplyBefore.toLocaleString()} Von)\n`);
       } else {
         console.warn(`⚠️ Total supply changed: ${totalSupplyBefore} → ${totalSupplyAfter}\n`);
       }
@@ -104,13 +104,13 @@ async function testAdminSupplyTransfer() {
       const stats = await databaseHelpers.adminSupplyTransfer.getTransferStats();
       
       console.log(`   Total transfers: ${stats.total_transfers}`);
-      console.log(`   Total transferred: ${Number(stats.total_transferred).toLocaleString()} TIKI`);
+      console.log(`   Total transferred: ${Number(stats.total_transferred).toLocaleString()} Von`);
       console.log(`   First transfer: ${stats.first_transfer}`);
       console.log(`   Last transfer: ${stats.last_transfer}\n`);
 
       console.log('   Recent transfers:');
       history.slice(0, 3).forEach((transfer, index) => {
-        console.log(`   ${index + 1}. ${Number(transfer.amount).toLocaleString()} TIKI by ${transfer.admin_name} - ${new Date(transfer.createdAt).toLocaleString()}`);
+        console.log(`   ${index + 1}. ${Number(transfer.amount).toLocaleString()} Von by ${transfer.admin_name} - ${new Date(transfer.createdAt).toLocaleString()}`);
       });
 
       console.log('\n🎉 Admin supply transfer system working correctly!\n');

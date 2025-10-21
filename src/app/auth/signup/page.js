@@ -153,7 +153,7 @@ export default function SignUp() {
             {/* Success Message */}
             <div className="text-center">
               <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-2">
-                🎉 Welcome to TIKI Platform!
+                🎉 Welcome to Von Platform!
               </h2>
               <p className="text-slate-300 mb-6">
                 Your account has been created successfully.

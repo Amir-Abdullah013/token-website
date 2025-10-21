@@ -16,7 +16,7 @@ async function testQuickTradeFees() {
     // Test 1: Check if development server is running
     console.log('📍 TEST 1: Server Health Check\n');
     
-    const healthResponse = await fetch(`${baseUrl}/api/tiki/buy`, {
+    const healthResponse = await fetch(`${baseUrl}/api/Von/buy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ async function testQuickTradeFees() {
     
     // Test the buy API endpoint directly
     try {
-      const buyResponse = await fetch(`${baseUrl}/api/tiki/buy`, {
+      const buyResponse = await fetch(`${baseUrl}/api/Von/buy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,20 +82,20 @@ async function testQuickTradeFees() {
     // Test 3: Test quick trade sell API with fee calculation
     console.log('\n📍 TEST 3: Quick Trade Sell API Test\n');
     
-    const testSellAmount = 50; // 50 TIKI
-    const sellValue = testSellAmount * 0.0035; // Assuming $0.0035 per TIKI
+    const testSellAmount = 50; // 50 Von
+    const sellValue = testSellAmount * 0.0035; // Assuming $0.0035 per Von
     const expectedSellFee = sellValue * 0.01; // 1% fee
     const expectedSellNet = sellValue - expectedSellFee;
     
     console.log('📝 Testing Quick Trade Sell:');
-    console.log(`   Amount: ${testSellAmount} TIKI`);
+    console.log(`   Amount: ${testSellAmount} Von`);
     console.log(`   Sell Value: $${sellValue.toFixed(2)}`);
     console.log(`   Expected Fee (1%): $${expectedSellFee.toFixed(2)}`);
     console.log(`   Expected Net: $${expectedSellNet.toFixed(2)}`);
     
     // Test the sell API endpoint directly
     try {
-      const sellResponse = await fetch(`${baseUrl}/api/tiki/sell`, {
+      const sellResponse = await fetch(`${baseUrl}/api/Von/sell`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,9 +130,9 @@ async function testQuickTradeFees() {
     
     console.log('🔍 Checking quick trade interface:');
     console.log('   📁 src/app/user/dashboard/page.js - Quick Trade Section');
-    console.log('   📁 src/lib/tiki-context.js - buyTiki/sellTiki functions');
-    console.log('   📁 src/app/api/tiki/buy/route.js - Buy API with fees');
-    console.log('   📁 src/app/api/tiki/sell/route.js - Sell API with fees');
+    console.log('   📁 src/lib/Von-context.js - buyVon/sellVon functions');
+    console.log('   📁 src/app/api/Von/buy/route.js - Buy API with fees');
+    console.log('   📁 src/app/api/Von/sell/route.js - Sell API with fees');
     
     console.log('\n✅ Fee Implementation Status:');
     console.log('   ✅ Backend APIs include fee calculation');
@@ -161,7 +161,7 @@ async function testQuickTradeFees() {
     console.log('\n💡 HOW QUICK TRADE FEES WORK:\n');
     console.log('   📱 User enters $100 in quick trade');
     console.log('   💰 System deducts $1 fee (1%)');
-    console.log('   🪙 User receives $99 worth of TIKI tokens');
+    console.log('   🪙 User receives $99 worth of Von tokens');
     console.log('   💳 Fee goes to admin wallet');
     console.log('   ✅ Transaction is recorded with fee information');
     

@@ -29,7 +29,7 @@ export async function GET(request) {
 
     console.log('📊 Wallet found:', {
       id: wallet.id,
-      tikiBalance: wallet.tikiBalance,
+      VonBalance: wallet.VonBalance,
       usdBalance: wallet.usdBalance
     });
 

@@ -39,7 +39,7 @@ async function testUserData() {
         success: walletData.success,
         wallet: walletData.wallet ? {
           id: walletData.wallet.id,
-          tikiBalance: walletData.wallet.tikiBalance,
+          VonBalance: walletData.wallet.VonBalance,
           usdBalance: walletData.wallet.usdBalance
         } : null
       });

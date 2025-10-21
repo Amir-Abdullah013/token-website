@@ -34,7 +34,7 @@ export default function FeaturesPage() {
   const handleFeatureLearnMore = (featureName) => {
     // Navigate to specific feature pages or show more details
     switch(featureName) {
-      case 'TIKI Token Trading':
+      case 'Von Token Trading':
         router.push('/user/trade');
         break;
       case 'Staking Rewards':
@@ -75,14 +75,14 @@ export default function FeaturesPage() {
       borderColor: 'border-emerald-400/30',
       items: [
         {
-          title: 'TIKI Token Trading',
-          description: 'Buy and sell TIKI tokens with real-time market data and advanced trading tools.',
+          title: 'Von Token Trading',
+          description: 'Buy and sell Von tokens with real-time market data and advanced trading tools.',
           icon: '🪙',
           features: ['Real-time price tracking', 'Advanced charting', 'Market analysis', 'Trading history']
         },
         {
           title: 'Staking Rewards',
-          description: 'Earn passive income by staking your TIKI tokens with flexible duration options.',
+          description: 'Earn passive income by staking your Von tokens with flexible duration options.',
           icon: '🏦',
           features: ['15 days to 1 year plans', 'Up to 75% annual returns', 'Simple interest rewards', 'Flexible unstaking']
         },
@@ -208,7 +208,7 @@ export default function FeaturesPage() {
               🚀 Platform Features
             </h1>
             <p className="text-xl sm:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto">
-              Discover the powerful features that make our platform the ultimate choice for TIKI token trading and management
+              Discover the powerful features that make our platform the ultimate choice for Von token trading and management
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button 

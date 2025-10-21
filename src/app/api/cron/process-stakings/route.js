@@ -79,10 +79,10 @@ export async function GET(request) {
           `, [totalTokensNeeded, tokenSupply.id]);
 
           // Add staked amount + reward back to user's wallet
-          const newTikiBalance = userWallet.tikiBalance + totalAmount;
+          const newVonBalance = userWallet.VonBalance + totalAmount;
           await client.query(
-            'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
-            [newTikiBalance, staking.userId]
+            'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+            [newVonBalance, staking.userId]
           );
 
           // Referral bonus already distributed on stake creation
@@ -103,17 +103,17 @@ export async function GET(request) {
             userId: staking.userId,
             type: 'UNSTAKE',
             amount: totalAmount,
-            currency: 'TIKI',
+            currency: 'Von',
             status: 'COMPLETED',
             gateway: 'Staking',
-            description: `Auto-claimed staking rewards: ${staking.amountStaked} TIKI + ${rewardAmount} TIKI reward`
+            description: `Auto-claimed staking rewards: ${staking.amountStaked} Von + ${rewardAmount} Von reward`
           });
 
           // Send notification to user
           await databaseHelpers.notification.createNotification({
             userId: staking.userId,
             title: 'Staking Rewards Auto-Claimed',
-            message: `Your staking has completed and rewards have been automatically claimed! Received ${totalAmount} TIKI (${staking.amountStaked} staked + ${rewardAmount} reward).`,
+            message: `Your staking has completed and rewards have been automatically claimed! Received ${totalAmount} Von (${staking.amountStaked} staked + ${rewardAmount} reward).`,
             type: 'STAKE'
           });
 

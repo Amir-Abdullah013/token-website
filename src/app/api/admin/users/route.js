@@ -105,7 +105,7 @@ export async function GET(request) {
             createdAt: user.createdAt,
             lastLogin: user.lastLogin,
             walletBalance: parseFloat(wallet?.balance || 0),
-            tikiBalance: parseFloat(wallet?.tikiBalance || 0)
+            VonBalance: parseFloat(wallet?.VonBalance || 0)
           };
         } catch (error) {
           console.error(`Error getting wallet for user ${user.id}:`, error);
@@ -119,7 +119,7 @@ export async function GET(request) {
             createdAt: user.createdAt,
             lastLogin: user.lastLogin,
             walletBalance: 0,
-            tikiBalance: 0
+            VonBalance: 0
           };
         }
       })
@@ -135,7 +135,7 @@ export async function GET(request) {
       const allWallets = await Promise.all(
         allUsers.map(user => databaseHelpers.wallet.getUserWallet(user.id))
       );
-      usersWithBalance = allWallets.filter(wallet => wallet && (wallet.balance > 0 || wallet.tikiBalance > 0)).length;
+      usersWithBalance = allWallets.filter(wallet => wallet && (wallet.balance > 0 || wallet.VonBalance > 0)).length;
     } catch (error) {
       console.error('Error calculating users with balance:', error);
       // Fallback: assume some users have balance

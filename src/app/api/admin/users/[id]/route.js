@@ -46,7 +46,7 @@ export async function GET(request, { params }) {
         createdAt: user.createdAt,
         lastLogin: user.lastLogin,
         walletBalance: wallet ? parseFloat(wallet.balance) : 0,
-        tikiBalance: wallet ? parseFloat(wallet.tikiBalance) : 0
+        VonBalance: wallet ? parseFloat(wallet.VonBalance) : 0
       }
     });
 

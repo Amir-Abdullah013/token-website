@@ -20,10 +20,10 @@ async function testSupplyBasedEconomy() {
     }
 
     console.log('✅ Token supply found:');
-    console.log(`   Total Supply: ${tokenSupply.totalSupply} TIKI`);
-    console.log(`   User Supply Remaining: ${tokenSupply.userSupplyRemaining} TIKI`);
-    console.log(`   Admin Reserve: ${tokenSupply.adminReserve} TIKI`);
-    console.log(`   Legacy Remaining Supply: ${tokenSupply.remainingSupply} TIKI`);
+    console.log(`   Total Supply: ${tokenSupply.totalSupply} Von`);
+    console.log(`   User Supply Remaining: ${tokenSupply.userSupplyRemaining} Von`);
+    console.log(`   Admin Reserve: ${tokenSupply.adminReserve} Von`);
+    console.log(`   Legacy Remaining Supply: ${tokenSupply.remainingSupply} Von`);
 
     // Verify 20/80 split
     const totalSupplyNum = Number(tokenSupply.totalSupply);
@@ -47,8 +47,8 @@ async function testSupplyBasedEconomy() {
     console.log(`   Base Value: $${tokenValue.baseValue}`);
     console.log(`   Current Token Value: $${tokenValue.currentTokenValue}`);
     console.log(`   Inflation Factor: ${tokenValue.inflationFactor.toFixed(4)}x`);
-    console.log(`   User Supply Remaining: ${tokenValue.userSupplyRemaining} TIKI`);
-    console.log(`   Total User Supply: ${tokenValue.totalUserSupply} TIKI`);
+    console.log(`   User Supply Remaining: ${tokenValue.userSupplyRemaining} Von`);
+    console.log(`   Total User Supply: ${tokenValue.totalUserSupply} Von`);
     console.log(`   Usage Percentage: ${tokenValue.usagePercentage.toFixed(2)}%`);
 
     // Verify formula: inflationFactor = totalUserSupply / userSupplyRemaining
@@ -90,7 +90,7 @@ async function testSupplyBasedEconomy() {
       
       console.log('✅ Admin supply transfer table exists');
       console.log(`   Total transfers: ${stats.total_transfers || 0}`);
-      console.log(`   Total transferred: ${stats.total_transferred || 0} TIKI`);
+      console.log(`   Total transferred: ${stats.total_transferred || 0} Von`);
       
       if (stats.first_transfer) {
         console.log(`   First transfer: ${stats.first_transfer}`);
@@ -104,7 +104,7 @@ async function testSupplyBasedEconomy() {
     // Test 5: Simulate user supply deduction
     console.log('💸 Test 5: User Supply Deduction Simulation');
     console.log('--------------------------------------------');
-    const testAmount = 100; // Test with 100 TIKI
+    const testAmount = 100; // Test with 100 Von
     const beforeSupply = Number(tokenSupply.userSupplyRemaining);
     
     try {
@@ -118,7 +118,7 @@ async function testSupplyBasedEconomy() {
       const afterSupplyNum = Number(afterSupply.userSupplyRemaining);
       
       if (afterSupplyNum === beforeSupply - testAmount) {
-        console.log(`✅ User supply deduction works: ${beforeSupply} → ${afterSupplyNum} (-${testAmount} TIKI)`);
+        console.log(`✅ User supply deduction works: ${beforeSupply} → ${afterSupplyNum} (-${testAmount} Von)`);
       }
 
       // Get new token value
@@ -141,8 +141,8 @@ async function testSupplyBasedEconomy() {
     // Test 6: Verify API endpoints use new supply system
     console.log('🔌 Test 6: API Endpoint Integration');
     console.log('------------------------------------');
-    console.log('✅ /api/tiki/buy - Updated to use supply-based pricing');
-    console.log('✅ /api/tiki/sell - Updated to use supply-based pricing');
+    console.log('✅ /api/Von/buy - Updated to use supply-based pricing');
+    console.log('✅ /api/Von/sell - Updated to use supply-based pricing');
     console.log('✅ /api/stake/[id]/claim - Uses userSupplyRemaining');
     console.log('✅ /api/cron/process-stakings - Uses userSupplyRemaining');
     console.log('✅ /api/admin/supply/update - Admin control endpoint created');
@@ -152,8 +152,8 @@ async function testSupplyBasedEconomy() {
     console.log('🛡️ Test 7: Supply Limit Enforcement');
     console.log('------------------------------------');
     const currentUserSupply = Number(tokenSupply.userSupplyRemaining);
-    console.log(`   Current user supply: ${currentUserSupply} TIKI`);
-    console.log(`   Admin reserve: ${Number(tokenSupply.adminReserve)} TIKI`);
+    console.log(`   Current user supply: ${currentUserSupply} Von`);
+    console.log(`   Admin reserve: ${Number(tokenSupply.adminReserve)} Von`);
     
     if (currentUserSupply > 0) {
       console.log('✅ User supply available for operations');
@@ -180,8 +180,8 @@ async function testSupplyBasedEconomy() {
     console.log(`   Token Value: $${tokenValue.currentTokenValue}`);
     console.log(`   Inflation Factor: ${tokenValue.inflationFactor.toFixed(4)}x`);
     console.log(`   User Supply Usage: ${tokenValue.usagePercentage.toFixed(2)}%`);
-    console.log(`   User Supply Remaining: ${tokenValue.userSupplyRemaining.toLocaleString()} TIKI`);
-    console.log(`   Admin Reserve: ${Number(tokenSupply.adminReserve).toLocaleString()} TIKI`);
+    console.log(`   User Supply Remaining: ${tokenValue.userSupplyRemaining.toLocaleString()} Von`);
+    console.log(`   Admin Reserve: ${Number(tokenSupply.adminReserve).toLocaleString()} Von`);
 
     console.log('\n✨ Supply-based economy is fully operational!\n');
 

@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 import Card, { CardContent, CardHeader, CardTitle } from './Card';
 import Button from './Button';
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 
 // Time filter options
 const TIME_FILTERS = [
@@ -24,8 +24,8 @@ const TIME_FILTERS = [
   { label: '30D', value: '30d', hours: 720 }
 ];
 
-// Generate Tiki price data based on current price
-const generateTikiData = (timeFilter, currentPrice) => {
+// Generate Von price data based on current price
+const generateVonData = (timeFilter, currentPrice) => {
   const now = new Date();
   const data = [];
   const points = 50; // Number of data points
@@ -65,8 +65,8 @@ const generateTikiData = (timeFilter, currentPrice) => {
   for (let i = 0; i < points; i++) {
     const timestamp = new Date(startTime.getTime() + (i * interval));
     
-    // Generate realistic price movement with smaller volatility for Tiki
-    const volatility = 0.01; // 1% volatility for Tiki
+    // Generate realistic price movement with smaller volatility for Von
+    const volatility = 0.01; // 1% volatility for Von
     const change = (Math.random() - 0.5) * volatility;
     basePrice = basePrice * (1 + change);
     
@@ -77,7 +77,7 @@ const generateTikiData = (timeFilter, currentPrice) => {
     
     data.push({
       timestamp: timestamp.toISOString(),
-      price: parseFloat(basePrice.toFixed(4)), // More precision for Tiki
+      price: parseFloat(basePrice.toFixed(4)), // More precision for Von
       volume: Math.floor(Math.random() * 10000000) + 1000000, // Higher volume for crypto
       time: timestamp.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
@@ -99,8 +99,8 @@ const generateTikiData = (timeFilter, currentPrice) => {
   return data;
 };
 
-// Premium custom tooltip component for Tiki
-const TikiTooltip = ({ active, payload, label }) => {
+// Premium custom tooltip component for Von
+const VonTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -112,7 +112,7 @@ const TikiTooltip = ({ active, payload, label }) => {
           ${data.price.toFixed(4)}
         </p>
         <p className="text-xs text-slate-400 font-medium">
-          Volume: {data.volume.toLocaleString()} TIKI
+          Volume: {data.volume.toLocaleString()} Von
         </p>
       </div>
     );
@@ -131,12 +131,12 @@ const LoadingSkeleton = ({ isMobile = false }) => (
   </div>
 );
 
-const TikiPriceChart = ({ className = '' }) => {
-  const { tikiPrice, formatCurrency } = useTiki();
+const VonPriceChart = ({ className = '' }) => {
+  const { VonPrice, formatCurrency } = useVon();
   const [selectedFilter, setSelectedFilter] = useState('1d');
   const [chartData, setChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPrice, setCurrentPrice] = useState(tikiPrice);
+  const [currentPrice, setCurrentPrice] = useState(VonPrice);
   const [priceChange, setPriceChange] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -151,13 +151,13 @@ const TikiPriceChart = ({ className = '' }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Generate data only when filter changes (NOT when tikiPrice changes)
+  // Generate data only when filter changes (NOT when VonPrice changes)
   useEffect(() => {
     setIsLoading(true);
     
     // Simulate API delay
     const timeoutId = setTimeout(() => {
-      const data = generateTikiData(selectedFilter, tikiPrice);
+      const data = generateVonData(selectedFilter, VonPrice);
       setChartData(data);
       
       if (data.length > 0) {
@@ -172,12 +172,12 @@ const TikiPriceChart = ({ className = '' }) => {
 
     // Cleanup timeout on unmount or dependency change
     return () => clearTimeout(timeoutId);
-  }, [selectedFilter]); // Removed tikiPrice dependency
+  }, [selectedFilter]); // Removed VonPrice dependency
 
   // Update current price and chart data smoothly without re-rendering
   useEffect(() => {
-    if (tikiPrice !== currentPrice) {
-      setCurrentPrice(tikiPrice);
+    if (VonPrice !== currentPrice) {
+      setCurrentPrice(VonPrice);
       
       // Update chart data smoothly without triggering re-render
       setChartData(prevData => {
@@ -188,7 +188,7 @@ const TikiPriceChart = ({ className = '' }) => {
           // Update the last data point with new price
           newData[lastIndex] = {
             ...newData[lastIndex],
-            price: tikiPrice,
+            price: VonPrice,
             timestamp: new Date().toISOString(),
             time: new Date().toLocaleTimeString('en-US', { 
               hour: '2-digit', 
@@ -204,7 +204,7 @@ const TikiPriceChart = ({ className = '' }) => {
           // Calculate price change from previous point
           if (newData.length > 1) {
             const previousPrice = newData[lastIndex - 1].price;
-            setPriceChange(tikiPrice - previousPrice);
+            setPriceChange(VonPrice - previousPrice);
           }
           
           return newData;
@@ -212,7 +212,7 @@ const TikiPriceChart = ({ className = '' }) => {
         return prevData;
       });
     }
-  }, [tikiPrice, currentPrice]);
+  }, [VonPrice, currentPrice]);
 
   // Handle filter change - memoized to prevent unnecessary re-renders
   const handleFilterChange = useCallback((filter) => {
@@ -247,7 +247,7 @@ const TikiPriceChart = ({ className = '' }) => {
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              TIKI Price Chart
+              VON Price Chart
             </CardTitle>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <span className="text-sm text-slate-300 font-medium">Time Range:</span>
@@ -276,7 +276,7 @@ const TikiPriceChart = ({ className = '' }) => {
           <div className="mb-4 sm:mb-6 bg-gradient-to-r from-slate-800/40 to-slate-700/40 rounded-lg p-3 sm:p-4 border border-slate-600/30 backdrop-blur-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="text-center sm:text-left">
-                <p className="text-xs sm:text-sm text-slate-300 font-medium">Current Tiki Price</p>
+                <p className="text-xs sm:text-sm text-slate-300 font-medium">Current Von Price</p>
                 <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
                   {formatCurrency(currentPrice, 'USD')}
                 </p>
@@ -331,14 +331,14 @@ const TikiPriceChart = ({ className = '' }) => {
                     tickFormatter={(value) => isMobile ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`}
                     width={chartConfig.yAxisWidth}
                   />
-                  <Tooltip content={<TikiTooltip />} />
+                  <Tooltip content={<VonTooltip />} />
                   <defs>
-                    <linearGradient id="tikiPriceGradient" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="VonPriceGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.8}/>
                       <stop offset="50%" stopColor="#3B82F6" stopOpacity={0.4}/>
                       <stop offset="100%" stopColor="#6366F1" stopOpacity={0.1}/>
                     </linearGradient>
-                    <linearGradient id="tikiPriceLine" x1="0" y1="0" x2="1" y2="0">
+                    <linearGradient id="VonPriceLine" x1="0" y1="0" x2="1" y2="0">
                       <stop offset="0%" stopColor="#06B6D4"/>
                       <stop offset="50%" stopColor="#3B82F6"/>
                       <stop offset="100%" stopColor="#6366F1"/>
@@ -347,7 +347,7 @@ const TikiPriceChart = ({ className = '' }) => {
                   <Line
                     type="monotone"
                     dataKey="price"
-                    stroke="url(#tikiPriceLine)"
+                    stroke="url(#VonPriceLine)"
                     strokeWidth={chartConfig.strokeWidth}
                     dot={false}
                     activeDot={{ 
@@ -357,7 +357,7 @@ const TikiPriceChart = ({ className = '' }) => {
                       strokeWidth: 2,
                       filter: 'drop-shadow(0 0 4px rgba(6, 182, 212, 0.5))'
                     }}
-                    fill="url(#tikiPriceGradient)"
+                    fill="url(#VonPriceGradient)"
                   />
                   <ReferenceLine 
                     y={currentPrice} 
@@ -376,7 +376,7 @@ const TikiPriceChart = ({ className = '' }) => {
             <div className="flex items-center justify-center sm:justify-start space-x-3 sm:space-x-4">
               <div className="flex items-center">
                 <div className="w-2 h-2 sm:w-3 sm:h-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mr-1 sm:mr-2 shadow-sm shadow-cyan-500/50"></div>
-                <span className="text-slate-200 font-medium text-xs sm:text-sm">Tiki Price</span>
+                <span className="text-slate-200 font-medium text-xs sm:text-sm">Von Price</span>
               </div>
               <div className="flex items-center">
                 <div className="w-2 h-2 sm:w-3 sm:h-3 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full mr-1 sm:mr-2 shadow-sm shadow-emerald-500/50" style={{ opacity: 0.8 }}></div>
@@ -393,7 +393,7 @@ const TikiPriceChart = ({ className = '' }) => {
   );
 };
 
-export default TikiPriceChart;
+export default VonPriceChart;
 
 
 

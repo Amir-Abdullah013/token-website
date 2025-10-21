@@ -141,13 +141,31 @@ const TransactionRow = ({ transaction, onApprove, onReject, isProcessing, onView
       </td>
       <td className="px-4 py-3 text-sm text-slate-300">
         {transaction.network ? (
-          <span className={`inline-flex px-2 py-1 rounded text-white text-xs font-medium ${
-            transaction.network === 'BEP20' ? 'bg-yellow-500' : 'bg-red-500'
-          }`}>
-            {transaction.network}
-          </span>
+          <div className="flex items-center space-x-2">
+            <span 
+              className={`inline-flex items-center px-3 py-1 rounded-full text-white text-xs font-medium shadow-lg ${
+                transaction.network === 'BEP20' 
+                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500 border border-yellow-400/30' 
+                  : transaction.network === 'TRC20'
+                  ? 'bg-gradient-to-r from-red-500 to-pink-500 border border-red-400/30'
+                  : 'bg-gradient-to-r from-slate-500 to-gray-500 border border-slate-400/30'
+              }`}
+              title={
+                transaction.network === 'BEP20' 
+                  ? 'Binance Smart Chain (BEP20) Network'
+                  : transaction.network === 'TRC20'
+                  ? 'TRON (TRC20) Network'
+                  : 'Unknown Network'
+              }
+            >
+              <span className="mr-1">
+                {transaction.network === 'BEP20' ? '🔗' : transaction.network === 'TRC20' ? '🔗' : '🌐'}
+              </span>
+              {transaction.network}
+            </span>
+          </div>
         ) : (
-          <span className="text-slate-400 text-xs">N/A</span>
+          <span className="text-slate-400 text-xs bg-slate-700/30 px-2 py-1 rounded">N/A</span>
         )}
       </td>
       <td className="px-4 py-3">
@@ -223,6 +241,13 @@ export default function AdminWithdrawalsPage() {
   const [errorState, setErrorState] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statistics, setStatistics] = useState({
+    total: 0,
+    pending: 0,
+    totalAmount: 0,
+    totalPendingAmount: 0,
+    totalCompletedAmount: 0
+  });
   
   // Modal state for viewing Binance address
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -251,30 +276,37 @@ export default function AdminWithdrawalsPage() {
     setMounted(true);
   }, []);
 
-  // Fetch pending withdrawals
+  // Fetch pending withdrawals only
   const fetchWithdrawals = async () => {
     try {
       setIsDataLoading(true);
       setErrorState(null);
       
+      console.log('🔍 Admin Withdrawals: Fetching pending withdrawals only...');
       const response = await fetch('/api/admin/withdrawals');
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch withdrawals: ${response.status}`);
+        throw new Error(`Failed to fetch pending withdrawals: ${response.status}`);
       }
       
       const data = await response.json();
       
       if (data.success) {
         const withdrawals = data.withdrawals || [];
+        const stats = data.statistics || {};
+        console.log('✅ Admin Withdrawals: Loaded', withdrawals.length, 'pending withdrawal requests');
+        console.log('📊 Admin Withdrawals: Statistics received from API:', stats);
+        console.log('📊 Admin Withdrawals: Total Amount from API:', stats.totalAmount);
+        console.log('📊 Admin Withdrawals: Completed Amount from API:', stats.totalCompletedAmount);
         setTransactions(withdrawals);
         setFilteredTransactions(withdrawals);
+        setStatistics(stats);
       } else {
-        throw new Error(data.error || 'Failed to load withdrawals');
+        throw new Error(data.error || 'Failed to load pending withdrawals');
       }
     } catch (err) {
-      console.error('Error fetching withdrawals:', err);
-      setErrorState(err.message || 'Failed to load withdrawals');
+      console.error('Error fetching pending withdrawals:', err);
+      setErrorState(err.message || 'Failed to load pending withdrawals');
     } finally {
       setIsDataLoading(false);
     }
@@ -286,6 +318,18 @@ export default function AdminWithdrawalsPage() {
       console.log('Admin Withdrawals Page: Starting to fetch withdrawals for user:', adminUser.id);
       fetchWithdrawals();
     }
+  }, [mounted, adminUser?.id]);
+
+  // Auto-refresh every 30 seconds to catch new withdrawals
+  useEffect(() => {
+    if (!mounted || !adminUser?.id) return;
+    
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing withdrawals data...');
+      fetchWithdrawals();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(interval);
   }, [mounted, adminUser?.id]);
 
   // Handle approve
@@ -307,14 +351,9 @@ export default function AdminWithdrawalsPage() {
         throw new Error(errorData.error || 'Failed to approve withdrawal');
       }
 
-      // Update local state
-      setTransactions(prev => 
-        prev.map(t => 
-          t.id === transactionId 
-            ? { ...t, status: 'APPROVED' }
-            : t
-        )
-      );
+      // Refresh the withdrawals list and statistics
+      console.log('🔄 Refreshing withdrawals and statistics after approval...');
+      await fetchWithdrawals();
       
       success(`Withdrawal approved successfully!`);
     } catch (err) {
@@ -347,14 +386,9 @@ export default function AdminWithdrawalsPage() {
         throw new Error(errorData.error || 'Failed to reject withdrawal');
       }
 
-      // Update local state
-      setTransactions(prev => 
-        prev.map(t => 
-          t.id === transactionId 
-            ? { ...t, status: 'REJECTED' }
-            : t
-        )
-      );
+      // Refresh the withdrawals list and statistics
+      console.log('🔄 Refreshing withdrawals and statistics after rejection...');
+      await fetchWithdrawals();
       
       success(`Withdrawal rejected successfully.`);
     } catch (err) {
@@ -438,14 +472,18 @@ export default function AdminWithdrawalsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-rose-400 via-pink-400 to-red-400 bg-clip-text text-transparent leading-tight">
-                    Withdrawal Requests
+                    Pending Withdrawal Requests
                   </h1>
                   <p className="text-slate-300 text-sm sm:text-base mt-1 leading-relaxed">
-                    Manage user withdrawal requests and transactions
+                    Review and approve pending withdrawal requests only
                   </p>
                   <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-xs text-emerald-400">✅</span>
-                    <span className="text-xs text-emerald-400">Page loaded successfully</span>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-400/30">
+                      <span className="mr-1">⏳</span>
+                      Pending Only
+                    </span>
+                    
+                   
                   </div>
                 </div>
               </div>
@@ -528,7 +566,7 @@ export default function AdminWithdrawalsPage() {
         </div>
 
         {/* Premium Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/20">
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -538,7 +576,7 @@ export default function AdminWithdrawalsPage() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-amber-200">Pending</p>
                   <p className="text-2xl font-bold text-white">
-                    {transactions.filter(t => t.status === 'PENDING').length}
+                    {statistics.pending || 0}
                   </p>
                 </div>
               </div>
@@ -554,7 +592,7 @@ export default function AdminWithdrawalsPage() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-red-200">Total Amount</p>
                   <p className="text-2xl font-bold text-white">
-                    ${transactions.reduce((sum, t) => sum + t.amount, 0).toLocaleString()}
+                    ${(statistics.totalAmount || 0).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -569,7 +607,7 @@ export default function AdminWithdrawalsPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-cyan-200">Total Requests</p>
-                  <p className="text-2xl font-bold text-white">{transactions.length}</p>
+                  <p className="text-2xl font-bold text-white">{statistics.total || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -585,6 +623,22 @@ export default function AdminWithdrawalsPage() {
                   <p className="text-sm font-medium text-emerald-200">Unique Users</p>
                   <p className="text-2xl font-bold text-white">
                     {new Set(transactions.map(t => t.userId)).size}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500/20 via-violet-500/20 to-indigo-500/20 border border-purple-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-gradient-to-r from-purple-500/30 to-violet-500/30 rounded-lg border border-purple-400/30">
+                  <span className="text-2xl">✅</span>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-purple-200">Completed Amount</p>
+                  <p className="text-2xl font-bold text-white">
+                    ${(statistics.totalCompletedAmount || 0).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -616,7 +670,7 @@ export default function AdminWithdrawalsPage() {
         <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">
-              Withdrawal Requests ({filteredTransactions.length})
+              Pending Withdrawal Requests ({filteredTransactions.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -662,7 +716,7 @@ export default function AdminWithdrawalsPage() {
                     ) : filteredTransactions.length === 0 ? (
                       <tr>
                         <td colSpan="7" className="px-4 py-8 text-center text-slate-400">
-                          {searchTerm ? 'No withdrawal requests match your search' : 'No withdrawal requests found'}
+                          {searchTerm ? 'No pending withdrawal requests match your search' : 'No pending withdrawal requests found - all requests have been processed!'}
                         </td>
                       </tr>
                     ) : (

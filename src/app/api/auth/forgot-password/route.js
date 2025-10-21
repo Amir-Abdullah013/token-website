@@ -41,10 +41,12 @@ export async function POST(request) {
 
     // Generate OTP
     const otp = generateOTP();
-    console.log(`Generated OTP for ${email}: ${otp}`);
+    console.log(`🔍 Generated OTP for ${email}: ${otp}`);
+    console.log(`🔍 OTP type: ${typeof otp}, length: ${otp.length}`);
 
     // Hash the OTP using bcrypt (12 salt rounds for security)
     const otpHash = await hashOTP(otp);
+    console.log(`🔍 Hashed OTP: ${otpHash.substring(0, 20)}...`);
 
     // Set expiry time (10 minutes from now)
     const expiresAt = getOTPExpiry(10);
@@ -61,10 +63,11 @@ export async function POST(request) {
 
     // Send OTP email
     try {
+      console.log(`🔍 Sending OTP email to ${email} with OTP: ${otp}`);
       const emailResult = await sendOTPEmail(email, otp, user.name);
-      console.log(`OTP email sent successfully to ${email}:`, emailResult.messageId);
+      console.log(`✅ OTP email sent successfully to ${email}:`, emailResult.messageId);
     } catch (emailError) {
-      console.error('Failed to send OTP email:', emailError);
+      console.error('❌ Failed to send OTP email:', emailError);
       
       // If email fails, we should still return success to prevent OTP enumeration
       // but log the error for debugging

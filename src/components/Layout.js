@@ -6,7 +6,7 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import AdminSidebar from './AdminSidebar';
 import MobileNavigation from './MobileNavigation';
-import TikiStatusBar from './TikiStatusBar';
+import VonStatusBar from './VonStatusBar';
 import { useAuth } from '@/lib/auth-context';
 
 const Layout = ({ children, showSidebar = false }) => {
@@ -43,8 +43,8 @@ const Layout = ({ children, showSidebar = false }) => {
       {/* Top Navbar */}
       <Navbar user={user} onSignOut={handleSignOut} />
       
-      {/* Tiki Status Bar - Shows current balances and price */}
-      {user && <TikiStatusBar />}
+      {/* Von Status Bar - Shows current balances and price */}
+      {user && <VonStatusBar />}
 
       <div className="flex flex-1">
         {/* Sidebar (desktop fixed width, mobile toggled) */}

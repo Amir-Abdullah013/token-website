@@ -36,7 +36,7 @@ async function fixTokenSupply() {
     // Step 2: Calculate actual distributed supply
     console.log('Step 2: Calculating actual distributed supply...');
     const distributedSupply = await databaseHelpers.tokenSupply.calculateDistributedSupply();
-    console.log('  - Distributed to Users:', distributedSupply.toLocaleString(), 'TIKI');
+    console.log('  - Distributed to Users:', distributedSupply.toLocaleString(), 'Von');
     console.log('');
 
     // Step 3: Calculate correct values
@@ -79,7 +79,7 @@ async function fixTokenSupply() {
 
       if (discrepancy > 0) {
         console.log('⚠️  Distribution Discrepancy:');
-        console.log(`  - ${discrepancy.toLocaleString()} TIKI distributed beyond user supply tracking`);
+        console.log(`  - ${discrepancy.toLocaleString()} Von distributed beyond user supply tracking`);
         console.log('  - This likely came from admin operations or direct wallet updates');
         console.log('');
       }
@@ -122,11 +122,11 @@ async function fixTokenSupply() {
     console.log('='.repeat(60));
     console.log('📊 MIGRATION SUMMARY');
     console.log('='.repeat(60));
-    console.log(`Total Supply:         ${validation.totalSupply.toLocaleString()} TIKI`);
-    console.log(`Distributed Supply:   ${validation.distributedSupply.toLocaleString()} TIKI`);
-    console.log(`Remaining Supply:     ${validation.remainingSupply.toLocaleString()} TIKI`);
-    console.log(`User Supply Remaining: ${validation.userSupplyRemaining.toLocaleString()} TIKI`);
-    console.log(`Admin Reserve:        ${validation.adminReserve.toLocaleString()} TIKI`);
+    console.log(`Total Supply:         ${validation.totalSupply.toLocaleString()} Von`);
+    console.log(`Distributed Supply:   ${validation.distributedSupply.toLocaleString()} Von`);
+    console.log(`Remaining Supply:     ${validation.remainingSupply.toLocaleString()} Von`);
+    console.log(`User Supply Remaining: ${validation.userSupplyRemaining.toLocaleString()} Von`);
+    console.log(`Admin Reserve:        ${validation.adminReserve.toLocaleString()} Von`);
     console.log('');
     console.log(`Status: ${validation.isValid ? '✅ VALID' : '⚠️ NEEDS ATTENTION'}`);
     console.log('='.repeat(60));
@@ -134,7 +134,7 @@ async function fixTokenSupply() {
 
     if (discrepancy > 0) {
       console.log('⚠️  NOTE: There is still a discrepancy in distribution tracking:');
-      console.log(`   ${discrepancy.toLocaleString()} TIKI were distributed outside the user supply system.`);
+      console.log(`   ${discrepancy.toLocaleString()} Von were distributed outside the user supply system.`);
       console.log('   This is tracked correctly now, but allocation percentages may be off.');
       console.log('   Consider investigating where these tokens came from.');
       console.log('');

@@ -51,7 +51,7 @@ export async function POST(request) {
       return NextResponse.json({
         success: false,
         error: 'Market orders should be executed via buy/sell endpoints',
-        message: 'Use /api/tiki/buy or /api/tiki/sell for market orders'
+        message: 'Use /api/Von/buy or /api/Von/sell for market orders'
       }, { status: 400 });
     }
 
@@ -75,9 +75,9 @@ export async function POST(request) {
       // Reserve the USD amount (we'll implement fund locking later if needed)
       // For now, just check balance
     } else if (orderType === 'SELL') {
-      if (wallet.tikiBalance < amount) {
+      if (wallet.VonBalance < amount) {
         return NextResponse.json(
-          { success: false, error: `Insufficient TIKI balance. You have ${wallet.tikiBalance.toFixed(2)} TIKI, but need ${amount.toFixed(2)} TIKI` },
+          { success: false, error: `Insufficient Von balance. You have ${wallet.VonBalance.toFixed(2)} Von, but need ${amount.toFixed(2)} Von` },
           { status: 400 }
         );
       }

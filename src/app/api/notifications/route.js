@@ -31,8 +31,8 @@ export async function GET(request) {
         {
           id: 'notif-1',
           userId: userId,
-          title: 'Welcome to Tiki Token!',
-          message: 'Your account has been successfully created. Start trading Tiki tokens today!',
+          title: 'Welcome to Von Token!',
+          message: 'Your account has been successfully created. Start trading Von tokens today!',
           type: 'INFO',
           status: 'UNREAD',
           isGlobal: false,

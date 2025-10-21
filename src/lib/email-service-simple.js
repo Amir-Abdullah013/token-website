@@ -45,6 +45,8 @@ const createTransporter = async () => {
 // Send OTP email
 const sendOTPEmail = async (email, otp, userName = 'User') => {
   try {
+    console.log(`🔍 Email service: Sending OTP ${otp} to ${email} for user ${userName}`);
+    
     const transporter = await createTransporter();
     
     if (!transporter) {
@@ -113,8 +115,12 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
       `
     };
 
+    console.log(`🔍 Email template OTP: ${otp}`);
+    console.log(`🔍 Email HTML OTP: ${mailOptions.html.includes(otp) ? 'FOUND' : 'NOT FOUND'}`);
+    console.log(`🔍 Email text OTP: ${mailOptions.text.includes(otp) ? 'FOUND' : 'NOT FOUND'}`);
+    
     const result = await transporter.sendMail(mailOptions);
-    console.log('OTP email sent successfully:', result.messageId);
+    console.log('✅ OTP email sent successfully:', result.messageId);
     
     return {
       success: true,

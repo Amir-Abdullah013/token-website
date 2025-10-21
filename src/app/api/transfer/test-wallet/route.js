@@ -50,7 +50,7 @@ export async function POST(request) {
         id: wallet.id,
         userId: wallet.userId,
         balance: wallet.balance,
-        tikiBalance: wallet.tikiBalance
+        VonBalance: wallet.VonBalance
       }
     });
     

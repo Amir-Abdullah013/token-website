@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 import { usePriceUpdates } from '../../../hooks/usePriceUpdates';
 import Layout from '@/components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
@@ -15,7 +15,7 @@ import Link from 'next/link';
 
 export default function UserDashboard() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { usdBalance, tikiBalance, tikiPrice, formatCurrency, formatTiki, buyTiki, sellTiki } = useTiki();
+  const { usdBalance, VonBalance, VonPrice, formatCurrency, formatVon, buyVon, sellVon } = useVon();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isOAuthCallback, setIsOAuthCallback] = useState(false);
@@ -34,7 +34,7 @@ export default function UserDashboard() {
     }
   }, [user?.id]);
 
-  // Tiki trading state - only for Tiki tokens
+  // Von trading state - only for Von tokens
   const [tradeType, setTradeType] = useState('buy');
   const [tradeAmount, setTradeAmount] = useState('');
   const [isTrading, setIsTrading] = useState(false);
@@ -54,8 +54,8 @@ export default function UserDashboard() {
     successRate: 0
   });
 
-  // Calculate total value using Tiki price
-  const totalValue = parseFloat(tradeAmount) * tikiPrice || 0;
+  // Calculate total value using Von price
+  const totalValue = parseFloat(tradeAmount) * VonPrice || 0;
 
   // Fetch dashboard stats
   const fetchDashboardStats = async () => {
@@ -96,7 +96,7 @@ export default function UserDashboard() {
     }
   };
 
-  // Handle Tiki trade execution with API-based price calculation
+  // Handle Von trade execution with API-based price calculation
   const handleTrade = async () => {
     if (!tradeAmount || parseFloat(tradeAmount) <= 0) return;
 
@@ -105,7 +105,7 @@ export default function UserDashboard() {
       const amountValue = parseFloat(tradeAmount);
       
       if (tradeType === 'buy') {
-        // BUYING TIKI TOKENS LOGIC
+        // BUYING Von TOKENS LOGIC
         // Check if user has sufficient USD balance
         if (amountValue > usdBalance) {
           alert(`Insufficient USD balance. Available: ${formatCurrency(usdBalance, 'USD')}`);
@@ -113,10 +113,10 @@ export default function UserDashboard() {
         }
         
         // Use the new API-based buy function
-        const result = await buyTiki(amountValue);
+        const result = await buyVon(amountValue);
         
         if (result.success) {
-          alert(`Successfully bought ${formatTiki(result.tokensBought)} Tiki tokens for ${formatCurrency(amountValue, 'USD')}!`);
+          alert(`Successfully bought ${formatVon(result.tokensBought)} Von tokens for ${formatCurrency(amountValue, 'USD')}!`);
           if (result.newPrice !== result.oldPrice) {
             alert(`Price updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`);
           }
@@ -125,18 +125,18 @@ export default function UserDashboard() {
         }
         
       } else {
-        // SELLING TIKI TOKENS LOGIC
-        // Check if user has sufficient Tiki balance
-        if (amountValue > tikiBalance) {
-          alert(`Insufficient Tiki balance. Available: ${formatTiki(tikiBalance)} TIKI`);
+        // SELLING Von TOKENS LOGIC
+        // Check if user has sufficient Von balance
+        if (amountValue > VonBalance) {
+          alert(`Insufficient Von balance. Available: ${formatVon(VonBalance)} Von`);
           return;
         }
         
         // Use the new API-based sell function
-        const result = await sellTiki(amountValue);
+        const result = await sellVon(amountValue);
         
         if (result.success) {
-          alert(`Successfully sold ${formatTiki(amountValue)} Tiki tokens for ${formatCurrency(result.usdReceived, 'USD')}!`);
+          alert(`Successfully sold ${formatVon(amountValue)} Von tokens for ${formatCurrency(result.usdReceived, 'USD')}!`);
           if (result.newPrice !== result.oldPrice) {
             alert(`Price updated from ${formatCurrency(result.oldPrice)} to ${formatCurrency(result.newPrice)} per token!`);
           }
@@ -155,18 +155,18 @@ export default function UserDashboard() {
     }
   };
 
-  // Update Tiki price using global state
+  // Update Von price using global state
   useEffect(() => {
-    const updateTikiPrice = () => {
-      // Use real Tiki price from global state
+    const updateVonPrice = () => {
+      // Use real Von price from global state
       // Price updates are handled by the global state when trades occur
       // This effect just ensures the UI reflects the current price
     };
 
-    updateTikiPrice();
-    const interval = setInterval(updateTikiPrice, 5000);
+    updateVonPrice();
+    const interval = setInterval(updateVonPrice, 5000);
     return () => clearInterval(interval);
-  }, [tikiPrice]);
+  }, [VonPrice]);
 
   // ✅ Prevent hydration mismatches by only running client-side code after mount
   useEffect(() => {
@@ -304,15 +304,15 @@ export default function UserDashboard() {
             <p className="text-gray-300 text-sm">Available for trading</p>
           </div>
 
-          {/* TIKI Balance Card */}
+          {/* Von Balance Card */}
           <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 backdrop-blur-sm rounded-2xl p-8 border border-yellow-500/20 hover:border-yellow-500/40 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center">
                 <span className="text-2xl">🪙</span>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-400">TIKI Tokens</p>
-                <p className="text-2xl font-bold text-white">{formatTiki(tikiBalance)}</p>
+                <p className="text-sm text-gray-400">Von Tokens</p>
+                <p className="text-2xl font-bold text-white">{formatVon(VonBalance)}</p>
               </div>
             </div>
             <p className="text-gray-300 text-sm">Current holdings</p>
@@ -326,7 +326,7 @@ export default function UserDashboard() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-400">Portfolio Value</p>
-                <p className="text-2xl font-bold text-white">{formatCurrency(usdBalance + (tikiBalance * tikiPrice), 'USD')}</p>
+                <p className="text-2xl font-bold text-white">{formatCurrency(usdBalance + (VonBalance * VonPrice), 'USD')}</p>
               </div>
             </div>
             <p className="text-gray-300 text-sm">Total portfolio worth</p>
@@ -371,7 +371,7 @@ export default function UserDashboard() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white">Trade</h3>
-                  <p className="text-gray-300 text-sm">Buy & sell TIKI tokens</p>
+                  <p className="text-gray-300 text-sm">Buy & sell Von tokens</p>
                 </div>
               </div>
             </div>
@@ -417,7 +417,7 @@ export default function UserDashboard() {
                       : 'text-gray-300 hover:text-white'
                   }`}
                 >
-                  Buy TIKI
+                  Buy Von
                 </button>
                 <button
                   onClick={() => setTradeType('sell')}
@@ -427,20 +427,20 @@ export default function UserDashboard() {
                       : 'text-gray-300 hover:text-white'
                   }`}
                 >
-                  Sell TIKI
+                  Sell Von
                 </button>
               </div>
 
               {/* Amount Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Amount ({tradeType === 'buy' ? 'USD' : 'TIKI'})
+                  Amount ({tradeType === 'buy' ? 'USD' : 'Von'})
                 </label>
                 <input
                   type="number"
                   value={tradeAmount}
                   onChange={(e) => setTradeAmount(e.target.value)}
-                  placeholder={tradeType === 'buy' ? 'Enter USD amount' : 'Enter TIKI amount'}
+                  placeholder={tradeType === 'buy' ? 'Enter USD amount' : 'Enter Von amount'}
                   className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -455,7 +455,7 @@ export default function UserDashboard() {
                     : 'bg-red-600 hover:bg-red-700 text-white'
                 } ${isTrading || !tradeAmount ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {isTrading ? 'Processing...' : `${tradeType === 'buy' ? 'Buy' : 'Sell'} TIKI`}
+                {isTrading ? 'Processing...' : `${tradeType === 'buy' ? 'Buy' : 'Sell'} Von`}
               </button>
             </div>
           </div>
@@ -468,14 +468,14 @@ export default function UserDashboard() {
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-white">Market Data</h3>
-                <p className="text-gray-300">Real-time TIKI price</p>
+                <p className="text-gray-300">Real-time VON price</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-300">Current Price</span>
-                <span className="text-2xl font-bold text-white">{formatCurrency(tikiPrice, 'USD')}</span>
+                <span className="text-2xl font-bold text-white">{formatCurrency(VonPrice, 'USD')}</span>
               </div>
               
               <div className="flex justify-between items-center">

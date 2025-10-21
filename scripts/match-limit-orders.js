@@ -101,7 +101,7 @@ async function matchLimitOrders() {
             await client.query(`
               UPDATE wallets
               SET balance = balance - $1,
-                  "tikiBalance" = "tikiBalance" + $2,
+                  "VonBalance" = "VonBalance" + $2,
                   "updatedAt" = NOW()
               WHERE "userId" = $3
             `, [amount, tokensToReceive, userId]);
@@ -114,18 +114,18 @@ async function matchLimitOrders() {
               require('crypto').randomUUID(),
               userId,
               amount,
-              `Limit buy order executed: ${tokensToReceive.toFixed(2)} TIKI at $${currentPrice.toFixed(6)}`
+              `Limit buy order executed: ${tokensToReceive.toFixed(2)} Von at $${currentPrice.toFixed(6)}`
             ]);
             
-            console.log(`   ✅ Buy executed: Received ${tokensToReceive.toFixed(2)} TIKI`);
+            console.log(`   ✅ Buy executed: Received ${tokensToReceive.toFixed(2)} Von`);
             
           } else {
             // Execute sell order
             const usdToReceive = amount * currentPrice;
             
-            // Check if user still has sufficient TIKI balance
-            if (parseFloat(wallet.tikiBalance) < amount) {
-              console.log(`   ❌ Insufficient TIKI balance`);
+            // Check if user still has sufficient Von balance
+            if (parseFloat(wallet.VonBalance) < amount) {
+              console.log(`   ❌ Insufficient Von balance`);
               // Cancel the order
               await client.query(`
                 UPDATE orders
@@ -139,7 +139,7 @@ async function matchLimitOrders() {
             // Update user's balances
             await client.query(`
               UPDATE wallets
-              SET "tikiBalance" = "tikiBalance" - $1,
+              SET "VonBalance" = "VonBalance" - $1,
                   balance = balance + $2,
                   "updatedAt" = NOW()
               WHERE "userId" = $3
@@ -153,7 +153,7 @@ async function matchLimitOrders() {
               require('crypto').randomUUID(),
               userId,
               usdToReceive,
-              `Limit sell order executed: ${amount.toFixed(2)} TIKI at $${currentPrice.toFixed(6)}`
+              `Limit sell order executed: ${amount.toFixed(2)} Von at $${currentPrice.toFixed(6)}`
             ]);
             
             console.log(`   ✅ Sell executed: Received $${usdToReceive.toFixed(2)}`);

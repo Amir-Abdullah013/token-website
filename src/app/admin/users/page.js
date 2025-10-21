@@ -357,7 +357,7 @@ export default function AdminUsersPage() {
     }).format(amount);
   };
 
-  const formatTiki = (amount) => {
+  const formatVon = (amount) => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
@@ -605,7 +605,7 @@ export default function AdminUsersPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           <div>
                             <div className="font-medium">{formatCurrency(user.walletBalance)}</div>
-                            <div className="text-slate-300">{formatTiki(user.tikiBalance)} TIKI</div>
+                            <div className="text-slate-300">{formatVon(user.VonBalance)} Von</div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
@@ -809,8 +809,8 @@ export default function AdminUsersPage() {
                   <p className="text-white">{formatCurrency(selectedUser.walletBalance)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-300">TIKI Balance</label>
-                  <p className="text-white">{formatTiki(selectedUser.tikiBalance)} TIKI</p>
+                  <label className="text-sm font-medium text-slate-300">Von Balance</label>
+                  <p className="text-white">{formatVon(selectedUser.VonBalance)} Von</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-300">Created</label>

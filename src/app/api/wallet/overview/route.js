@@ -56,7 +56,7 @@ export async function GET(request) {
             id: newWallet.id,
             userId: userId,
             balance: newWallet.balance || 0,
-            tikiBalance: newWallet.tikiBalance || 0,
+            VonBalance: newWallet.VonBalance || 0,
             currency: newWallet.currency || 'USD',
             lastUpdated: newWallet.lastUpdated || new Date().toISOString()
           },
@@ -76,7 +76,7 @@ export async function GET(request) {
             id: `wallet-${userId}`,
             userId: userId,
             balance: 0,
-            tikiBalance: 0,
+            VonBalance: 0,
             currency: 'USD',
             lastUpdated: new Date().toISOString()
           },
@@ -120,7 +120,7 @@ export async function GET(request) {
         id: wallet?.id || `wallet-${userId}`,
         userId: userId,
         balance: wallet?.balance || 0,
-        tikiBalance: wallet?.tikiBalance || 0,
+        VonBalance: wallet?.VonBalance || 0,
         currency: wallet?.currency || 'USD',
         lastUpdated: wallet?.lastUpdated || wallet?.updatedAt || new Date().toISOString()
       },
@@ -135,7 +135,7 @@ export async function GET(request) {
     console.log('Returning wallet data:', {
       userId: walletData.wallet.userId,
       balance: walletData.wallet.balance,
-      tikiBalance: walletData.wallet.tikiBalance,
+      VonBalance: walletData.wallet.VonBalance,
       transactionCount: walletData.statistics.transactionCount
     });
 
@@ -151,7 +151,7 @@ export async function GET(request) {
         id: `fallback-wallet-${userId}`,
         userId: userId,
         balance: 0,
-        tikiBalance: 0,
+        VonBalance: 0,
         currency: 'PKR',
         lastUpdated: new Date().toISOString()
       },

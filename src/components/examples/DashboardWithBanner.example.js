@@ -15,7 +15,7 @@ import WalletFeeReferralBanner from '../WalletFeeReferralBanner';
 export default function DashboardExample() {
   const [stats, setStats] = useState({
     balance: 0,
-    tikiBalance: 0,
+    VonBalance: 0,
     totalStaked: 0
   });
 
@@ -31,7 +31,7 @@ export default function DashboardExample() {
       const data = await response.json();
       setStats({
         balance: data.balance || 0,
-        tikiBalance: data.tikiBalance || 0,
+        VonBalance: data.VonBalance || 0,
         totalStaked: data.totalStaked || 0
       });
     } catch (error) {
@@ -77,15 +77,15 @@ export default function DashboardExample() {
             </div>
           </div>
 
-          {/* TIKI Balance Card */}
+          {/* Von Balance Card */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  TIKI Balance
+                  Von Balance
                 </p>
                 <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                  {stats.tikiBalance.toFixed(2)}
+                  {stats.VonBalance.toFixed(2)}
                 </p>
               </div>
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
@@ -140,7 +140,7 @@ export default function DashboardExample() {
                 </svg>
               </div>
               <div>
-                <p className="font-semibold text-gray-900 dark:text-white">Buy TIKI</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Buy Von</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Purchase tokens</p>
               </div>
             </div>
@@ -188,6 +188,8 @@ export default function DashboardExample() {
     </div>
   );
 }
+
+
 
 
 

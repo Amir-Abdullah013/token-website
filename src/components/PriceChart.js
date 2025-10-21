@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 import Card, { CardContent, CardHeader, CardTitle } from './Card';
 import Button from './Button';
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 
 // Time filter options
 const TIME_FILTERS = [
@@ -56,7 +56,7 @@ const fetchPriceData = async (timeFilter) => {
 const generateFallbackData = (timeFilter) => {
   const now = new Date();
   const data = [];
-  const currentPrice = 0.0035; // Default TIKI price
+  const currentPrice = 0.0035; // Default Von price
   let basePrice = currentPrice * 0.8;
   
   let points;

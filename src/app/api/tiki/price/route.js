@@ -7,7 +7,7 @@ export async function GET() {
     const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
     const currentPrice = tokenValue.currentTokenValue;
     
-    console.log('📊 TIKI price API using supply-based calculation:', {
+    console.log('📊 Von price API using supply-based calculation:', {
       currentPrice,
       inflationFactor: tokenValue.inflationFactor,
       userSupplyRemaining: tokenValue.userSupplyRemaining,

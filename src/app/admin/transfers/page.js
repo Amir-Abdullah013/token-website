@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdminAuth } from '@/lib/admin-auth';
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 import Layout from '@/components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
 import Button from '@/components/Button';
@@ -34,7 +34,7 @@ const StatusBadge = ({ status }) => {
 };
 
 const TransferRow = ({ transfer }) => {
-  const { formatTiki } = useTiki();
+  const { formatVon } = useVon();
   
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -88,7 +88,7 @@ const TransferRow = ({ transfer }) => {
         </div>
       </td>
       <td className="px-4 py-3 text-sm text-white font-medium">
-        {formatTiki(transfer.amount)} TIKI
+        {formatVon(transfer.amount)} Von
       </td>
       <td className="px-4 py-3 text-sm text-slate-300">
         {transfer.note || '—'}
@@ -122,7 +122,7 @@ export default function AdminTransfersPage() {
   const { adminUser, isLoading, isAuthenticated } = useAdminAuth();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
-  const { formatTiki } = useTiki();
+  const { formatVon } = useVon();
 
   const [mounted, setMounted] = useState(false);
   const [transfers, setTransfers] = useState([]);
@@ -267,7 +267,7 @@ export default function AdminTransfersPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-violet-200">Total Amount</p>
-                  <p className="text-2xl font-bold text-white">{formatTiki(statistics.totalAmount)} TIKI</p>
+                  <p className="text-2xl font-bold text-white">{formatVon(statistics.totalAmount)} Von</p>
                 </div>
               </div>
             </CardContent>

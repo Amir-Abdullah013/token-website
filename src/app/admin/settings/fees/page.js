@@ -397,8 +397,8 @@ export default function AdminFeeSettingsPage() {
                   <ul className="space-y-1">
                     <li>• <strong>Transfer:</strong> Peer-to-peer token transfers</li>
                     <li>• <strong>Withdraw:</strong> Withdrawals to external wallets</li>
-                    <li>• <strong>Buy:</strong> Purchasing TIKI tokens</li>
-                    <li>• <strong>Sell:</strong> Selling TIKI tokens</li>
+                    <li>• <strong>Buy:</strong> Purchasing Von tokens</li>
+                    <li>• <strong>Sell:</strong> Selling Von tokens</li>
                   </ul>
                 </div>
                 <div>

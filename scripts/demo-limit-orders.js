@@ -51,7 +51,7 @@ async function demonstrateLimitOrders() {
     
     if (walletResult.rows.length === 0) {
       await client.query(`
-        INSERT INTO wallets (id, "userId", balance, "tikiBalance", "createdAt", "updatedAt")
+        INSERT INTO wallets (id, "userId", balance, "VonBalance", "createdAt", "updatedAt")
         VALUES ($1, $2, 10000, 10000, NOW(), NOW())
       `, [randomUUID(), testUser.id]);
       
@@ -63,7 +63,7 @@ async function demonstrateLimitOrders() {
       await client.query(`
         UPDATE wallets 
         SET balance = GREATEST(balance, 5000),
-            "tikiBalance" = GREATEST("tikiBalance", 5000)
+            "VonBalance" = GREATEST("VonBalance", 5000)
         WHERE "userId" = $1
       `, [testUser.id]);
       
@@ -75,7 +75,7 @@ async function demonstrateLimitOrders() {
     const initialWallet = walletResult.rows[0];
     console.log(`\n💰 Initial Balances:`);
     console.log(`   USD: $${parseFloat(initialWallet.balance).toFixed(2)}`);
-    console.log(`   TIKI: ${parseFloat(initialWallet.tikiBalance).toFixed(2)} TIKI`);
+    console.log(`   Von: ${parseFloat(initialWallet.VonBalance).toFixed(2)} Von`);
     
     // Step 2: Get current price
     console.log('\n\n📍 STEP 2: Get Current Token Price\n');
@@ -84,7 +84,7 @@ async function demonstrateLimitOrders() {
     const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
     const currentPrice = tokenValue.currentTokenValue;
     
-    console.log(`✅ Current TIKI Price: $${currentPrice.toFixed(6)}`);
+    console.log(`✅ Current Von Price: $${currentPrice.toFixed(6)}`);
     console.log(`   (This is calculated from token supply and usage)`);
     
     // Step 3: Create limit orders that should NOT execute
@@ -107,7 +107,7 @@ async function demonstrateLimitOrders() {
     console.log(`   Amount: $200`);
     console.log(`   Limit Price: $${highBuyPrice.toFixed(6)}`);
     console.log(`   Status: ${highBuyOrder.rows[0].status}`);
-    console.log(`   Expected Tokens: ${(200 / highBuyPrice).toFixed(2)} TIKI\n`);
+    console.log(`   Expected Tokens: ${(200 / highBuyPrice).toFixed(2)} Von\n`);
     
     console.log(`Creating SELL limit order at $${lowSellPrice.toFixed(6)} (50% of current)`);
     console.log(`Expected: Order should stay PENDING (price too low for sell)\n`);
@@ -120,7 +120,7 @@ async function demonstrateLimitOrders() {
     
     console.log(`✅ SELL Limit Order Created:`);
     console.log(`   Order ID: ${lowSellOrder.rows[0].id}`);
-    console.log(`   Amount: 100 TIKI`);
+    console.log(`   Amount: 100 Von`);
     console.log(`   Limit Price: $${lowSellPrice.toFixed(6)}`);
     console.log(`   Status: ${lowSellOrder.rows[0].status}`);
     console.log(`   Expected USD: $${(100 * lowSellPrice).toFixed(2)}`);
@@ -189,7 +189,7 @@ async function demonstrateLimitOrders() {
     
     console.log(`✅ Executable SELL Order Created:`);
     console.log(`   Order ID: ${execSellOrder.rows[0].id}`);
-    console.log(`   Amount: 75 TIKI`);
+    console.log(`   Amount: 75 Von`);
     console.log(`   Limit Price: $${executableSellPrice.toFixed(6)}`);
     console.log(`   Current Price: $${currentPrice.toFixed(6)}`);
     console.log(`   Will Execute: ✅ YES (${currentPrice.toFixed(6)} >= ${executableSellPrice.toFixed(6)})`);
@@ -219,7 +219,7 @@ async function demonstrateLimitOrders() {
     
     pendingResult.rows.forEach((order, idx) => {
       console.log(`${idx + 1}. ${order.orderType} Order:`);
-      console.log(`   Amount: ${order.orderType === 'BUY' ? '$' + parseFloat(order.amount).toFixed(2) : parseFloat(order.amount).toFixed(2) + ' TIKI'}`);
+      console.log(`   Amount: ${order.orderType === 'BUY' ? '$' + parseFloat(order.amount).toFixed(2) : parseFloat(order.amount).toFixed(2) + ' Von'}`);
       console.log(`   Limit Price: $${parseFloat(order.limitPrice).toFixed(6)}`);
       console.log(`   Status: ${order.status}`);
       console.log(`   Prediction: ${order.execution_status}\n`);

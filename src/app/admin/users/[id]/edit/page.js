@@ -228,9 +228,9 @@ export default function EditUserPage() {
                 </p>
               </div>
               <div>
-                <span className="font-medium text-gray-500">TIKI Balance:</span>
+                <span className="font-medium text-gray-500">Von Balance:</span>
                 <p className="text-gray-900">
-                  {userData.tikiBalance?.toLocaleString() || '0'} TIKI
+                  {userData.VonBalance?.toLocaleString() || '0'} Von
                 </p>
               </div>
             </div>

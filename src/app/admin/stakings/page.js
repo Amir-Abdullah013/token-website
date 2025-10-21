@@ -161,11 +161,11 @@ export default function AdminStakingsPage() {
     });
   };
 
-  const formatTiki = (amount) => {
+  const formatVon = (amount) => {
     return `${parseFloat(amount).toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    })} TIKI`;
+    })} Von`;
   };
 
   if (!mounted) {
@@ -252,7 +252,7 @@ export default function AdminStakingsPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-violet-200">Total Staked</p>
                     <p className="text-2xl font-bold text-white">
-                      {formatTiki(statistics.totalStaked || 0)}
+                      {formatVon(statistics.totalStaked || 0)}
                     </p>
                   </div>
                 </div>
@@ -355,7 +355,7 @@ export default function AdminStakingsPage() {
                               </div>
                             </td>
                             <td className="px-4 py-3 text-sm font-medium text-white">
-                              {formatTiki(staking.amountStaked)}
+                              {formatVon(staking.amountStaked)}
                             </td>
                             <td className="px-4 py-3 text-sm text-white">
                               {staking.durationDays} Days

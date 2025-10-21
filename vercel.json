@@ -3,6 +3,12 @@
   "functions": {
     "src/app/api/cron/auto-match-orders/route.js": {
       "maxDuration": 30
+    },
+    "src/app/api/cron/process-wallet-fees/route.js": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/process-stakings/route.js": {
+      "maxDuration": 120
     }
   }
 }

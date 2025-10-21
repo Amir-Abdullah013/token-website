@@ -103,7 +103,7 @@ export async function GET(request) {
           status = transaction.status === 'COMPLETED' ? 'success' : 'warning';
           break;
         case 'BUY':
-          message = `TIKI purchase of $${transaction.amount} by ${transaction.userName}`;
+          message = `Von purchase of $${transaction.amount} by ${transaction.userName}`;
           status = transaction.status === 'COMPLETED' ? 'success' : 'warning';
           break;
         default:

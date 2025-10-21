@@ -3,23 +3,23 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './auth-context';
 
-const TikiContext = createContext();
+const VonContext = createContext();
 
-export const useTiki = () => {
-  const context = useContext(TikiContext);
+export const useVon = () => {
+  const context = useContext(VonContext);
   if (!context) {
-    throw new Error('useTiki must be used within a TikiProvider');
+    throw new Error('useVon must be used within a VonProvider');
   }
   return context;
 };
 
-export const TikiProvider = ({ children }) => {
+export const VonProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   
   // Initial state values
   const [usdBalance, setUsdBalance] = useState(0);
-  const [tikiBalance, setTikiBalance] = useState(0);
-  const [tikiPrice, setTikiPrice] = useState(0.0035);
+  const [VonBalance, setVonBalance] = useState(0);
+  const [VonPrice, setVonPrice] = useState(0.0035);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load user-specific data from API
@@ -40,28 +40,28 @@ export const TikiProvider = ({ children }) => {
         if (response.ok) {
           data = await response.json();
           setUsdBalance(data.usdBalance || 0);
-          setTikiBalance(data.tikiBalance || 0);
-          setTikiPrice(data.tikiPrice || 0.0035);
+          setVonBalance(data.VonBalance || 0);
+          setVonPrice(data.VonPrice || 0.0035);
         } else {
           // Set default values if API fails
           setUsdBalance(0);
-          setTikiBalance(0);
-          setTikiPrice(0.0035);
+          setVonBalance(0);
+          setVonPrice(0.0035);
         }
         
         console.log('✅ User data loaded:', {
           userId: user.id,
           usdBalance: data?.usdBalance || 0,
-          tikiBalance: data?.tikiBalance || 0,
-          tikiPrice: data?.tikiPrice || 0.0035
+          VonBalance: data?.VonBalance || 0,
+          VonPrice: data?.VonPrice || 0.0035
         });
         
       } catch (error) {
         console.error('Error loading user data:', error);
         // Set default values on error
         setUsdBalance(0);
-        setTikiBalance(0);
-        setTikiPrice(0.0035);
+        setVonBalance(0);
+        setVonPrice(0.0035);
       } finally {
         setIsLoading(false);
       }
@@ -96,7 +96,7 @@ export const TikiProvider = ({ children }) => {
     }).format(amount);
   };
 
-  const formatTiki = (amount) => {
+  const formatVon = (amount) => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 6
@@ -112,8 +112,8 @@ export const TikiProvider = ({ children }) => {
       if (response.ok) {
         const data = await response.json();
         setUsdBalance(data.usdBalance || 0);
-        setTikiBalance(data.tikiBalance || 0);
-        setTikiPrice(data.tikiPrice || 0.0035);
+        setVonBalance(data.VonBalance || 0);
+        setVonPrice(data.VonPrice || 0.0035);
         console.log('✅ Wallet data refreshed:', data);
       } else {
         console.log('⚠️ Wallet API failed, using current state');
@@ -126,7 +126,7 @@ export const TikiProvider = ({ children }) => {
   };
 
   // Update database via API
-  const updateDatabaseBalances = async (newUsdBalance, newTikiBalance) => {
+  const updateDatabaseBalances = async (newUsdBalance, newVonBalance) => {
     if (!user?.id) return;
     
     try {
@@ -138,7 +138,7 @@ export const TikiProvider = ({ children }) => {
         body: JSON.stringify({
           userId: user.id,
           usdBalance: newUsdBalance,
-          tikiBalance: newTikiBalance
+          VonBalance: newVonBalance
         }),
       });
       
@@ -146,7 +146,7 @@ export const TikiProvider = ({ children }) => {
         console.log('✅ Database balances updated:', {
           userId: user.id,
           usdBalance: newUsdBalance,
-          tikiBalance: newTikiBalance
+          VonBalance: newVonBalance
         });
       }
     } catch (error) {
@@ -162,7 +162,7 @@ export const TikiProvider = ({ children }) => {
     const newBalance = usdBalance + usdAmount;
     
     setUsdBalance(newBalance);
-    await updateDatabaseBalances(newBalance, tikiBalance);
+    await updateDatabaseBalances(newBalance, VonBalance);
     
     return usdAmount;
   };
@@ -172,19 +172,19 @@ export const TikiProvider = ({ children }) => {
     
     const newBalance = usdBalance - amount;
     setUsdBalance(newBalance);
-    await updateDatabaseBalances(newBalance, tikiBalance);
+    await updateDatabaseBalances(newBalance, VonBalance);
     
     return true;
   };
 
-  const buyTiki = async (usdAmount) => {
+  const buyVon = async (usdAmount) => {
     if (!user?.id || usdAmount > usdBalance) {
       return { success: false, error: 'Insufficient USD balance' };
     }
 
     try {
       // Call the buy API to get real-time price calculation
-      const response = await fetch('/api/tiki/buy', {
+      const response = await fetch('/api/Von/buy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -200,16 +200,16 @@ export const TikiProvider = ({ children }) => {
       if (data.success) {
         // Update balances based on API response
         const newUsdBalance = usdBalance - usdAmount;
-        const newTikiBalance = tikiBalance + data.transaction.tokensReceived;
+        const newVonBalance = VonBalance + data.transaction.tokensReceived;
         
         setUsdBalance(newUsdBalance);
-        setTikiBalance(newTikiBalance);
+        setVonBalance(newVonBalance);
         
         // Update database
-        await updateDatabaseBalances(newUsdBalance, newTikiBalance);
+        await updateDatabaseBalances(newUsdBalance, newVonBalance);
         
         // Update price with the new calculated price
-        setTikiPrice(data.priceUpdate.newPrice);
+        setVonPrice(data.priceUpdate.newPrice);
         
         console.log('🎉 Buy successful with price update:', {
           tokensBought: data.transaction.tokensReceived,
@@ -231,31 +231,31 @@ export const TikiProvider = ({ children }) => {
     } catch (error) {
       console.error('Buy API error:', error);
       // Fallback to local calculation (NO price increase - supply-based only)
-      const tokensToBuy = usdAmount / tikiPrice;
+      const tokensToBuy = usdAmount / VonPrice;
       
       const newUsdBalance = usdBalance - usdAmount;
-      const newTikiBalance = tikiBalance + tokensToBuy;
+      const newVonBalance = VonBalance + tokensToBuy;
       
       setUsdBalance(newUsdBalance);
-      setTikiBalance(newTikiBalance);
+      setVonBalance(newVonBalance);
       // Price is now controlled by supply-based calculation, not buy volume
       console.warn('⚠️ Using fallback buy calculation. Price not updated (supply-based economy).');
       
       // Update database
-      await updateDatabaseBalances(newUsdBalance, newTikiBalance);
+      await updateDatabaseBalances(newUsdBalance, newVonBalance);
       
       return { success: true, tokensBought: tokensToBuy };
     }
   };
 
-  const sellTiki = async (tokenAmount) => {
-    if (!user?.id || tokenAmount > tikiBalance) {
-      return { success: false, error: 'Insufficient Tiki balance' };
+  const sellVon = async (tokenAmount) => {
+    if (!user?.id || tokenAmount > VonBalance) {
+      return { success: false, error: 'Insufficient Von balance' };
     }
 
     try {
       // Call the sell API to get real-time price calculation
-      const response = await fetch('/api/tiki/sell', {
+      const response = await fetch('/api/Von/sell', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -270,17 +270,17 @@ export const TikiProvider = ({ children }) => {
 
       if (data.success) {
         // Update balances based on API response
-        const newTikiBalance = tikiBalance - tokenAmount;
+        const newVonBalance = VonBalance - tokenAmount;
         const newUsdBalance = usdBalance + data.transaction.amount;
         
-        setTikiBalance(newTikiBalance);
+        setVonBalance(newVonBalance);
         setUsdBalance(newUsdBalance);
         
         // Update database
-        await updateDatabaseBalances(newUsdBalance, newTikiBalance);
+        await updateDatabaseBalances(newUsdBalance, newVonBalance);
         
         // Update price with the new calculated price
-        setTikiPrice(data.priceUpdate.newPrice);
+        setVonPrice(data.priceUpdate.newPrice);
         
         console.log('🎉 Sell successful with price update:', {
           usdReceived: data.transaction.amount,
@@ -302,18 +302,18 @@ export const TikiProvider = ({ children }) => {
     } catch (error) {
       console.error('Sell API error:', error);
       // Fallback to local calculation (NO price decrease - supply-based only)
-      const usdReceived = tokenAmount * tikiPrice;
+      const usdReceived = tokenAmount * VonPrice;
       
-      const newTikiBalance = tikiBalance - tokenAmount;
+      const newVonBalance = VonBalance - tokenAmount;
       const newUsdBalance = usdBalance + usdReceived;
       
-      setTikiBalance(newTikiBalance);
+      setVonBalance(newVonBalance);
       setUsdBalance(newUsdBalance);
       // Price is now controlled by supply-based calculation, not sell volume
       console.warn('⚠️ Using fallback sell calculation. Price not updated (supply-based economy).');
       
       // Update database
-      await updateDatabaseBalances(newUsdBalance, newTikiBalance);
+      await updateDatabaseBalances(newUsdBalance, newVonBalance);
       
       return { success: true, usdReceived };
     }
@@ -333,7 +333,7 @@ export const TikiProvider = ({ children }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-      const response = await fetch('/api/tiki/price', {
+      const response = await fetch('/api/Von/price', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -350,10 +350,10 @@ export const TikiProvider = ({ children }) => {
       const data = await response.json();
       
       if (data.success && data.price && typeof data.price === 'number') {
-        setTikiPrice(data.price);
+        setVonPrice(data.price);
         // Store in localStorage as backup
-        localStorage.setItem('tikiPrice', data.price.toString());
-        localStorage.setItem('tikiPriceTimestamp', Date.now().toString());
+        localStorage.setItem('VonPrice', data.price.toString());
+        localStorage.setItem('VonPriceTimestamp', Date.now().toString());
         return data.price;
       } else {
         console.warn('Price API returned invalid data:', data);
@@ -371,8 +371,8 @@ export const TikiProvider = ({ children }) => {
   // Get fallback price from localStorage or default
   const getFallbackPrice = () => {
     if (typeof window !== 'undefined') {
-      const storedPrice = localStorage.getItem('tikiPrice');
-      const storedTimestamp = localStorage.getItem('tikiPriceTimestamp');
+      const storedPrice = localStorage.getItem('VonPrice');
+      const storedTimestamp = localStorage.getItem('VonPriceTimestamp');
       
       if (storedPrice && storedTimestamp) {
         const price = parseFloat(storedPrice);
@@ -381,18 +381,18 @@ export const TikiProvider = ({ children }) => {
         
         // Use stored price if it's less than 1 hour old
         if (!isNaN(price) && price > 0 && (now - timestamp) < 3600000) {
-          setTikiPrice(price);
+          setVonPrice(price);
           return price;
         }
       }
     }
     
     // Default fallback price - use current price if available, otherwise try to fetch dynamic price
-    const fallbackPrice = tikiPrice > 0 ? tikiPrice : 0.0035;
-    setTikiPrice(fallbackPrice);
+    const fallbackPrice = VonPrice > 0 ? VonPrice : 0.0035;
+    setVonPrice(fallbackPrice);
     
     // Try to fetch current price in background for next time
-    if (tikiPrice === 0.0035) {
+    if (VonPrice === 0.0035) {
       fetchCurrentPrice().catch(() => {
         // Silently fail - we already have a fallback
       });
@@ -404,25 +404,25 @@ export const TikiProvider = ({ children }) => {
   const value = {
     // State values
     usdBalance,
-    tikiBalance,
-    tikiPrice,
+    VonBalance,
+    VonPrice,
     isLoading,
     
     // State setters
     setUsdBalance,
-    setTikiBalance,
-    setTikiPrice,
+    setVonBalance,
+    setVonPrice,
     
     // Trading functions
     depositUSD,
     withdrawUSD,
-    buyTiki,
-    sellTiki,
+    buyVon,
+    sellVon,
     
     // Utility functions
     convertToUSD,
     formatCurrency,
-    formatTiki,
+    formatVon,
     getCurrencies,
     fetchCurrentPrice,
     fetchUserWallet,
@@ -430,8 +430,8 @@ export const TikiProvider = ({ children }) => {
   };
 
   return (
-    <TikiContext.Provider value={value}>
+    <VonContext.Provider value={value}>
       {children}
-    </TikiContext.Provider>
+    </VonContext.Provider>
   );
 };

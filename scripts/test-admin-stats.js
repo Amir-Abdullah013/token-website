@@ -18,9 +18,9 @@ const testAdminStats = async () => {
     const walletStats = await databaseHelpers.pool.query(`
       SELECT 
         COUNT(*) as totalWallets,
-        COUNT(CASE WHEN balance > 0 OR "tikiBalance" > 0 THEN 1 END) as activeWallets,
+        COUNT(CASE WHEN balance > 0 OR "VonBalance" > 0 THEN 1 END) as activeWallets,
         SUM(balance) as totalBalance,
-        SUM("tikiBalance") as totalTikiBalance
+        SUM("VonBalance") as totalVonBalance
       FROM wallets
     `);
     console.log('✅ Wallet stats:', walletStats.rows[0]);

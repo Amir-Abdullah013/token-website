@@ -4,7 +4,7 @@ import { databaseHelpers } from './database.js';
  * Transaction Fee System
  * 
  * This module handles all fee calculations and fee-related operations
- * for the TIKI Token platform. It provides a centralized way to:
+ * for the Von Token platform. It provides a centralized way to:
  * - Calculate transaction fees
  * - Credit fees to admin wallet
  * - Manage fee configuration

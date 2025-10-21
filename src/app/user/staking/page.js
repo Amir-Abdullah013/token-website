@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { useTiki } from '@/lib/tiki-context';
+import { useVon } from '@/lib/Von-context';
 import Layout from '@/components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
 import Button from '@/components/Button';
@@ -26,7 +26,7 @@ import {
 
 export default function StakingPage() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { usdBalance, tikiBalance, tikiPrice, formatCurrency, formatTiki } = useTiki();
+  const { usdBalance, VonBalance, VonPrice, formatCurrency, formatVon } = useVon();
   const router = useRouter();
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
@@ -102,15 +102,15 @@ export default function StakingPage() {
     const newErrors = {};
     
     if (!formData.amount || parseFloat(formData.amount) < MIN_AMOUNT) {
-      newErrors.amount = `Minimum staking amount is ${formatTiki(MIN_AMOUNT)} TIKI`;
+      newErrors.amount = `Minimum staking amount is ${formatVon(MIN_AMOUNT)} Von`;
     }
     
-    if (parseFloat(formData.amount) > parseFloat(tikiBalance)) {
-      newErrors.amount = 'Insufficient TIKI balance';
+    if (parseFloat(formData.amount) > parseFloat(VonBalance)) {
+      newErrors.amount = 'Insufficient Von balance';
     }
     
     if (parseFloat(formData.amount) > MAX_AMOUNT) {
-      newErrors.amount = `Maximum staking amount is ${formatTiki(MAX_AMOUNT)} TIKI`;
+      newErrors.amount = `Maximum staking amount is ${formatVon(MAX_AMOUNT)} Von`;
     }
     
     if (!formData.duration) {
@@ -140,7 +140,7 @@ export default function StakingPage() {
       const result = await response.json();
 
       if (result.success) {
-        success(`Successfully staked ${formatTiki(parseFloat(formData.amount))} TIKI for ${formData.duration} days!`);
+        success(`Successfully staked ${formatVon(parseFloat(formData.amount))} Von for ${formData.duration} days!`);
         setFormData({ amount: '', duration: '7' });
         fetchStakings();
       } else {
@@ -268,10 +268,10 @@ export default function StakingPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center">
               <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                TIKI Staking
+                Von Staking
               </h1>
               <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-                Earn rewards by staking your TIKI tokens. Choose your preferred duration and start earning today.
+                Earn rewards by staking your Von tokens. Choose your preferred duration and start earning today.
               </p>
             </div>
           </div>
@@ -285,12 +285,12 @@ export default function StakingPage() {
           <CardHeader>
                   <CardTitle className="text-lg text-white flex items-center">
                     <Coins className="h-5 w-5 mr-2" />
-                    Your TIKI Balance
+                    Your Von Balance
                   </CardTitle>
           </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white mb-2">
-                    {formatTiki(tikiBalance)}
+                    {formatVon(VonBalance)}
                   </div>
                   <p className="text-slate-300 text-sm">
                     Available for staking
@@ -304,7 +304,7 @@ export default function StakingPage() {
               <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
           <CardHeader>
                   <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                    Stake TIKI Tokens
+                    Stake Von Tokens
                   </CardTitle>
                   <p className="text-slate-300 text-sm">
                     Choose your staking amount and duration to start earning rewards
@@ -314,14 +314,14 @@ export default function StakingPage() {
                   {/* Amount Input */}
               <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
-                      Staking Amount (TIKI)
+                      Staking Amount (Von)
                 </label>
                 <Input
                   type="number"
                       name="amount"
                       value={formData.amount}
                       onChange={handleInputChange}
-                      placeholder={`Minimum ${formatTiki(MIN_AMOUNT)} TIKI`}
+                      placeholder={`Minimum ${formatVon(MIN_AMOUNT)} Von`}
                       className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 rounded-lg"
                     />
                     {errors.amount && (
@@ -365,7 +365,7 @@ export default function StakingPage() {
                         <div>
                           <div className="text-emerald-200 text-sm font-medium">Expected Reward</div>
                           <div className="text-white text-xl font-bold">
-                            {formatTiki(calculateReward())} TIKI
+                            {formatVon(calculateReward())} Von
                           </div>
                         </div>
                         <div className="text-right">
@@ -392,7 +392,7 @@ export default function StakingPage() {
                     ) : (
                       <div className="flex items-center">
                         <Lock className="h-4 w-4 mr-2" />
-                        Stake TIKI Tokens
+                        Stake Von Tokens
                       </div>
                     )}
               </Button>
@@ -426,7 +426,7 @@ export default function StakingPage() {
                     <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">No Active Stakings</h3>
                     <p className="text-slate-300 mb-6">
-                      Start staking your TIKI tokens to earn rewards
+                      Start staking your Von tokens to earn rewards
                     </p>
                     <Button
                       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -449,7 +449,7 @@ export default function StakingPage() {
                             <div>
                               <div className="text-sm text-slate-300">Amount</div>
                               <div className="text-white font-semibold">
-                                {formatTiki(staking.amountStaked)} TIKI
+                                {formatVon(staking.amountStaked)} Von
                               </div>
                             </div>
 
@@ -537,7 +537,7 @@ export default function StakingPage() {
                       <h3 className="text-sm font-medium text-white">How Staking Works</h3>
                     </div>
                     <p className="text-sm text-slate-300">
-                      Lock your TIKI tokens for a specified period to earn rewards. The longer you stake, the higher your returns.
+                      Lock your Von tokens for a specified period to earn rewards. The longer you stake, the higher your returns.
                     </p>
                   </div>
 

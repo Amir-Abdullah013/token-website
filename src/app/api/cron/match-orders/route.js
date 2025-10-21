@@ -73,7 +73,7 @@ export async function GET(request) {
             
             // Update balances
             await databaseHelpers.wallet.updateUsdBalance(userId, -amount);
-            await databaseHelpers.wallet.updateTikiBalance(userId, tokensToReceive);
+            await databaseHelpers.wallet.updateVonBalance(userId, tokensToReceive);
             
             // Create transaction
             await databaseHelpers.transaction.createTransaction({
@@ -83,22 +83,22 @@ export async function GET(request) {
               currency: 'USD',
               status: 'COMPLETED',
               gateway: 'LimitOrder',
-              description: `Limit buy order executed: ${tokensToReceive.toFixed(2)} TIKI at $${currentPrice.toFixed(6)}`
+              description: `Limit buy order executed: ${tokensToReceive.toFixed(2)} Von at $${currentPrice.toFixed(6)}`
             });
             
-            console.log(`   ✅ Buy executed: Received ${tokensToReceive.toFixed(2)} TIKI`);
+            console.log(`   ✅ Buy executed: Received ${tokensToReceive.toFixed(2)} Von`);
             
           } else {
             const usdToReceive = amount * currentPrice;
             
-            if (parseFloat(wallet.tikiBalance) < amount) {
-              console.log(`   ❌ Insufficient TIKI balance`);
+            if (parseFloat(wallet.VonBalance) < amount) {
+              console.log(`   ❌ Insufficient Von balance`);
               await databaseHelpers.order.cancelOrder(order.id);
               continue;
             }
             
             // Update balances
-            await databaseHelpers.wallet.updateTikiBalance(userId, -amount);
+            await databaseHelpers.wallet.updateVonBalance(userId, -amount);
             await databaseHelpers.wallet.updateUsdBalance(userId, usdToReceive);
             
             // Create transaction
@@ -109,7 +109,7 @@ export async function GET(request) {
               currency: 'USD',
               status: 'COMPLETED',
               gateway: 'LimitOrder',
-              description: `Limit sell order executed: ${amount.toFixed(2)} TIKI at $${currentPrice.toFixed(6)}`
+              description: `Limit sell order executed: ${amount.toFixed(2)} Von at $${currentPrice.toFixed(6)}`
             });
             
             console.log(`   ✅ Sell executed: Received $${usdToReceive.toFixed(2)}`);

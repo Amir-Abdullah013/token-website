@@ -65,7 +65,7 @@ async function debugBuyTokenFees() {
     const path = require('path');
     
     try {
-      const buyApiPath = path.join(__dirname, '../src/app/api/tiki/buy/route.js');
+      const buyApiPath = path.join(__dirname, '../src/app/api/Von/buy/route.js');
       const buyApiCode = fs.readFileSync(buyApiPath, 'utf8');
       
       console.log('Buy API analysis:');

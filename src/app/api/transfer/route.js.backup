@@ -87,14 +87,14 @@ async function handlePOST(request) {
     const senderWallet = {
       id: 'mock-wallet-id',
       userId: senderUser.id,
-      tikiBalance: 1000, // Mock balance for testing
+      VonBalance: 1000, // Mock balance for testing
       balance: 100
     };
     console.log('🔍 Transfer API: Using mock sender wallet:', senderWallet);
 
     // Check sufficient balance
-    if (senderWallet.tikiBalance < numericAmount) {
-      return handleValidationError('Insufficient TIKI balance');
+    if (senderWallet.VonBalance < numericAmount) {
+      return handleValidationError('Insufficient Von balance');
     }
 
     // Use mock recipient for development/testing
@@ -110,7 +110,7 @@ async function handlePOST(request) {
     const recipientWallet = {
       id: 'mock-recipient-wallet-id',
       userId: recipient.id,
-      tikiBalance: 0, // Mock balance for testing
+      VonBalance: 0, // Mock balance for testing
       balance: 0
     };
     console.log('🔍 Transfer API: Using mock recipient wallet:', recipientWallet);

@@ -69,7 +69,7 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully transferred ${amount} TIKI from admin reserve to user supply`,
+      message: `Successfully transferred ${amount} Von from admin reserve to user supply`,
       transfer: {
         id: result.transfer.id,
         amount: Number(result.transfer.amount),

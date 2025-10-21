@@ -60,7 +60,7 @@ export default function AdminDashboard() {
             pendingTransactions: statsData.pendingTransactions || 0,
             verifiedUsers: statsData.verifiedUsers || 0,
             totalBalance: statsData.totalBalance || 0,
-            totalTikiBalance: statsData.totalTikiBalance || 0,
+            totalVonBalance: statsData.totalVonBalance || 0,
           }));
         } else {
           console.warn("⚠️ Admin stats API returned error:", statsData.error);

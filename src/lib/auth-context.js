@@ -62,14 +62,14 @@ export const AuthProvider = ({ children }) => {
           
           // Validate the session data - be more lenient for OAuth users
           if (userData.email && (userData.name || userData.email)) {
-            // Generate TIKI ID based on user data
-            const generateTikiId = (userData) => {
+            // Generate Von ID based on user data
+            const generateVonId = (userData) => {
               if (!userData || !userData.email || !userData.id) return null;
               const emailHash = userData.email.split('@')[0].toUpperCase();
               const idSuffix = (userData.id || userData.$id || 'user-id').substring(0, 8).toUpperCase();
-              const tikiId = `TIKI-${emailHash.substring(0, 4)}-${idSuffix}`;
-              console.log('🔧 Auth Context: Generated TIKI ID for', userData.email, ':', tikiId);
-              return tikiId;
+              const VonId = `Von-${emailHash.substring(0, 4)}-${idSuffix}`;
+              console.log('🔧 Auth Context: Generated Von ID for', userData.email, ':', VonId);
+              return VonId;
             };
 
             // Use the actual user data from session without hardcoded fallbacks
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
               name: userData.name || 'User',
               email: userData.email, // Use actual email from session
               id: userData.id || userData.$id || 'user-id',
-              tikiId: generateTikiId(userData),
+              VonId: generateVonId(userData),
               createdAt: userData.createdAt || new Date().toISOString()
             };
             
@@ -115,14 +115,14 @@ export const AuthProvider = ({ children }) => {
             const userData = JSON.parse(userSession);
             console.log('Found OAuth user session:', userData);
             
-            // Generate TIKI ID for OAuth user
-            const generateTikiId = (userData) => {
+            // Generate Von ID for OAuth user
+            const generateVonId = (userData) => {
               if (!userData || !userData.email || !userData.id) return null;
               const emailHash = userData.email.split('@')[0].toUpperCase();
               const idSuffix = (userData.id || userData.$id || 'user-id').substring(0, 8).toUpperCase();
-              const tikiId = `TIKI-${emailHash.substring(0, 4)}-${idSuffix}`;
-              console.log('🔧 Auth Context OAuth: Generated TIKI ID for', userData.email, ':', tikiId);
-              return tikiId;
+              const VonId = `Von-${emailHash.substring(0, 4)}-${idSuffix}`;
+              console.log('🔧 Auth Context OAuth: Generated Von ID for', userData.email, ':', VonId);
+              return VonId;
             };
 
             // Ensure we have the correct user data
@@ -131,7 +131,7 @@ export const AuthProvider = ({ children }) => {
             name: userData.name || (userData.email ? userData.email.split('@')[0] : 'User'),
             email: userData.email,
             id: userData.id || userData.$id || 'user-id',
-            tikiId: generateTikiId(userData),
+            VonId: generateVonId(userData),
             status: userData.status || 'active',
             createdAt: userData.createdAt || new Date().toISOString()
           };

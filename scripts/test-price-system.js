@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function testPriceSystem() {
   try {
-    console.log('🧪 Testing Tiki Price Calculation System...\n');
+    console.log('🧪 Testing Von Price Calculation System...\n');
     
     // Get initial stats
     const initialStats = await prisma.tokenStats.findFirst();
@@ -14,8 +14,8 @@ async function testPriceSystem() {
     console.log(`   Current Price: $${initialStats.currentPrice.toFixed(6)}`);
     console.log(`   Formula: $${initialStats.totalInvestment.toLocaleString()} ÷ ${initialStats.totalTokens.toLocaleString()} = $${initialStats.currentPrice.toFixed(6)}\n`);
     
-    // Test 1: User buys $10,000 worth of TIKI
-    console.log('🛒 Test 1: User buys $10,000 worth of TIKI');
+    // Test 1: User buys $10,000 worth of Von
+    console.log('🛒 Test 1: User buys $10,000 worth of Von');
     const buyAmount = 10000;
     const newInvestment1 = initialStats.totalInvestment + buyAmount;
     const newPrice1 = newInvestment1 / initialStats.totalTokens;
@@ -24,10 +24,10 @@ async function testPriceSystem() {
     console.log(`   New Total Investment: $${newInvestment1.toLocaleString()}`);
     console.log(`   New Price: $${newPrice1.toFixed(6)}`);
     console.log(`   Price Increase: $${(newPrice1 - initialStats.currentPrice).toFixed(6)}`);
-    console.log(`   Tokens User Gets: ${(buyAmount / initialStats.currentPrice).toFixed(2)} TIKI\n`);
+    console.log(`   Tokens User Gets: ${(buyAmount / initialStats.currentPrice).toFixed(2)} Von\n`);
     
-    // Test 2: User sells 1,000,000 TIKI tokens
-    console.log('💰 Test 2: User sells 1,000,000 TIKI tokens');
+    // Test 2: User sells 1,000,000 Von tokens
+    console.log('💰 Test 2: User sells 1,000,000 Von tokens');
     const sellTokens = 1000000;
     const usdFromSell = sellTokens * newPrice1;
     const newInvestment2 = newInvestment1 - usdFromSell;

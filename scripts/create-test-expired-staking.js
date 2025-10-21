@@ -20,7 +20,7 @@ const createTestExpiredStaking = async () => {
     
     // Get user's current wallet balance
     const userWallet = await databaseHelpers.wallet.getWalletByUserId(user.id);
-    console.log(`💰 Current TIKI balance: ${userWallet.tikiBalance} TIKI`);
+    console.log(`💰 Current Von balance: ${userWallet.VonBalance} Von`);
     
     // Create an expired staking (end date in the past)
     const startDate = new Date();
@@ -29,12 +29,12 @@ const createTestExpiredStaking = async () => {
     const endDate = new Date();
     endDate.setDate(endDate.getDate() - 1); // Ended 1 day ago
     
-    const stakingAmount = 50; // 50 TIKI
+    const stakingAmount = 50; // 50 Von
     const durationDays = 7;
     const rewardPercent = 2; // 2% reward
     
     console.log(`\n📊 Creating expired staking:`);
-    console.log(`   Amount: ${stakingAmount} TIKI`);
+    console.log(`   Amount: ${stakingAmount} Von`);
     console.log(`   Duration: ${durationDays} days`);
     console.log(`   Reward: ${rewardPercent}%`);
     console.log(`   Start Date: ${startDate.toLocaleString()}`);
@@ -53,21 +53,21 @@ const createTestExpiredStaking = async () => {
     
     console.log(`✅ Expired staking created with ID: ${staking.id}`);
     
-    // Deduct TIKI from user's wallet to simulate the staking
-    const newBalance = userWallet.tikiBalance - stakingAmount;
-    await databaseHelpers.wallet.updateTikiBalance(user.id, -stakingAmount);
+    // Deduct Von from user's wallet to simulate the staking
+    const newBalance = userWallet.VonBalance - stakingAmount;
+    await databaseHelpers.wallet.updateVonBalance(user.id, -stakingAmount);
     
-    console.log(`💰 User balance updated: ${userWallet.tikiBalance} → ${newBalance} TIKI (-${stakingAmount})`);
+    console.log(`💰 User balance updated: ${userWallet.VonBalance} → ${newBalance} Von (-${stakingAmount})`);
     
     // Calculate expected rewards
     const rewardAmount = (stakingAmount * rewardPercent) / 100;
     const totalAmount = stakingAmount + rewardAmount;
     
     console.log(`\n📈 Expected rewards when processed:`);
-    console.log(`   Staked Amount: ${stakingAmount} TIKI`);
-    console.log(`   Reward Amount: ${rewardAmount} TIKI (${rewardPercent}%)`);
-    console.log(`   Total to receive: ${totalAmount} TIKI`);
-    console.log(`   New balance will be: ${newBalance + totalAmount} TIKI`);
+    console.log(`   Staked Amount: ${stakingAmount} Von`);
+    console.log(`   Reward Amount: ${rewardAmount} Von (${rewardPercent}%)`);
+    console.log(`   Total to receive: ${totalAmount} Von`);
+    console.log(`   New balance will be: ${newBalance + totalAmount} Von`);
     
     console.log(`\n🎯 This staking is now ready for automatic processing!`);
     console.log(`   Run the test again to see it get processed automatically.`);

@@ -42,29 +42,29 @@ const testSendTokenSystem = async () => {
     
     // Create wallets with initial balances
     await client.query(`
-      INSERT INTO wallets (id, "userId", balance, "tikiBalance", currency, "createdAt", "updatedAt")
+      INSERT INTO wallets (id, "userId", balance, "VonBalance", currency, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
     `, [testData.senderWalletId, testData.senderId, 1000, 1000, 'USD']);
     
     await client.query(`
-      INSERT INTO wallets (id, "userId", balance, "tikiBalance", currency, "createdAt", "updatedAt")
+      INSERT INTO wallets (id, "userId", balance, "VonBalance", currency, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
     `, [testData.recipientWalletId, testData.recipientId, 100, 100, 'USD']);
     
     console.log('✅ Test environment setup complete');
-    console.log(`   Sender: ${senderEmail} (Balance: 1000 TIKI)`);
-    console.log(`   Recipient: ${recipientEmail} (Balance: 100 TIKI)`);
+    console.log(`   Sender: ${senderEmail} (Balance: 1000 Von)`);
+    console.log(`   Recipient: ${recipientEmail} (Balance: 100 Von)`);
     
     // Test 2: Test email-based transfer system
     console.log('\n📧 STEP 2: Testing email-based transfer system...');
     
-    const transferAmount = 100; // 100 TIKI
-    const transferFee = 5; // 5% fee = 5 TIKI
-    const netAmount = transferAmount - transferFee; // 95 TIKI
+    const transferAmount = 100; // 100 Von
+    const transferFee = 5; // 5% fee = 5 Von
+    const netAmount = transferAmount - transferFee; // 95 Von
     
-    console.log(`   Transfer Amount: ${transferAmount} TIKI`);
-    console.log(`   Transfer Fee (5%): ${transferFee} TIKI`);
-    console.log(`   Net Amount to Recipient: ${netAmount} TIKI`);
+    console.log(`   Transfer Amount: ${transferAmount} Von`);
+    console.log(`   Transfer Fee (5%): ${transferFee} Von`);
+    console.log(`   Net Amount to Recipient: ${netAmount} Von`);
     
     // Get initial balances
     const senderWalletBefore = await client.query(
@@ -76,11 +76,11 @@ const testSendTokenSystem = async () => {
       [testData.recipientId]
     );
     
-    const senderBalanceBefore = senderWalletBefore.rows[0].tikiBalance;
-    const recipientBalanceBefore = recipientWalletBefore.rows[0].tikiBalance;
+    const senderBalanceBefore = senderWalletBefore.rows[0].VonBalance;
+    const recipientBalanceBefore = recipientWalletBefore.rows[0].VonBalance;
     
-    console.log(`   Sender balance before: ${senderBalanceBefore} TIKI`);
-    console.log(`   Recipient balance before: ${recipientBalanceBefore} TIKI`);
+    console.log(`   Sender balance before: ${senderBalanceBefore} Von`);
+    console.log(`   Recipient balance before: ${recipientBalanceBefore} Von`);
     
     // Process email-based transfer
     try {
@@ -90,14 +90,14 @@ const testSendTokenSystem = async () => {
       const totalDeducted = transferAmount + transferFee;
       const senderNewBalance = senderBalanceBefore - totalDeducted;
       await client.query(
-        'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
         [senderNewBalance, testData.senderId]
       );
       
       // Update recipient's wallet (add net amount)
       const recipientNewBalance = recipientBalanceBefore + netAmount;
       await client.query(
-        'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
         [recipientNewBalance, testData.recipientId]
       );
       
@@ -129,113 +129,113 @@ const testSendTokenSystem = async () => {
       [testData.recipientId]
     );
     
-    const senderBalanceAfter = senderWalletAfter.rows[0].tikiBalance;
-    const recipientBalanceAfter = recipientWalletAfter.rows[0].tikiBalance;
+    const senderBalanceAfter = senderWalletAfter.rows[0].VonBalance;
+    const recipientBalanceAfter = recipientWalletAfter.rows[0].VonBalance;
     
     console.log('\n📊 EMAIL-BASED TRANSFER RESULTS:');
     console.log(`   Sender: ${senderBalanceBefore} → ${senderBalanceAfter} (-${senderBalanceBefore - senderBalanceAfter})`);
     console.log(`   Recipient: ${recipientBalanceBefore} → ${recipientBalanceAfter} (+${recipientBalanceAfter - recipientBalanceBefore})`);
     
-    // Test 4: Test TIKI ID-based transfer system
-    console.log('\n🆔 STEP 4: Testing TIKI ID-based transfer system...');
+    // Test 4: Test Von ID-based transfer system
+    console.log('\n🆔 STEP 4: Testing Von ID-based transfer system...');
     
-    // Generate TIKI IDs for both users
-    const senderTikiId = `TIKI-${senderEmail.split('@')[0].toUpperCase().substring(0, 4)}-${testData.senderId.substring(0, 8).toUpperCase()}`;
-    const recipientTikiId = `TIKI-${recipientEmail.split('@')[0].toUpperCase().substring(0, 4)}-${testData.recipientId.substring(0, 8).toUpperCase()}`;
+    // Generate Von IDs for both users
+    const senderVonId = `Von-${senderEmail.split('@')[0].toUpperCase().substring(0, 4)}-${testData.senderId.substring(0, 8).toUpperCase()}`;
+    const recipientVonId = `Von-${recipientEmail.split('@')[0].toUpperCase().substring(0, 4)}-${testData.recipientId.substring(0, 8).toUpperCase()}`;
     
-    console.log(`   Sender TIKI ID: ${senderTikiId}`);
-    console.log(`   Recipient TIKI ID: ${recipientTikiId}`);
+    console.log(`   Sender Von ID: ${senderVonId}`);
+    console.log(`   Recipient Von ID: ${recipientVonId}`);
     
-    const tikiTransferAmount = 50; // 50 TIKI
-    const tikiTransferFee = 2.5; // 5% fee = 2.5 TIKI
-    const tikiNetAmount = tikiTransferAmount - tikiTransferFee; // 47.5 TIKI
+    const VonTransferAmount = 50; // 50 Von
+    const VonTransferFee = 2.5; // 5% fee = 2.5 Von
+    const VonNetAmount = VonTransferAmount - VonTransferFee; // 47.5 Von
     
-    console.log(`   TIKI Transfer Amount: ${tikiTransferAmount} TIKI`);
-    console.log(`   TIKI Transfer Fee (5%): ${tikiTransferFee} TIKI`);
-    console.log(`   TIKI Net Amount to Recipient: ${tikiNetAmount} TIKI`);
+    console.log(`   Von Transfer Amount: ${VonTransferAmount} Von`);
+    console.log(`   Von Transfer Fee (5%): ${VonTransferFee} Von`);
+    console.log(`   Von Net Amount to Recipient: ${VonNetAmount} Von`);
     
-    // Get balances before TIKI transfer
-    const senderWalletBeforeTiki = await client.query(
+    // Get balances before Von transfer
+    const senderWalletBeforeVon = await client.query(
       'SELECT * FROM wallets WHERE "userId" = $1',
       [testData.senderId]
     );
-    const recipientWalletBeforeTiki = await client.query(
+    const recipientWalletBeforeVon = await client.query(
       'SELECT * FROM wallets WHERE "userId" = $1',
       [testData.recipientId]
     );
     
-    const senderBalanceBeforeTiki = senderWalletBeforeTiki.rows[0].tikiBalance;
-    const recipientBalanceBeforeTiki = recipientWalletBeforeTiki.rows[0].tikiBalance;
+    const senderBalanceBeforeVon = senderWalletBeforeVon.rows[0].VonBalance;
+    const recipientBalanceBeforeVon = recipientWalletBeforeVon.rows[0].VonBalance;
     
-    console.log(`   Sender balance before TIKI transfer: ${senderBalanceBeforeTiki} TIKI`);
-    console.log(`   Recipient balance before TIKI transfer: ${recipientBalanceBeforeTiki} TIKI`);
+    console.log(`   Sender balance before Von transfer: ${senderBalanceBeforeVon} Von`);
+    console.log(`   Recipient balance before Von transfer: ${recipientBalanceBeforeVon} Von`);
     
-    // Process TIKI ID-based transfer
+    // Process Von ID-based transfer
     try {
       await client.query('BEGIN');
       
       // Update sender's wallet (deduct full amount + fee)
-      const tikiTotalDeducted = tikiTransferAmount + tikiTransferFee;
-      const senderNewBalanceTiki = senderBalanceBeforeTiki - tikiTotalDeducted;
+      const VonTotalDeducted = VonTransferAmount + VonTransferFee;
+      const senderNewBalanceVon = senderBalanceBeforeVon - VonTotalDeducted;
       await client.query(
-        'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
-        [senderNewBalanceTiki, testData.senderId]
+        'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        [senderNewBalanceVon, testData.senderId]
       );
       
       // Update recipient's wallet (add net amount)
-      const recipientNewBalanceTiki = recipientBalanceBeforeTiki + tikiNetAmount;
+      const recipientNewBalanceVon = recipientBalanceBeforeVon + VonNetAmount;
       await client.query(
-        'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
-        [recipientNewBalanceTiki, testData.recipientId]
+        'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        [recipientNewBalanceVon, testData.recipientId]
       );
       
-      // Create TIKI transfer record
-      const tikiTransferId = randomUUID();
+      // Create Von transfer record
+      const VonTransferId = randomUUID();
       await client.query(`
         INSERT INTO transfers (id, "senderId", "recipientId", "senderEmail", "recipientEmail", amount, note, status, "createdAt", "updatedAt")
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-      `, [tikiTransferId, testData.senderId, testData.recipientId, senderEmail, recipientEmail, tikiTransferAmount, 'Test TIKI ID transfer', 'COMPLETED']);
+      `, [VonTransferId, testData.senderId, testData.recipientId, senderEmail, recipientEmail, VonTransferAmount, 'Test Von ID transfer', 'COMPLETED']);
       
       await client.query('COMMIT');
       
-      console.log('✅ TIKI ID-based transfer processed successfully');
+      console.log('✅ Von ID-based transfer processed successfully');
       
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
     }
     
-    // Test 5: Verify TIKI ID-based transfer results
-    console.log('\n✅ STEP 5: Verifying TIKI ID-based transfer results...');
+    // Test 5: Verify Von ID-based transfer results
+    console.log('\n✅ STEP 5: Verifying Von ID-based transfer results...');
     
-    const senderWalletAfterTiki = await client.query(
+    const senderWalletAfterVon = await client.query(
       'SELECT * FROM wallets WHERE "userId" = $1',
       [testData.senderId]
     );
-    const recipientWalletAfterTiki = await client.query(
+    const recipientWalletAfterVon = await client.query(
       'SELECT * FROM wallets WHERE "userId" = $1',
       [testData.recipientId]
     );
     
-    const senderBalanceAfterTiki = senderWalletAfterTiki.rows[0].tikiBalance;
-    const recipientBalanceAfterTiki = recipientWalletAfterTiki.rows[0].tikiBalance;
+    const senderBalanceAfterVon = senderWalletAfterVon.rows[0].VonBalance;
+    const recipientBalanceAfterVon = recipientWalletAfterVon.rows[0].VonBalance;
     
-    console.log('\n📊 TIKI ID-BASED TRANSFER RESULTS:');
-    console.log(`   Sender: ${senderBalanceBeforeTiki} → ${senderBalanceAfterTiki} (-${senderBalanceBeforeTiki - senderBalanceAfterTiki})`);
-    console.log(`   Recipient: ${recipientBalanceBeforeTiki} → ${recipientBalanceAfterTiki} (+${recipientBalanceAfterTiki - recipientBalanceBeforeTiki})`);
+    console.log('\n📊 Von ID-BASED TRANSFER RESULTS:');
+    console.log(`   Sender: ${senderBalanceBeforeVon} → ${senderBalanceAfterVon} (-${senderBalanceBeforeVon - senderBalanceAfterVon})`);
+    console.log(`   Recipient: ${recipientBalanceBeforeVon} → ${recipientBalanceAfterVon} (+${recipientBalanceAfterVon - recipientBalanceBeforeVon})`);
     
     // Test 6: Test transfer validation (insufficient balance)
     console.log('\n🚫 STEP 6: Testing transfer validation (insufficient balance)...');
     
-    const largeAmount = 10000; // 10,000 TIKI (more than sender has)
+    const largeAmount = 10000; // 10,000 Von (more than sender has)
     
     try {
       await client.query('BEGIN');
       
       // Try to transfer more than sender has
-      const senderCurrentBalance = senderBalanceAfterTiki;
+      const senderCurrentBalance = senderBalanceAfterVon;
       if (senderCurrentBalance < largeAmount) {
-        console.log(`   ✅ Validation working: Cannot transfer ${largeAmount} TIKI (sender only has ${senderCurrentBalance} TIKI)`);
+        console.log(`   ✅ Validation working: Cannot transfer ${largeAmount} Von (sender only has ${senderCurrentBalance} Von)`);
       }
       
       await client.query('ROLLBACK');
@@ -278,7 +278,7 @@ const testSendTokenSystem = async () => {
     if (transferHistory.rows.length > 0) {
       console.log('   📊 Transfer details:');
       transferHistory.rows.forEach((transfer, index) => {
-        console.log(`     ${index + 1}. ${transfer.amount} TIKI from ${transfer.sender_name} to ${transfer.recipient_name} (${transfer.status})`);
+        console.log(`     ${index + 1}. ${transfer.amount} Von from ${transfer.sender_name} to ${transfer.recipient_name} (${transfer.status})`);
       });
     }
     
@@ -292,15 +292,15 @@ const testSendTokenSystem = async () => {
     testAmounts.forEach(amount => {
       const fee = amount * feeRate;
       const net = amount - fee;
-      console.log(`     Amount: ${amount} TIKI, Fee: ${fee} TIKI, Net: ${net} TIKI`);
+      console.log(`     Amount: ${amount} Von, Fee: ${fee} Von, Net: ${net} Von`);
     });
     
     // Test 10: Test multiple transfers scenario
     console.log('\n🔄 STEP 10: Testing multiple transfers scenario...');
     
-    const multipleTransferAmount = 25; // 25 TIKI
-    const multipleTransferFee = 1.25; // 5% fee = 1.25 TIKI
-    const multipleNetAmount = multipleTransferAmount - multipleTransferFee; // 23.75 TIKI
+    const multipleTransferAmount = 25; // 25 Von
+    const multipleTransferFee = 1.25; // 5% fee = 1.25 Von
+    const multipleNetAmount = multipleTransferAmount - multipleTransferFee; // 23.75 Von
     
     // Get balances before multiple transfers
     const senderWalletBeforeMultiple = await client.query(
@@ -312,12 +312,12 @@ const testSendTokenSystem = async () => {
       [testData.recipientId]
     );
     
-    const senderBalanceBeforeMultiple = senderWalletBeforeMultiple.rows[0].tikiBalance;
-    const recipientBalanceBeforeMultiple = recipientWalletBeforeMultiple.rows[0].tikiBalance;
+    const senderBalanceBeforeMultiple = senderWalletBeforeMultiple.rows[0].VonBalance;
+    const recipientBalanceBeforeMultiple = recipientWalletBeforeMultiple.rows[0].VonBalance;
     
-    console.log(`   Multiple transfer amount: ${multipleTransferAmount} TIKI`);
-    console.log(`   Sender balance before: ${senderBalanceBeforeMultiple} TIKI`);
-    console.log(`   Recipient balance before: ${recipientBalanceBeforeMultiple} TIKI`);
+    console.log(`   Multiple transfer amount: ${multipleTransferAmount} Von`);
+    console.log(`   Sender balance before: ${senderBalanceBeforeMultiple} Von`);
+    console.log(`   Recipient balance before: ${recipientBalanceBeforeMultiple} Von`);
     
     // Process multiple transfers
     try {
@@ -327,14 +327,14 @@ const testSendTokenSystem = async () => {
       const multipleTotalDeducted = multipleTransferAmount + multipleTransferFee;
       const senderNewBalanceMultiple = senderBalanceBeforeMultiple - multipleTotalDeducted;
       await client.query(
-        'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
         [senderNewBalanceMultiple, testData.senderId]
       );
       
       // Update recipient's wallet
       const recipientNewBalanceMultiple = recipientBalanceBeforeMultiple + multipleNetAmount;
       await client.query(
-        'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
         [recipientNewBalanceMultiple, testData.recipientId]
       );
       
@@ -366,20 +366,20 @@ const testSendTokenSystem = async () => {
       [testData.recipientId]
     );
     
-    const senderBalanceFinal = senderWalletFinal.rows[0].tikiBalance;
-    const recipientBalanceFinal = recipientWalletFinal.rows[0].tikiBalance;
+    const senderBalanceFinal = senderWalletFinal.rows[0].VonBalance;
+    const recipientBalanceFinal = recipientWalletFinal.rows[0].VonBalance;
     
     console.log('\n📈 CUMULATIVE BALANCE CHANGES:');
     console.log(`   Sender: ${senderBalanceBefore} → ${senderBalanceFinal} (-${senderBalanceBefore - senderBalanceFinal})`);
     console.log(`   Recipient: ${recipientBalanceBefore} → ${recipientBalanceFinal} (+${recipientBalanceFinal - recipientBalanceBefore})`);
     
-    const totalTransferred = transferAmount + tikiTransferAmount + multipleTransferAmount;
-    const totalFees = transferFee + tikiTransferFee + multipleTransferFee;
-    const totalNetTransferred = netAmount + tikiNetAmount + multipleNetAmount;
+    const totalTransferred = transferAmount + VonTransferAmount + multipleTransferAmount;
+    const totalFees = transferFee + VonTransferFee + multipleTransferFee;
+    const totalNetTransferred = netAmount + VonNetAmount + multipleNetAmount;
     
-    console.log(`   Total Transferred: ${totalTransferred} TIKI`);
-    console.log(`   Total Fees: ${totalFees} TIKI`);
-    console.log(`   Total Net Transferred: ${totalNetTransferred} TIKI`);
+    console.log(`   Total Transferred: ${totalTransferred} Von`);
+    console.log(`   Total Fees: ${totalFees} Von`);
+    console.log(`   Total Net Transferred: ${totalNetTransferred} Von`);
     
     // Test 12: Clean up test data
     console.log('\n🧹 STEP 12: Cleaning up test data...');
@@ -399,7 +399,7 @@ const testSendTokenSystem = async () => {
     console.log('✅ All tests passed successfully!');
     console.log('✅ Send token system is fully functional');
     console.log('✅ Email-based transfers work correctly');
-    console.log('✅ TIKI ID-based transfers work correctly');
+    console.log('✅ Von ID-based transfers work correctly');
     console.log('✅ Fee calculations are accurate');
     console.log('✅ Balance updates are correct');
     console.log('✅ Transfer validation works properly');
@@ -410,7 +410,7 @@ const testSendTokenSystem = async () => {
     console.log('\n🚀 The send token system is PRODUCTION READY!');
     console.log('\n📋 SEND TOKEN SYSTEM FEATURES VERIFIED:');
     console.log('   ✅ Email-based token transfers');
-    console.log('   ✅ TIKI ID-based token transfers');
+    console.log('   ✅ Von ID-based token transfers');
     console.log('   ✅ 5% transfer fee calculation');
     console.log('   ✅ Balance validation');
     console.log('   ✅ Self-transfer prevention');

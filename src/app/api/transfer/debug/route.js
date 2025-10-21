@@ -76,7 +76,7 @@ export async function POST(request) {
       wallet = await databaseHelpers.wallet.getWalletByUserId(session.id);
       console.log('🔍 DEBUG: Wallet found:', { 
         hasWallet: !!wallet, 
-        balance: wallet?.tikiBalance 
+        balance: wallet?.VonBalance 
       });
     } catch (walletError) {
       console.log('🔍 DEBUG: Wallet error:', walletError.message);

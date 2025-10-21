@@ -44,7 +44,7 @@ async function testTradingSystem() {
     if (walletResult.rows.length === 0) {
       // Create wallet for test user
       await client.query(`
-        INSERT INTO wallets (id, "userId", "usdBalance", "tikiBalance")
+        INSERT INTO wallets (id, "userId", "usdBalance", "VonBalance")
         VALUES ($1, $2, 10000, 1000)
       `, [randomUUID(), testUser.id]);
       
@@ -57,13 +57,13 @@ async function testTradingSystem() {
     
     console.log(`\n💰 Initial Balances:`);
     console.log(`   USD Balance: $${parseFloat(wallet.usdBalance).toFixed(2)}`);
-    console.log(`   TIKI Balance: ${parseFloat(wallet.tikiBalance).toFixed(2)} TIKI`);
+    console.log(`   Von Balance: ${parseFloat(wallet.VonBalance).toFixed(2)} Von`);
     
     // Get current token price using the database helper
     const { databaseHelpers } = require('../src/lib/database.js');
     const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
     const currentPrice = tokenValue.currentTokenValue;
-    console.log(`\n📊 Current TIKI Price: $${currentPrice.toFixed(6)}`);
+    console.log(`\n📊 Current Von Price: $${currentPrice.toFixed(6)}`);
     
     // Test 1: Create a BUY limit order ABOVE current price (should not execute immediately)
     console.log(`\n\n${'='.repeat(80)}`);
@@ -87,7 +87,7 @@ async function testTradingSystem() {
     console.log(`\n✅ BUY limit order created:`);
     console.log(`   Order ID: ${buyOrderResult.rows[0].id}`);
     console.log(`   Status: ${buyOrderResult.rows[0].status}`);
-    console.log(`   Tokens to receive: ${parseFloat(buyOrderResult.rows[0].tokenAmount).toFixed(2)} TIKI`);
+    console.log(`   Tokens to receive: ${parseFloat(buyOrderResult.rows[0].tokenAmount).toFixed(2)} Von`);
     
     // Test 2: Create a SELL limit order BELOW current price (should not execute immediately)
     console.log(`\n\n${'='.repeat(80)}`);
@@ -95,10 +95,10 @@ async function testTradingSystem() {
     console.log('='.repeat(80));
     
     const sellLimitPrice = currentPrice * 0.9; // 10% below current price
-    const sellAmount = 50; // 50 TIKI
+    const sellAmount = 50; // 50 Von
     
     console.log(`\nCreating SELL limit order:`);
-    console.log(`   Amount: ${sellAmount} TIKI`);
+    console.log(`   Amount: ${sellAmount} Von`);
     console.log(`   Limit Price: $${sellLimitPrice.toFixed(6)}`);
     console.log(`   Expected: Order should be PENDING (price not reached yet)`);
     
@@ -153,7 +153,7 @@ async function testTradingSystem() {
     pendingOrdersResult.rows.forEach((order, index) => {
       console.log(`${index + 1}. ${order.orderType} ${order.priceType} Order`);
       console.log(`   Order ID: ${order.id}`);
-      console.log(`   Amount: ${order.orderType === 'BUY' ? '$' + parseFloat(order.amount).toFixed(2) : parseFloat(order.amount).toFixed(2) + ' TIKI'}`);
+      console.log(`   Amount: ${order.orderType === 'BUY' ? '$' + parseFloat(order.amount).toFixed(2) : parseFloat(order.amount).toFixed(2) + ' Von'}`);
       if (order.limitPrice) {
         console.log(`   Limit Price: $${parseFloat(order.limitPrice).toFixed(6)}`);
       }
@@ -225,7 +225,7 @@ async function testTradingSystem() {
     
     console.log(`\n💰 Final Balances:`);
     console.log(`   USD Balance: $${parseFloat(finalWallet.usdBalance).toFixed(2)}`);
-    console.log(`   TIKI Balance: ${parseFloat(finalWallet.tikiBalance).toFixed(2)} TIKI`);
+    console.log(`   Von Balance: ${parseFloat(finalWallet.VonBalance).toFixed(2)} Von`);
     
     console.log(`\n✅ ALL TESTS COMPLETED SUCCESSFULLY!`);
     console.log(`\n📝 Summary:`);

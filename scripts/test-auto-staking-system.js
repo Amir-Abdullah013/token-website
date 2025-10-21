@@ -28,7 +28,7 @@ const testAutoStakingSystem = async () => {
         
         console.log(`  ${index + 1}. ID: ${staking.id}`);
         console.log(`     User: ${staking.user_name} (${staking.user_email})`);
-        console.log(`     Amount: ${staking.amountStaked} TIKI`);
+        console.log(`     Amount: ${staking.amountStaked} Von`);
         console.log(`     Duration: ${staking.durationDays} days`);
         console.log(`     Reward: ${staking.rewardPercent}%`);
         console.log(`     Status: ${staking.status}`);
@@ -63,10 +63,10 @@ const testAutoStakingSystem = async () => {
         const referrerBonus = staking.referrerId ? (rewardAmount * 10) / 100 : 0;
         
         console.log(`  ${index + 1}. User: ${staking.user_name}`);
-        console.log(`     Staked: ${staking.amountStaked} TIKI`);
-        console.log(`     Reward: ${rewardAmount} TIKI (${staking.rewardPercent}%)`);
-        console.log(`     Total to receive: ${totalAmount} TIKI`);
-        console.log(`     Referrer bonus: ${referrerBonus} TIKI`);
+        console.log(`     Staked: ${staking.amountStaked} Von`);
+        console.log(`     Reward: ${rewardAmount} Von (${staking.rewardPercent}%)`);
+        console.log(`     Total to receive: ${totalAmount} Von`);
+        console.log(`     Referrer bonus: ${referrerBonus} Von`);
         console.log(`     End date: ${new Date(staking.endDate).toLocaleString()}`);
         console.log('');
       });
@@ -86,7 +86,7 @@ const testAutoStakingSystem = async () => {
     console.log('User wallets that will be affected:');
     userWallets.rows.forEach((wallet, index) => {
       console.log(`  ${index + 1}. User: ${wallet.user_name}`);
-      console.log(`     Current TIKI Balance: ${wallet.tikiBalance} TIKI`);
+      console.log(`     Current Von Balance: ${wallet.VonBalance} Von`);
       console.log(`     Current USD Balance: $${wallet.balance}`);
       console.log('');
     });
@@ -97,9 +97,9 @@ const testAutoStakingSystem = async () => {
     
     const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
     if (tokenSupply) {
-      console.log(`Total Supply: ${tokenSupply.totalSupply} TIKI`);
-      console.log(`Remaining Supply: ${tokenSupply.remainingSupply} TIKI`);
-      console.log(`Used Supply: ${tokenSupply.totalSupply - tokenSupply.remainingSupply} TIKI`);
+      console.log(`Total Supply: ${tokenSupply.totalSupply} Von`);
+      console.log(`Remaining Supply: ${tokenSupply.remainingSupply} Von`);
+      console.log(`Used Supply: ${tokenSupply.totalSupply - tokenSupply.remainingSupply} Von`);
     } else {
       console.log('❌ Token supply not found');
     }
@@ -123,11 +123,11 @@ const testAutoStakingSystem = async () => {
           const totalTokensNeeded = profit + referrerBonus;
           
           console.log(`  📊 Calculations:`);
-          console.log(`     Staked Amount: ${staking.amountStaked} TIKI`);
-          console.log(`     Reward Amount: ${rewardAmount} TIKI`);
-          console.log(`     Total to User: ${totalAmount} TIKI`);
-          console.log(`     Referrer Bonus: ${referrerBonus} TIKI`);
-          console.log(`     Total Tokens Needed: ${totalTokensNeeded} TIKI`);
+          console.log(`     Staked Amount: ${staking.amountStaked} Von`);
+          console.log(`     Reward Amount: ${rewardAmount} Von`);
+          console.log(`     Total to User: ${totalAmount} Von`);
+          console.log(`     Referrer Bonus: ${referrerBonus} Von`);
+          console.log(`     Total Tokens Needed: ${totalTokensNeeded} Von`);
           
           // Check token supply
           if (Number(tokenSupply.remainingSupply) < totalTokensNeeded) {
@@ -137,7 +137,7 @@ const testAutoStakingSystem = async () => {
           
           // Get user's current wallet
           const userWallet = await databaseHelpers.wallet.getWalletByUserId(staking.userId);
-          const oldBalance = userWallet.tikiBalance;
+          const oldBalance = userWallet.VonBalance;
           
           // Process the staking completion
           let client;
@@ -153,10 +153,10 @@ const testAutoStakingSystem = async () => {
             `, [totalTokensNeeded, tokenSupply.id]);
             
             // Add staked amount + reward back to user's wallet
-            const newTikiBalance = userWallet.tikiBalance + totalAmount;
+            const newVonBalance = userWallet.VonBalance + totalAmount;
             await client.query(
-              'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
-              [newTikiBalance, staking.userId]
+              'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+              [newVonBalance, staking.userId]
             );
             
             // Process referral bonus if applicable
@@ -180,11 +180,11 @@ const testAutoStakingSystem = async () => {
                 
                 if (referrerWalletResult.rows.length > 0) {
                   const referrerWallet = referrerWalletResult.rows[0];
-                  const referrerNewBalance = referrerWallet.tikiBalance + referrerBonus;
+                  const referrerNewBalance = referrerWallet.VonBalance + referrerBonus;
                   
                   // Update referrer's wallet balance
                   await client.query(
-                    'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+                    'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
                     [referrerNewBalance, staking.referrerId]
                   );
                   
@@ -194,8 +194,8 @@ const testAutoStakingSystem = async () => {
                     VALUES ($1, $2, $3, $4, NOW())
                   `, [require('crypto').randomUUID(), referralRecord.id, staking.id, referrerBonus]);
                   
-                  console.log(`    ✅ Referrer bonus processed: ${referrerBonus} TIKI`);
-                  console.log(`    ✅ Referrer new balance: ${referrerNewBalance} TIKI`);
+                  console.log(`    ✅ Referrer bonus processed: ${referrerBonus} Von`);
+                  console.log(`    ✅ Referrer new balance: ${referrerNewBalance} Von`);
                 }
               }
             }
@@ -209,24 +209,24 @@ const testAutoStakingSystem = async () => {
             
             await client.query('COMMIT');
             console.log(`  ✅ Staking ${staking.id} processed successfully!`);
-            console.log(`  ✅ User balance updated: ${oldBalance} → ${newTikiBalance} TIKI (+${totalAmount})`);
+            console.log(`  ✅ User balance updated: ${oldBalance} → ${newVonBalance} Von (+${totalAmount})`);
             
             // Create transaction record
             await databaseHelpers.transaction.createTransaction({
               userId: staking.userId,
               type: 'BUY',
               amount: totalAmount,
-              currency: 'TIKI',
+              currency: 'Von',
               status: 'COMPLETED',
               gateway: 'Staking',
-              description: `Auto-claimed staking rewards: ${staking.amountStaked} TIKI + ${rewardAmount} TIKI reward`
+              description: `Auto-claimed staking rewards: ${staking.amountStaked} Von + ${rewardAmount} Von reward`
             });
             
             // Send notification to user
             await databaseHelpers.notification.createNotification({
               userId: staking.userId,
               title: 'Staking Rewards Auto-Claimed',
-              message: `Your staking has completed and rewards have been automatically claimed! Received ${totalAmount} TIKI (${staking.amountStaked} staked + ${rewardAmount} reward).`,
+              message: `Your staking has completed and rewards have been automatically claimed! Received ${totalAmount} Von (${staking.amountStaked} staked + ${rewardAmount} reward).`,
               type: 'STAKE'
             });
             
@@ -264,7 +264,7 @@ const testAutoStakingSystem = async () => {
     console.log('Updated user wallets:');
     updatedWallets.rows.forEach((wallet, index) => {
       console.log(`  ${index + 1}. User: ${wallet.user_name}`);
-      console.log(`     Current TIKI Balance: ${wallet.tikiBalance} TIKI`);
+      console.log(`     Current Von Balance: ${wallet.VonBalance} Von`);
       console.log(`     Current USD Balance: $${wallet.balance}`);
       console.log('');
     });
@@ -273,9 +273,9 @@ const testAutoStakingSystem = async () => {
     const updatedTokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
     if (updatedTokenSupply) {
       console.log('Updated Token Supply:');
-      console.log(`Total Supply: ${updatedTokenSupply.totalSupply} TIKI`);
-      console.log(`Remaining Supply: ${updatedTokenSupply.remainingSupply} TIKI`);
-      console.log(`Used Supply: ${updatedTokenSupply.totalSupply - updatedTokenSupply.remainingSupply} TIKI`);
+      console.log(`Total Supply: ${updatedTokenSupply.totalSupply} Von`);
+      console.log(`Remaining Supply: ${updatedTokenSupply.remainingSupply} Von`);
+      console.log(`Used Supply: ${updatedTokenSupply.totalSupply - updatedTokenSupply.remainingSupply} Von`);
     }
     
     // Check processed stakings
@@ -292,8 +292,8 @@ const testAutoStakingSystem = async () => {
       console.log('Recently processed stakings:');
       processedStakings.rows.slice(0, 5).forEach((staking, index) => {
         console.log(`  ${index + 1}. User: ${staking.user_name}`);
-        console.log(`     Amount Staked: ${staking.amountStaked} TIKI`);
-        console.log(`     Profit Earned: ${staking.profit} TIKI`);
+        console.log(`     Amount Staked: ${staking.amountStaked} Von`);
+        console.log(`     Profit Earned: ${staking.profit} Von`);
         console.log(`     Status: ${staking.status}`);
         console.log(`     Claimed: ${staking.claimed}`);
         console.log(`     Updated: ${new Date(staking.updatedAt).toLocaleString()}`);

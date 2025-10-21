@@ -76,7 +76,7 @@ export async function POST(request) {
       return createWalletLockedResponse();
     }
 
-    // Check user's Tiki balance
+    // Check user's Von balance
     let userWallet = await databaseHelpers.wallet.getWalletByUserId(userId);
     if (!userWallet) {
       // Create wallet for user if it doesn't exist
@@ -93,9 +93,9 @@ export async function POST(request) {
       }
     }
 
-    if (userWallet.tikiBalance < amount) {
+    if (userWallet.VonBalance < amount) {
       return NextResponse.json(
-        { success: false, error: 'Insufficient Tiki balance' },
+        { success: false, error: 'Insufficient Von balance' },
         { status: 400 }
       );
     }
@@ -127,12 +127,12 @@ export async function POST(request) {
       }, { status: 500 });
     }
 
-    // Deduct Tiki tokens from user's wallet
+    // Deduct Von tokens from user's wallet
     try {
-      await databaseHelpers.wallet.updateTikiBalance(userId, -amount);
-      console.log('✅ TIKI balance deducted');
+      await databaseHelpers.wallet.updateVonBalance(userId, -amount);
+      console.log('✅ Von balance deducted');
     } catch (walletErr) {
-      console.error('❌ Error deducting TIKI balance for staking:', walletErr);
+      console.error('❌ Error deducting Von balance for staking:', walletErr);
       // Attempt to cancel staking record to keep consistency
       try {
         await databaseHelpers.staking.updateStakingStatus(staking.id, 'CANCELLED');
@@ -194,11 +194,11 @@ export async function POST(request) {
               
               if (referrerWalletResult.rows.length > 0) {
                 const referrerWallet = referrerWalletResult.rows[0];
-                const referrerNewBalance = referrerWallet.tikiBalance + referrerBonus;
+                const referrerNewBalance = referrerWallet.VonBalance + referrerBonus;
                 
                 // Update referrer's wallet balance
                 await client.query(
-                  'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+                  'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
                   [referrerNewBalance, user.referrerId]
                 );
                 
@@ -216,14 +216,14 @@ export async function POST(request) {
                   require('crypto').randomUUID(),
                   user.referrerId,
                   'Referral Bonus Earned!',
-                  `You earned ${referrerBonus.toFixed(2)} TIKI referral bonus from ${user.name}'s new staking!`,
+                  `You earned ${referrerBonus.toFixed(2)} Von referral bonus from ${user.name}'s new staking!`,
                   'SUCCESS',
                   'UNREAD'
                 ]);
                 
                 await client.query('COMMIT');
                 
-                console.log(`✅ Referrer rewarded immediately with ${referrerBonus} TIKI`);
+                console.log(`✅ Referrer rewarded immediately with ${referrerBonus} Von`);
                 
                 referralBonusInfo = {
                   referrerId: user.referrerId,
@@ -275,7 +275,7 @@ export async function POST(request) {
         currency: 'USD',
         status: 'COMPLETED',
         gateway: 'Staking',
-        description: `Staked ${amount} TIKI for ${durationDays} days (${rewardPercent}% reward)`
+        description: `Staked ${amount} Von for ${durationDays} days (${rewardPercent}% reward)`
       });
       console.log('✅ Transaction record created');
     } catch (txError) {
@@ -288,7 +288,7 @@ export async function POST(request) {
       await databaseHelpers.notification.createNotification({
         userId: userId,
         title: 'Staking Started',
-        message: `You have successfully staked ${amount} TIKI tokens for ${durationDays} days. You will earn ${rewardPercent}% reward.`,
+        message: `You have successfully staked ${amount} Von tokens for ${durationDays} days. You will earn ${rewardPercent}% reward.`,
         type: 'SUCCESS'
       });
       console.log('✅ Notification sent');

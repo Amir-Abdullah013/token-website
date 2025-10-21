@@ -23,33 +23,67 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 10;
-    const status = searchParams.get('status') || '';
+    const status = searchParams.get('status') || 'PENDING'; // Default to PENDING for admin withdrawals page
 
-    // Get all withdrawal transactions with user details
-    console.log('🔍 Fetching withdrawals from database...');
+    // Get only pending withdrawal transactions with user details
+    console.log('🔍 Fetching pending withdrawals from database...');
     let withdrawals;
     try {
       withdrawals = await databaseHelpers.transaction.getAllTransactions({
         type: 'WITHDRAW',
         page,
         limit,
-        status
+        status: 'PENDING' // Force only pending withdrawals for admin page
       });
-      console.log('🔍 Withdrawals fetched:', { count: withdrawals.data?.length || 0 });
+      console.log('🔍 Pending withdrawals fetched:', { count: withdrawals.data?.length || 0 });
     } catch (withdrawalError) {
-      console.error('❌ Error fetching withdrawals:', withdrawalError);
+      console.error('❌ Error fetching pending withdrawals:', withdrawalError);
       withdrawals = { data: [], pagination: {} };
     }
 
-    // Get statistics
-    console.log('🔍 Fetching withdrawal statistics...');
+    // Get comprehensive withdrawal statistics
+    console.log('🔍 Fetching comprehensive withdrawal statistics...');
     let stats;
     try {
-      stats = await databaseHelpers.transaction.getTransactionStats('WITHDRAW');
-      console.log('🔍 Statistics fetched:', stats);
+      // Get overall withdrawal stats (includes all statuses) - now with proper totalAmount calculation
+      const allStats = await databaseHelpers.transaction.getTransactionStats('WITHDRAW');
+      
+      // Use database-calculated statistics directly
+      // Note: Database returns lowercase field names, so we need to map them correctly
+      stats = {
+        total: parseInt(allStats.total) || 0,
+        pending: parseInt(allStats.pending) || 0,
+        completed: parseInt(allStats.completed) || 0,
+        failed: parseInt(allStats.failed) || 0,
+        totalAmount: parseFloat(allStats.totalamount || allStats.totalAmount) || 0,
+        totalPendingAmount: parseFloat(allStats.totalpendingamount || allStats.totalPendingAmount) || 0,
+        totalCompletedAmount: parseFloat(allStats.totalcompletedamount || allStats.totalCompletedAmount) || 0
+      };
+      
+      console.log('🔍 Database withdrawal statistics:', {
+        totalTransactions: stats.total,
+        totalAmount: stats.totalAmount,
+        pendingCount: stats.pending,
+        pendingAmount: stats.totalPendingAmount,
+        completedCount: stats.completed,
+        completedAmount: stats.totalCompletedAmount,
+        failedCount: stats.failed
+      });
+      
+      // Debug: Let's also check what the raw database query returns
+      console.log('🔍 Raw database stats from getTransactionStats:', allStats);
+      console.log('🔍 Processed stats being returned:', stats);
     } catch (statsError) {
-      console.error('❌ Error fetching statistics:', statsError);
-      stats = {};
+      console.error('❌ Error fetching comprehensive withdrawal statistics:', statsError);
+      stats = {
+        total: 0,
+        pending: 0,
+        completed: 0,
+        failed: 0,
+        totalAmount: 0,
+        totalPendingAmount: 0,
+        totalCompletedAmount: 0
+      };
     }
 
     return NextResponse.json({

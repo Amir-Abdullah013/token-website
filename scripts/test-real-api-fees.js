@@ -16,7 +16,7 @@ async function testRealAPIFees() {
     // Test 1: Check if development server is running
     console.log('📍 TEST 1: Server Health Check\n');
     
-    const healthResponse = await fetch(`${baseUrl}/api/tiki/buy`, {
+    const healthResponse = await fetch(`${baseUrl}/api/Von/buy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -88,10 +88,10 @@ async function testRealAPIFees() {
     console.log('📊 Testing fee calculation scenarios:\n');
     
     const testScenarios = [
-      { type: 'buy', amount: 100, description: 'Buy $100 worth of TIKI' },
-      { type: 'sell', amount: 50, description: 'Sell 50 TIKI tokens' },
-      { type: 'buy', amount: 500, description: 'Buy $500 worth of TIKI' },
-      { type: 'sell', amount: 200, description: 'Sell 200 TIKI tokens' }
+      { type: 'buy', amount: 100, description: 'Buy $100 worth of Von' },
+      { type: 'sell', amount: 50, description: 'Sell 50 Von tokens' },
+      { type: 'buy', amount: 500, description: 'Buy $500 worth of Von' },
+      { type: 'sell', amount: 200, description: 'Sell 200 Von tokens' }
     ];
     
     for (const scenario of testScenarios) {
@@ -100,7 +100,7 @@ async function testRealAPIFees() {
       
       console.log(`📝 ${scenario.description}:`);
       console.log(`   Type: ${scenario.type.toUpperCase()}`);
-      console.log(`   Amount: ${scenario.type === 'buy' ? '$' + scenario.amount : scenario.amount + ' TIKI'}`);
+      console.log(`   Amount: ${scenario.type === 'buy' ? '$' + scenario.amount : scenario.amount + ' Von'}`);
       console.log(`   Fee (1%): $${fee.toFixed(2)}`);
       console.log(`   Net Amount: $${net.toFixed(2)}`);
       console.log(`   Fee Percentage: 1.0%`);
@@ -115,8 +115,8 @@ async function testRealAPIFees() {
     console.log('✅ Fee calculation logic found in:');
     console.log('   📁 src/lib/fees.js - calculateFee() function');
     console.log('   📁 src/lib/hooks/useFeeCalculator.js - Frontend hook');
-    console.log('   📁 src/app/api/tiki/buy/route.js - Buy API with fees');
-    console.log('   📁 src/app/api/tiki/sell/route.js - Sell API with fees');
+    console.log('   📁 src/app/api/Von/buy/route.js - Buy API with fees');
+    console.log('   📁 src/app/api/Von/sell/route.js - Sell API with fees');
     
     console.log('\n✅ Fee rates configured:');
     console.log('   💰 Buy transactions: 1% fee');
@@ -151,7 +151,7 @@ async function testRealAPIFees() {
     console.log('\n💡 HOW FEES WORK IN PRODUCTION:\n');
     console.log('   📱 User Dashboard Quick Trade:');
     console.log('      - User enters $100 → System deducts $1 fee → User gets $99 worth of tokens');
-    console.log('   📱 User Trade Page Tiki Trading Panel:');
+    console.log('   📱 User Trade Page Von Trading Panel:');
     console.log('      - Market Orders: Same 1% fee deduction');
     console.log('      - Limit Orders: Same 1% fee deduction when executed');
     console.log('   💰 Fee goes to admin wallet for platform maintenance');

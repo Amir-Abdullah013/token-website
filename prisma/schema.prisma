@@ -82,7 +82,7 @@ model Wallet {
   id         String   @id @default(cuid())
   userId     String   @unique
   balance    Float    @default(0)        // USD balance
-  tikiBalance Float   @default(0)        // TIKI token balance
+  VonBalance Float   @default(0)        // Von token balance
   currency   String   @default("USD")
   lastUpdated DateTime @default(now())
   createdAt  DateTime @default(now())
@@ -240,7 +240,7 @@ model PasswordReset {
 
 model TokenStats {
   id               String   @id @default(cuid())
-  totalTokens      Float    @default(100000000) // 100M TIKI tokens
+  totalTokens      Float    @default(100000000) // 100M Von tokens
   totalInvestment  Float    @default(350000)     // Initial investment: 350,000 USD
   currentPrice     Float    @default(0.0035)    // Initial price: 0.0035 USD
   lastUpdated      DateTime @default(now())

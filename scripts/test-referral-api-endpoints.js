@@ -29,12 +29,12 @@ const testReferralAPIEndpoints = async () => {
     
     // Create wallets
     await client.query(`
-      INSERT INTO wallets (id, "userId", balance, "tikiBalance", currency, "createdAt", "updatedAt")
+      INSERT INTO wallets (id, "userId", balance, "VonBalance", currency, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
     `, [randomUUID(), referrerId, 1000, 1000, 'USD']);
     
     await client.query(`
-      INSERT INTO wallets (id, "userId", balance, "tikiBalance", currency, "createdAt", "updatedAt")
+      INSERT INTO wallets (id, "userId", balance, "VonBalance", currency, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
     `, [randomUUID(), referredId, 1000, 1000, 'USD']);
     
@@ -93,9 +93,9 @@ const testReferralAPIEndpoints = async () => {
     const profit = rewardAmount;
     const referrerBonus = (profit * 10) / 100;
     
-    console.log(`   Staking Amount: ${stakingAmount} TIKI`);
-    console.log(`   Reward Amount: ${rewardAmount} TIKI`);
-    console.log(`   Referrer Bonus: ${referrerBonus} TIKI`);
+    console.log(`   Staking Amount: ${stakingAmount} Von`);
+    console.log(`   Reward Amount: ${rewardAmount} Von`);
+    console.log(`   Referrer Bonus: ${referrerBonus} Von`);
     
     // Get initial balances
     const referrerWalletBefore = await client.query(
@@ -107,11 +107,11 @@ const testReferralAPIEndpoints = async () => {
       [referredId]
     );
     
-    const referrerBalanceBefore = referrerWalletBefore.rows[0].tikiBalance;
-    const referredBalanceBefore = referredWalletBefore.rows[0].tikiBalance;
+    const referrerBalanceBefore = referrerWalletBefore.rows[0].VonBalance;
+    const referredBalanceBefore = referredWalletBefore.rows[0].VonBalance;
     
-    console.log(`   Referrer balance before: ${referrerBalanceBefore} TIKI`);
-    console.log(`   Referred balance before: ${referredBalanceBefore} TIKI`);
+    console.log(`   Referrer balance before: ${referrerBalanceBefore} Von`);
+    console.log(`   Referred balance before: ${referredBalanceBefore} Von`);
     
     // Process staking completion
     try {
@@ -120,14 +120,14 @@ const testReferralAPIEndpoints = async () => {
       // Update referred user's wallet
       const referredNewBalance = referredBalanceBefore + profit;
       await client.query(
-        'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
         [referredNewBalance, referredId]
       );
       
       // Update referrer's wallet
       const referrerNewBalance = referrerBalanceBefore + referrerBonus;
       await client.query(
-        'UPDATE wallets SET "tikiBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
         [referrerNewBalance, referrerId]
       );
       
@@ -166,8 +166,8 @@ const testReferralAPIEndpoints = async () => {
       [referredId]
     );
     
-    const referrerBalanceAfter = referrerWalletAfter.rows[0].tikiBalance;
-    const referredBalanceAfter = referredWalletAfter.rows[0].tikiBalance;
+    const referrerBalanceAfter = referrerWalletAfter.rows[0].VonBalance;
+    const referredBalanceAfter = referredWalletAfter.rows[0].VonBalance;
     
     console.log('\n📊 FINAL BALANCES:');
     console.log(`   Referrer: ${referrerBalanceBefore} → ${referrerBalanceAfter} (+${referrerBalanceAfter - referrerBalanceBefore})`);
@@ -186,7 +186,7 @@ const testReferralAPIEndpoints = async () => {
     if (referralEarningsAfter.rows.length > 0) {
       const earning = referralEarningsAfter.rows[0];
       console.log('✅ Referral earning record verified:');
-      console.log(`   Amount: ${earning.amount} TIKI`);
+      console.log(`   Amount: ${earning.amount} Von`);
       console.log(`   Referrer: ${earning.referrerId}`);
       console.log(`   Referred: ${earning.referredId}`);
     }

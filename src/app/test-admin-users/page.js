@@ -108,7 +108,7 @@ export default function TestAdminUsers() {
                         <strong>Wallet Balance:</strong> ${user.walletBalance || 0}
                       </p>
                       <p className="text-sm text-gray-600">
-                        <strong>TIKI Balance:</strong> {user.tikiBalance || 0}
+                        <strong>Von Balance:</strong> {user.VonBalance || 0}
                       </p>
                     </div>
                   </div>

@@ -23,7 +23,7 @@ const setupAutoStaking = async () => {
       console.log('📋 Ready stakings:');
       readyStakings.rows.forEach((staking, index) => {
         console.log(`  ${index + 1}. User: ${staking.user_name} (${staking.user_email})`);
-        console.log(`     Amount: ${staking.amountStaked} TIKI`);
+        console.log(`     Amount: ${staking.amountStaked} Von`);
         console.log(`     Duration: ${staking.durationDays} days`);
         console.log(`     Reward: ${staking.rewardPercent}%`);
         console.log(`     End Date: ${new Date(staking.endDate).toLocaleString()}`);

@@ -5,18 +5,18 @@ import { useToast } from './Toast';
 
 export default function UserIdDisplay({ userId, showFull = false, className = '' }) {
   const [copied, setCopied] = useState(false);
-  const [correctTikiId, setCorrectTikiId] = useState(userId);
+  const [correctVonId, setCorrectVonId] = useState(userId);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { success } = useToast();
 
-  // Fetch the correct TIKI ID from the API
+  // Fetch the correct Von ID from the API
   useEffect(() => {
-    const fetchCorrectTikiId = async () => {
+    const fetchCorrectVonId = async () => {
       try {
-        console.log('🔍 UserIdDisplay: Fetching correct TIKI ID...');
+        console.log('🔍 UserIdDisplay: Fetching correct Von ID...');
         console.log('🔍 UserIdDisplay: Current userId prop:', userId);
         
-        const response = await fetch('/api/user-tiki-id', {
+        const response = await fetch('/api/user-Von-id', {
           cache: 'no-cache',
           headers: {
             'Cache-Control': 'no-cache'
@@ -27,28 +27,35 @@ export default function UserIdDisplay({ userId, showFull = false, className = ''
           const data = await response.json();
           console.log('🔍 UserIdDisplay: API response:', data);
           
-          if (data.success && data.tikiId) {
-            console.log('✅ UserIdDisplay: Updating from', correctTikiId, 'to', data.tikiId);
-            setCorrectTikiId(data.tikiId);
+          if (data.success && data.VonId) {
+            console.log('✅ UserIdDisplay: Updating from', correctVonId, 'to', data.VonId);
+            setCorrectVonId(data.VonId);
+          } else {
+            console.warn('⚠️ UserIdDisplay: API returned success:false, using fallback userId');
+            // Keep using the original userId if API returns success:false
           }
         } else {
-          console.error('❌ UserIdDisplay: API response not ok:', response.status);
+          console.warn('⚠️ UserIdDisplay: API response not ok:', response.status, '- using fallback userId');
+          // Keep using the original userId if API fails
         }
       } catch (error) {
-        console.error('❌ UserIdDisplay: Error fetching correct TIKI ID:', error);
+        console.warn('⚠️ UserIdDisplay: Error fetching correct Von ID:', error.message, '- using fallback userId');
         // Keep using the original userId if API fails
       }
     };
 
-    fetchCorrectTikiId();
+    // Only fetch if we have a userId to work with
+    if (userId) {
+      fetchCorrectVonId();
+    }
   }, [userId]); // Add userId as dependency
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      console.log('🔄 UserIdDisplay: Force refreshing TIKI ID...');
+      console.log('🔄 UserIdDisplay: Force refreshing Von ID...');
       
-      const response = await fetch('/api/user-tiki-id', {
+      const response = await fetch('/api/user-Von-id', {
         method: 'GET',
         cache: 'no-cache',
         headers: {
@@ -58,14 +65,14 @@ export default function UserIdDisplay({ userId, showFull = false, className = ''
       
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.tikiId) {
-          console.log('✅ UserIdDisplay: Refreshed TIKI ID:', data.tikiId);
-          setCorrectTikiId(data.tikiId);
-          success('TIKI ID refreshed successfully!');
+        if (data.success && data.VonId) {
+          console.log('✅ UserIdDisplay: Refreshed Von ID:', data.VonId);
+          setCorrectVonId(data.VonId);
+          success('Von ID refreshed successfully!');
         }
       }
     } catch (error) {
-      console.error('❌ UserIdDisplay: Error refreshing TIKI ID:', error);
+      console.error('❌ UserIdDisplay: Error refreshing Von ID:', error);
     } finally {
       setIsRefreshing(false);
     }
@@ -73,7 +80,7 @@ export default function UserIdDisplay({ userId, showFull = false, className = ''
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(correctTikiId);
+      await navigator.clipboard.writeText(correctVonId);
       setCopied(true);
       success('User ID copied to clipboard!');
       
@@ -83,7 +90,7 @@ export default function UserIdDisplay({ userId, showFull = false, className = ''
       console.error('Failed to copy user ID:', err);
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
-      textArea.value = correctTikiId;
+      textArea.value = correctVonId;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
@@ -100,12 +107,12 @@ export default function UserIdDisplay({ userId, showFull = false, className = ''
     );
   }
 
-  const displayId = showFull ? correctTikiId : correctTikiId?.substring(0, 8) + '...';
+  const displayId = showFull ? correctVonId : correctVonId?.substring(0, 8) + '...';
 
   return (
     <div className={`flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 ${className}`}>
       <div className="flex-1 w-full sm:w-auto">
-        <div className="text-xs text-slate-400 mb-1 font-medium">Your TIKI ID</div>
+        <div className="text-xs text-slate-400 mb-1 font-medium">Your Von ID</div>
         <div className="font-mono text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-slate-700/50 to-slate-800/50 backdrop-blur-sm px-3 py-2 rounded-lg border border-slate-600/30 shadow-lg">
           {displayId}
         </div>
@@ -149,7 +156,7 @@ export default function UserIdDisplay({ userId, showFull = false, className = ''
               : 'bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-300 border border-orange-400/30 hover:from-orange-500/30 hover:to-red-500/30 hover:text-orange-200 shadow-lg shadow-orange-500/25'
             }
           `}
-          title="Refresh TIKI ID"
+          title="Refresh Von ID"
         >
           {isRefreshing ? (
             <div className="flex items-center justify-center space-x-1">

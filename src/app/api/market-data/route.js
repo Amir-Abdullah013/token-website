@@ -55,7 +55,7 @@ export async function GET() {
       priceChangePercent: change24h,
       volumeChange24h: 0, // Could be calculated if we had historical volume data
       dominance: 0, // Would need other token data
-      rank: 1, // Assuming TIKI is the only token
+      rank: 1, // Assuming Von is the only token
       allTimeHigh: high24h, // Using 24h high as ATH for now
       allTimeLow: low24h, // Using 24h low as ATL for now
     };

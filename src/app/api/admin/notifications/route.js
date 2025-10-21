@@ -45,8 +45,8 @@ export async function GET(request) {
       allNotifications = [
         {
           id: '1',
-          title: 'Welcome to Tiki Token!',
-          message: 'Thank you for joining our platform. Start trading Tiki tokens today!',
+          title: 'Welcome to Von Token!',
+          message: 'Thank you for joining our platform. Start trading Von tokens today!',
           type: 'INFO',
           status: 'UNREAD',
           isGlobal: true,
