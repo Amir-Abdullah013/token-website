@@ -42,11 +42,11 @@ export async function POST(request) {
       }, { status: 400 });
     }
     
-    // Validate Von ID format
-    if (!recipientVonId.startsWith('Von-') || recipientVonId.length < 10) {
+    // Validate Von ID format - should be Von-XXXX-XXXXXXXX
+    if (!/^Von-[A-Z0-9]{4}-[A-Z0-9]{8}$/i.test(recipientVonId)) {
       return NextResponse.json({
         success: false,
-        error: 'Invalid Von ID format'
+        error: 'Invalid Von ID format (expected: Von-XXXX-XXXXXXXX)'
       }, { status: 400 });
     }
 

@@ -111,6 +111,13 @@ export default function AdminFeesPage() {
     }).format(amount);
   };
 
+  const formatTokens = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount) + ' Von';
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -312,88 +319,145 @@ export default function AdminFeesPage() {
                 </Card>
               </div>
 
-              {/* Fee Breakdown by Type */}
-              <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-lg bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">
-                    Fee Breakdown by Transaction Type
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-slate-600/30">
-                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Type</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Fee Rate</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Total Fees</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Transactions</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Avg Fee</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-600/20">
-                        {feeStats.breakdown.map((item, index) => (
-                          <tr key={index} className="hover:bg-slate-700/20 transition-colors duration-150">
-                            <td className="py-3 px-4 text-sm text-white capitalize">{item.transactionType}</td>
-                            <td className="py-3 px-4 text-sm text-slate-300">{item.fee_percentage}</td>
-                            <td className="py-3 px-4 text-sm text-emerald-400 font-medium">
-                              {formatCurrency(parseFloat(item.total_fees))}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-slate-300">{item.transaction_count}</td>
-                            <td className="py-3 px-4 text-sm text-slate-300">
-                              {formatCurrency(parseFloat(item.avg_fee))}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* NEW SECTION 1: Token Fees */}
+              {feeStats.token_fees && (
+                <Card className="mb-6 bg-gradient-to-br from-blue-800/40 via-indigo-700/30 to-blue-800/40 border border-blue-600/30 backdrop-blur-sm">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                        🪙 Token Fees (Send Tokens Only)
+                      </CardTitle>
+                      <div className="text-sm text-slate-400">
+                        Current Price: {formatCurrency(feeStats.token_fees.current_token_price)} per Von
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Token Fees Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 p-4 rounded-lg border border-blue-500/30">
+                        <p className="text-sm font-medium text-blue-200 mb-1">Total Token Fees</p>
+                        <p className="text-2xl font-bold text-white">{formatTokens(feeStats.token_fees.total_fees_tokens)}</p>
+                        <p className="text-xs text-slate-400 mt-1">≈ {formatCurrency(feeStats.token_fees.total_fees_usd)}</p>
+                      </div>
+                      <div className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 p-4 rounded-lg border border-indigo-500/30">
+                        <p className="text-sm font-medium text-indigo-200 mb-1">Total Transactions</p>
+                        <p className="text-2xl font-bold text-white">{feeStats.token_fees.total_transactions}</p>
+                      </div>
+                      <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 p-4 rounded-lg border border-purple-500/30">
+                        <p className="text-sm font-medium text-purple-200 mb-1">Avg Fee per Transaction</p>
+                        <p className="text-2xl font-bold text-white">
+                          {formatTokens(feeStats.token_fees.total_fees_tokens / Math.max(feeStats.token_fees.total_transactions, 1))}
+                        </p>
+                      </div>
+                    </div>
 
-              {/* Top Fee-Generating Transactions */}
-              <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
-                    Top Fee-Generating Transactions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-slate-600/30">
-                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Transaction ID</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Type</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Amount</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Fee</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-600/20">
-                        {feeStats.top_transactions.map((transaction, index) => (
-                          <tr key={index} className="hover:bg-slate-700/20 transition-colors duration-150">
-                            <td className="py-3 px-4 text-sm text-white font-mono">
-                              {transaction.id.substring(0, 8)}...
-                            </td>
-                            <td className="py-3 px-4 text-sm text-slate-300 capitalize">{transaction.transactionType}</td>
-                            <td className="py-3 px-4 text-sm text-slate-300">
-                              {formatCurrency(parseFloat(transaction.amount))}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-emerald-400 font-medium">
-                              {formatCurrency(parseFloat(transaction.feeAmount))}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-slate-300">
-                              {formatDate(transaction.createdAt)}
-                            </td>
+                    {/* Token Fees Breakdown Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-600/30">
+                            <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Type</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Fee Rate</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Total Fees (Tokens)</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Transactions</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Avg Fee (Tokens)</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+                        </thead>
+                        <tbody className="divide-y divide-slate-600/20">
+                          {feeStats.token_fees.breakdown.map((item, index) => (
+                            <tr key={index} className="hover:bg-slate-700/20 transition-colors duration-150">
+                              <td className="py-3 px-4 text-sm text-white capitalize flex items-center">
+                                {item.transactionType === 'transfer' && '🔄 '}
+                                {item.transactionType}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-slate-300">{item.fee_percentage}</td>
+                              <td className="py-3 px-4 text-sm text-blue-400 font-medium">
+                                {formatTokens(item.total_fees_tokens)}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-slate-300">{item.transaction_count}</td>
+                              <td className="py-3 px-4 text-sm text-slate-300">
+                                {formatTokens(item.avg_fee_tokens)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
+              {/* NEW SECTION 2: Dollar Fees */}
+              {feeStats.dollar_fees && (
+                <Card className="mb-6 bg-gradient-to-br from-green-800/40 via-emerald-700/30 to-green-800/40 border border-green-600/30 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                      💵 Dollar Fees (Buy, Sell, Withdrawals + Wallet Fee)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Dollar Fees Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 p-4 rounded-lg border border-green-500/30">
+                        <p className="text-sm font-medium text-green-200 mb-1">Total Dollar Fees</p>
+                        <p className="text-2xl font-bold text-white">{formatCurrency(feeStats.dollar_fees.total_fees)}</p>
+                      </div>
+                      <div className="bg-gradient-to-r from-emerald-600/20 to-teal-600/20 p-4 rounded-lg border border-emerald-500/30">
+                        <p className="text-sm font-medium text-emerald-200 mb-1">Total Transactions</p>
+                        <p className="text-2xl font-bold text-white">{feeStats.dollar_fees.total_transactions}</p>
+                      </div>
+                      <div className="bg-gradient-to-r from-teal-600/20 to-cyan-600/20 p-4 rounded-lg border border-teal-500/30">
+                        <p className="text-sm font-medium text-teal-200 mb-1">Avg Fee per Transaction</p>
+                        <p className="text-2xl font-bold text-white">
+                          {formatCurrency(feeStats.dollar_fees.total_fees / Math.max(feeStats.dollar_fees.total_transactions, 1))}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Dollar Fees Breakdown Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-600/30">
+                            <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Type</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Fee Rate</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Total Fees (USD)</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Transactions</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-slate-300">Avg Fee (USD)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-600/20">
+                          {feeStats.dollar_fees.breakdown.map((item, index) => (
+                            <tr key={index} className="hover:bg-slate-700/20 transition-colors duration-150">
+                              <td className="py-3 px-4 text-sm text-white capitalize flex items-center">
+                                {item.transactionType === 'buy' && '📈 '}
+                                {item.transactionType === 'sell' && '📉 '}
+                                {item.transactionType === 'withdraw' && '💸 '}
+                                {item.transactionType === 'wallet_fee' && '💳 '}
+                                {item.transactionType === 'withdraw' ? 'Withdrawal' : 
+                                 item.transactionType === 'wallet_fee' ? 'Wallet Fee' : 
+                                 item.transactionType}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-slate-300">{item.fee_percentage}</td>
+                              <td className="py-3 px-4 text-sm text-green-400 font-medium">
+                                {formatCurrency(item.total_fees)}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-slate-300">{item.transaction_count}</td>
+                              <td className="py-3 px-4 text-sm text-slate-300">
+                                {formatCurrency(item.avg_fee)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              
+              
               {/* Daily Fees Chart */}
               <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
                 <CardHeader>

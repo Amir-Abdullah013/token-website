@@ -111,7 +111,24 @@ export async function POST(request) {
       if (!wallet) {
         wallet = await databaseHelpers.wallet.createWallet(userId);
       }
-      // Increase Von balance by tokensToBuy
+      
+      // Check if user has sufficient USD balance
+      if (usdAmount > wallet.balance) {
+        return NextResponse.json({
+          success: false,
+          error: 'Insufficient USD balance',
+          details: {
+            required: usdAmount,
+            available: wallet.balance,
+            message: 'You need more USD to complete this purchase'
+          }
+        }, { status: 400 });
+      }
+      
+      // Deduct full USD amount from user's balance
+      await databaseHelpers.wallet.updateBalance(userId, -usdAmount);
+      
+      // Increase Von balance by tokensToBuy (calculated from net amount)
       updatedWallet = await databaseHelpers.wallet.updateVonBalance(userId, tokensToBuy);
       // Create transaction record (BUY, USD amount) with fee information
       await databaseHelpers.transaction.createTransaction({

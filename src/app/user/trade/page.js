@@ -54,7 +54,9 @@ export default function TradePage() {
 
   // Calculate fee for trading (1% for buy/sell)
   const amountValue = parseFloat(amount) || 0;
-  const feeCalculation = useFeeCalculator(tradeType, amountValue);
+  // For sell transactions, convert token amount to USD value first
+  const usdValue = tradeType === 'sell' ? amountValue * VonPrice : amountValue;
+  const feeCalculation = useFeeCalculator(tradeType, usdValue);
 
   // Live market data from API
   const { 

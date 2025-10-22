@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase, authHelpers } from './supabase.js';
 
 // Authentication state management
 export const useAuth = () => {
@@ -10,12 +9,29 @@ export const useAuth = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session from localStorage
     const getInitialSession = async () => {
       try {
-        const session = await getServerSession();
-    const user = session;
-        setUser(user);
+        // Check for existing user session in localStorage
+        const userSession = localStorage.getItem('userSession');
+        if (userSession) {
+          try {
+            const userData = JSON.parse(userSession);
+            console.log('Found user session in localStorage:', userData);
+            
+            // Validate the session data
+            if (userData.email && (userData.name || userData.email)) {
+              setUser(userData);
+              console.log('User authenticated from localStorage:', userData.email);
+            } else {
+              console.warn('Invalid user session data, clearing...');
+              localStorage.removeItem('userSession');
+            }
+          } catch (error) {
+            console.error('Error parsing user session:', error);
+            localStorage.removeItem('userSession');
+          }
+        }
       } catch (error) {
         console.error('Error getting initial session:', error);
         setError(error.message);
@@ -25,24 +41,72 @@ export const useAuth = () => {
     };
 
     getInitialSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email, password) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await authHelpers.signIn(email, password);
-      return { success: true, data };
+      
+      // Call the OTP sign-in API
+      const response = await fetch('/api/auth/signin-with-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        if (data.requiresOTP) {
+          // OTP required - return this info to the UI
+          return { 
+            success: true, 
+            requiresOTP: true, 
+            message: data.message,
+            otpId: data.otpId 
+          };
+        } else if (data.otpFallback) {
+          // OTP service failed, but sign-in succeeded
+          localStorage.setItem('userSession', JSON.stringify(data.user));
+          setUser(data.user);
+          return { success: true, user: data.user };
+        }
+      } else {
+        throw new Error(data.error || 'Sign in failed');
+      }
+    } catch (error) {
+      setError(error.message);
+      return { success: false, error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOTP = async (email, otp) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/auth/verify-signin-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        localStorage.setItem('userSession', JSON.stringify(data.user));
+        setUser(data.user);
+        return { success: true, user: data.user };
+      } else {
+        throw new Error(data.error || 'OTP verification failed');
+      }
     } catch (error) {
       setError(error.message);
       return { success: false, error: error.message };
@@ -55,8 +119,22 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await authHelpers.signUp(email, password, name);
-      return { success: true, data };
+      
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, name }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        return { success: true, message: data.message };
+      } else {
+        throw new Error(data.error || 'Sign up failed');
+      }
     } catch (error) {
       setError(error.message);
       return { success: false, error: error.message };
@@ -69,7 +147,11 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
-      await authHelpers.signOut();
+      
+      // Clear localStorage
+      localStorage.removeItem('userSession');
+      localStorage.removeItem('oauthSession');
+      
       setUser(null);
       return { success: true };
     } catch (error) {
@@ -84,8 +166,10 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await authHelpers.signInWithGoogle();
-      return { success: true, data };
+      
+      // Redirect to Google OAuth
+      window.location.href = '/api/auth/oauth/google';
+      return { success: true };
     } catch (error) {
       setError(error.message);
       return { success: false, error: error.message };
@@ -98,8 +182,10 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await authHelpers.signInWithGithub();
-      return { success: true, data };
+      
+      // Redirect to GitHub OAuth
+      window.location.href = '/api/auth/oauth/github';
+      return { success: true };
     } catch (error) {
       setError(error.message);
       return { success: false, error: error.message };
@@ -112,36 +198,22 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
-      await authHelpers.forgotPassword(email);
-      return { success: true };
-    } catch (error) {
-      setError(error.message);
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
-    }
-  };
+      
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
 
-  const updateProfile = async (name, phone) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await authHelpers.updateProfile(name, phone);
-      return { success: true, data };
-    } catch (error) {
-      setError(error.message);
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
-    }
-  };
+      const data = await response.json();
 
-  const changePassword = async (newPassword) => {
-    try {
-      setLoading(true);
-      setError(null);
-      await authHelpers.changePassword(newPassword);
-      return { success: true };
+      if (data.success) {
+        return { success: true, message: data.message };
+      } else {
+        throw new Error(data.error || 'Password reset failed');
+      }
     } catch (error) {
       setError(error.message);
       return { success: false, error: error.message };
@@ -157,13 +229,12 @@ export const useAuth = () => {
     configValid: true,
     error,
     signIn,
+    verifyOTP,
     signUp,
     signOut,
     signInWithGoogle,
     signInWithGithub,
-    forgotPassword,
-    updateProfile,
-    changePassword
+    forgotPassword
   };
 };
 

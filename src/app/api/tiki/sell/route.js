@@ -50,6 +50,61 @@ export async function POST(request) {
     // User receives net amount after fee
     const usdToReceive = net;
     
+    // Check if user has sufficient Von balance and update balances
+    let updatedWallet;
+    try {
+      const { databaseHelpers } = await import('../../../../lib/database.js');
+      
+      // Get user's current wallet
+      let wallet = await databaseHelpers.wallet.getWalletByUserId(userId);
+      if (!wallet) {
+        return NextResponse.json({
+          success: false,
+          error: 'User wallet not found',
+          details: {
+            message: 'Please create a wallet first'
+          }
+        }, { status: 400 });
+      }
+      
+      // Check if user has sufficient Von balance
+      if (tokenAmount > wallet.VonBalance) {
+        return NextResponse.json({
+          success: false,
+          error: 'Insufficient Von balance',
+          details: {
+            required: tokenAmount,
+            available: wallet.VonBalance,
+            message: 'You need more Von tokens to complete this sale'
+          }
+        }, { status: 400 });
+      }
+      
+      // Deduct Von tokens from user's balance
+      await databaseHelpers.wallet.updateVonBalance(userId, -tokenAmount);
+      
+      // Add USD to user's balance
+      await databaseHelpers.wallet.updateBalance(userId, usdToReceive);
+      
+      // Get updated wallet info
+      updatedWallet = await databaseHelpers.wallet.getWalletByUserId(userId);
+      
+      console.log('✅ Sell balances updated:', {
+        tokensDeducted: tokenAmount,
+        usdAdded: usdToReceive,
+        newVonBalance: updatedWallet.VonBalance,
+        newUsdBalance: updatedWallet.balance
+      });
+      
+    } catch (balanceError) {
+      console.error('Error updating balances for sell:', balanceError);
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to update balances',
+        details: balanceError.message
+      }, { status: 500 });
+    }
+    
     // Add tokens back to supply when user sells
     // CRITICAL: Updates BOTH remainingSupply AND userSupplyRemaining
     let newPrice = currentPrice;
@@ -136,6 +191,10 @@ export async function POST(request) {
         pricePerToken: currentPrice,
         status: 'COMPLETED',
         createdAt: transaction.createdAt || new Date()
+      },
+      newWallet: {
+        VonBalance: updatedWallet?.VonBalance ?? null,
+        usdBalance: updatedWallet?.balance ?? null
       },
       priceUpdate: {
         oldPrice: currentPrice,

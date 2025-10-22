@@ -491,7 +491,10 @@ export default function UserDashboard() {
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-amber-300 text-xs font-medium">Trading Fee (1%)</span>
                       <span className="text-amber-400 font-semibold text-sm">
-                        ${(parseFloat(tradeAmount) * 0.01).toFixed(2)}
+                        {tradeType === 'buy' 
+                          ? `$${(parseFloat(tradeAmount) * 0.01).toFixed(2)}`
+                          : `$${(parseFloat(tradeAmount) * VonPrice * 0.01).toFixed(2)}`
+                        }
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -499,7 +502,10 @@ export default function UserDashboard() {
                         {tradeType === 'buy' ? 'Net Amount' : 'You\'ll Receive'}
                       </span>
                       <span className="text-white font-semibold text-sm">
-                        ${(parseFloat(tradeAmount) * 0.99).toFixed(2)}
+                        {tradeType === 'buy'
+                          ? `$${(parseFloat(tradeAmount) * 0.99).toFixed(2)}`
+                          : `$${(parseFloat(tradeAmount) * VonPrice * 0.99).toFixed(2)}`
+                        }
                       </span>
                     </div>
                   </div>

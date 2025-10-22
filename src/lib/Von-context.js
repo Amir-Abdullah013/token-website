@@ -199,6 +199,7 @@ export const VonProvider = ({ children }) => {
 
       if (data.success) {
         // Update balances based on API response
+        // API now handles USD deduction, so we use the full amount
         const newUsdBalance = usdBalance - usdAmount;
         const newVonBalance = VonBalance + data.transaction.tokensReceived;
         
@@ -231,9 +232,12 @@ export const VonProvider = ({ children }) => {
     } catch (error) {
       console.error('Buy API error:', error);
       // Fallback to local calculation (NO price increase - supply-based only)
-      const tokensToBuy = usdAmount / VonPrice;
+      // Calculate fee and net amount for fallback
+      const fee = usdAmount * 0.01; // 1% fee
+      const netAmount = usdAmount - fee;
+      const tokensToBuy = netAmount / VonPrice;
       
-      const newUsdBalance = usdBalance - usdAmount;
+      const newUsdBalance = usdBalance - usdAmount; // Still deduct full amount for fallback
       const newVonBalance = VonBalance + tokensToBuy;
       
       setUsdBalance(newUsdBalance);

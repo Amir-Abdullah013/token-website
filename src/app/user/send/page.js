@@ -201,7 +201,7 @@ export default function SendTokensPage() {
 
     if (!formData.recipientVonId) {
       newErrors.recipientVonId = 'Recipient Von ID is required';
-    } else if (!/^Von-[A-Z0-9]{4}-[A-Z0-9]{8}$/.test(formData.recipientVonId.toUpperCase())) {
+    } else if (!/^Von-[A-Z0-9]{4}-[A-Z0-9]{8}$/i.test(formData.recipientVonId)) {
       newErrors.recipientVonId = 'Please enter a valid Von ID (format: Von-XXXX-XXXXXXXX)';
     }
 

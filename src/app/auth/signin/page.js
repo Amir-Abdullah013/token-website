@@ -9,9 +9,15 @@ export default function SignIn() {
     email: '',
     password: ''
   });
+  const [otpData, setOtpData] = useState({
+    otp: ''
+  });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isOTPRequired, setIsOTPRequired] = useState(false);
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  const [otpMessage, setOtpMessage] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -30,10 +36,18 @@ export default function SignIn() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    if (name === 'otp') {
+      setOtpData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
     
     // Clear error when user starts typing
     if (errors[name]) {
@@ -74,7 +88,8 @@ export default function SignIn() {
     setErrors({});
 
     try {
-      const response = await fetch('/api/auth/signin', {
+      // Step 1: Request OTP sign-in
+      const response = await fetch('/api/auth/signin-with-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,28 +103,28 @@ export default function SignIn() {
       const data = await response.json();
 
       if (data.success) {
-        // Store user session
-        localStorage.setItem('userSession', JSON.stringify(data.user));
-        
-        // Clear any cached data
-        localStorage.removeItem('signupEmail');
-        
-        // Check for redirect parameter
-        const redirectTo = searchParams.get('redirect');
-        
-        // Role-based redirect with fallback to redirect parameter
-        if (data.user.role === 'admin') {
-          router.push(redirectTo && redirectTo.startsWith('/admin') ? redirectTo : '/admin/dashboard');
-        } else {
-          router.push(redirectTo && redirectTo.startsWith('/user') ? redirectTo : '/user/dashboard');
+        if (data.requiresOTP) {
+          // OTP required - show OTP input form
+          setIsOTPRequired(true);
+          setOtpMessage(data.message);
+          setErrors({});
+        } else if (data.otpFallback) {
+          // OTP service failed, but sign-in succeeded
+          localStorage.setItem('userSession', JSON.stringify(data.user));
+          localStorage.removeItem('signupEmail');
+          
+          const redirectTo = searchParams.get('redirect');
+          if (data.user.role === 'admin') {
+            router.push(redirectTo && redirectTo.startsWith('/admin') ? redirectTo : '/admin/dashboard');
+          } else {
+            router.push(redirectTo && redirectTo.startsWith('/user') ? redirectTo : '/user/dashboard');
+          }
         }
       } else {
-        // Handle specific error cases with detailed debugging
+        // Handle specific error cases
         console.error('Signin failed:', data);
         
         let errorMessage = data.error || 'Failed to sign in';
-        
-      
         
         if (data.errorCode === 'USER_NOT_FOUND') {
           setErrors({ 
@@ -128,6 +143,95 @@ export default function SignIn() {
       }
     } catch (error) {
       console.error('Sign in error:', error);
+      setErrors({ general: 'Network error. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOTPVerification = async (e) => {
+    e.preventDefault();
+    
+    if (!otpData.otp || otpData.otp.length !== 6) {
+      setErrors({ otp: 'Please enter a valid 6-digit OTP' });
+      return;
+    }
+
+    setIsVerifyingOTP(true);
+    setErrors({});
+
+    try {
+      // Step 2: Verify OTP
+      const response = await fetch('/api/auth/verify-signin-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          otp: otpData.otp
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // OTP verified - complete sign-in
+        localStorage.setItem('userSession', JSON.stringify(data.user));
+        localStorage.removeItem('signupEmail');
+        
+        const redirectTo = searchParams.get('redirect');
+        if (data.user.role === 'admin') {
+          router.push(redirectTo && redirectTo.startsWith('/admin') ? redirectTo : '/admin/dashboard');
+        } else {
+          router.push(redirectTo && redirectTo.startsWith('/user') ? redirectTo : '/user/dashboard');
+        }
+      } else {
+        // Handle OTP verification errors
+        console.error('OTP verification failed:', data);
+        
+        if (data.errorCode === 'OTP_EXPIRED') {
+          setErrors({ otp: 'OTP has expired. Please request a new one.' });
+        } else if (data.errorCode === 'INVALID_OTP') {
+          setErrors({ otp: 'Invalid OTP. Please check the code and try again.' });
+        } else {
+          setErrors({ otp: data.error || 'Failed to verify OTP. Please try again.' });
+        }
+      }
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      setErrors({ otp: 'Network error. Please try again.' });
+    } finally {
+      setIsVerifyingOTP(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      const response = await fetch('/api/auth/signin-with-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          password: formData.password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.requiresOTP) {
+        setOtpMessage('New OTP sent to your email. Please check your inbox.');
+        setErrors({});
+      } else {
+        setErrors({ general: 'Failed to resend OTP. Please try again.' });
+      }
+    } catch (error) {
+      console.error('Resend OTP error:', error);
       setErrors({ general: 'Network error. Please try again.' });
     } finally {
       setIsLoading(false);
@@ -170,7 +274,8 @@ export default function SignIn() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm border border-slate-600/30 shadow-2xl py-8 px-4 sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          {!isOTPRequired ? (
+            <form className="space-y-6" onSubmit={handleSubmit}>
             {errors.general && (
               <div className="bg-gradient-to-r from-red-500/20 to-rose-500/20 border border-red-400/30 text-red-300 px-4 py-3 rounded-lg">
                 <div className="flex items-start">
@@ -307,6 +412,117 @@ export default function SignIn() {
               
             </div>
           </form>
+          ) : (
+            // OTP Verification Form
+            <form className="space-y-6" onSubmit={handleOTPVerification}>
+              {/* OTP Message */}
+              {otpMessage && (
+                <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30 text-cyan-300 px-4 py-3 rounded-lg">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium">{otpMessage}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* OTP Error */}
+              {errors.otp && (
+                <div className="bg-gradient-to-r from-red-500/20 to-rose-500/20 border border-red-400/30 text-red-300 px-4 py-3 rounded-lg">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium">{errors.otp}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* OTP Input */}
+              <div>
+                <label htmlFor="otp" className="text-sm font-semibold text-slate-200 mb-2 flex items-center">
+                  <span className="mr-2">🔐</span>
+                  Enter 6-digit OTP
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="otp"
+                    name="otp"
+                    type="text"
+                    maxLength="6"
+                    required
+                    value={otpData.otp}
+                    onChange={handleChange}
+                    className={`appearance-none block w-full px-4 py-3 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border rounded-lg shadow-sm placeholder-slate-200 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 transition-all duration-200 sm:text-sm text-center text-2xl tracking-widest ${
+                      errors.otp ? 'border-red-400' : 'border-slate-500/30'
+                    }`}
+                    placeholder="000000"
+                    autoComplete="one-time-code"
+                  />
+                  {errors.otp && (
+                    <p className="mt-2 text-sm text-red-300">{errors.otp}</p>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  Check your email for the 6-digit verification code
+                </p>
+              </div>
+
+              {/* OTP Actions */}
+              <div className="space-y-3">
+                <button
+                  type="submit"
+                  disabled={isVerifyingOTP || !otpData.otp || otpData.otp.length !== 6}
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105"
+                >
+                  {isVerifyingOTP ? (
+                    <span className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Verifying...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      <span className="mr-2">✅</span>
+                      Verify OTP
+                    </span>
+                  )}
+                </button>
+
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={isLoading}
+                    className="flex-1 py-2 px-4 border border-cyan-400/30 rounded-lg text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? 'Sending...' : 'Resend OTP'}
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOTPRequired(false);
+                      setOtpData({ otp: '' });
+                      setErrors({});
+                      setOtpMessage('');
+                    }}
+                    className="flex-1 py-2 px-4 border border-slate-500/30 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-300 hover:border-slate-400/50 focus:outline-none focus:ring-2 focus:ring-slate-400/50 transition-all duration-200"
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
 
           {/* Helpful message for new users */}
           <div className="mt-6 p-4 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30 rounded-lg">

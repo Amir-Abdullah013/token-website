@@ -593,7 +593,7 @@ export const databaseHelpers = {
           SELECT 
             COUNT(*) as totalTransactions,
             SUM(CASE WHEN type = 'DEPOSIT' THEN amount ELSE 0 END) as totalDeposits,
-            SUM(CASE WHEN type = 'WITHDRAWAL' THEN amount ELSE 0 END) as totalWithdrawals,
+            SUM(CASE WHEN type = 'WITHDRAW' THEN amount ELSE 0 END) as totalWithdrawals,
             SUM(CASE WHEN type = 'BUY' THEN amount ELSE 0 END) as totalBuys,
             SUM(CASE WHEN type = 'SELL' THEN amount ELSE 0 END) as totalSells
           FROM transactions 
@@ -625,7 +625,7 @@ export const databaseHelpers = {
           SELECT 
             COUNT(*) as totalTransactions,
             SUM(CASE WHEN type = 'DEPOSIT' THEN amount ELSE 0 END) as totalDeposits,
-            SUM(CASE WHEN type = 'WITHDRAWAL' THEN amount ELSE 0 END) as totalWithdrawals,
+            SUM(CASE WHEN type = 'WITHDRAW' THEN amount ELSE 0 END) as totalWithdrawals,
             SUM(CASE WHEN type = 'BUY' THEN amount ELSE 0 END) as totalBuys,
             SUM(CASE WHEN type = 'SELL' THEN amount ELSE 0 END) as totalSells
           FROM transactions 
@@ -2613,6 +2613,54 @@ export const databaseHelpers = {
         return result.rows[0];
       } catch (error) {
         console.error('Error marking password reset as used:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get the latest OTP for an email (for sign-in OTP verification)
+     * @param {string} email - User email
+     * @returns {Promise<Object|null>} Latest OTP record or null
+     */
+    async getLatestOTPByEmail(email) {
+      try {
+        const result = await pool.query(`
+          SELECT id, email, "hashedOtp" as "otpHash", used, expiry as "expiresAt", "createdAt", "updatedAt"
+          FROM password_resets
+          WHERE email = $1 AND used = false
+          ORDER BY "createdAt" DESC
+          LIMIT 1
+        `, [email]);
+        
+        if (result.rows.length === 0) {
+          console.log('No unused OTP found for:', email);
+          return null;
+        }
+        
+        console.log('✅ Latest OTP found:', { id: result.rows[0].id, email });
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error getting latest OTP by email:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Delete a password reset record (for cleanup after successful verification)
+     * @param {string} id - Reset ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async deletePasswordReset(id) {
+      try {
+        const result = await pool.query(`
+          DELETE FROM password_resets
+          WHERE id = $1
+        `, [id]);
+        
+        console.log('✅ Password reset deleted:', id);
+        return true;
+      } catch (error) {
+        console.error('Error deleting password reset:', error);
         throw error;
       }
     },
