@@ -53,6 +53,8 @@ export async function GET(request) {
         const userId = order.userId;
         const orderType = order.orderType;
         
+        console.log(`[${new Date().toISOString()}] 🔍 Checking order ${order.id}: ${orderType} ${amount} at $${limitPrice.toFixed(6)} (Current: $${currentPrice.toFixed(6)})`);
+        
         let shouldExecute = false;
         
         // Check execution conditions
@@ -63,6 +65,7 @@ export async function GET(request) {
           shouldExecute = true;
           console.log(`[${new Date().toISOString()}] ✅ SELL ready: $${currentPrice.toFixed(6)} >= $${limitPrice.toFixed(6)}`);
         } else {
+          console.log(`[${new Date().toISOString()}] ⏸️ Order waiting: ${orderType} - Current: $${currentPrice.toFixed(6)}, Limit: $${limitPrice.toFixed(6)}`);
           skippedCount++;
           continue;
         }
@@ -82,12 +85,15 @@ export async function GET(request) {
               continue;
             }
             
+            console.log(`[${new Date().toISOString()}] 💰 Wallet found: USD=${wallet.usdBalance}, Von=${wallet.VonBalance}`);
+            
             // Execute order based on type
             if (orderType === 'BUY') {
               const tokensToReceive = amount / currentPrice;
+              console.log(`[${new Date().toISOString()}] 💱 BUY calculation: ${amount} USD / ${currentPrice} = ${tokensToReceive.toFixed(6)} Von`);
               
-              if (parseFloat(wallet.balance) < amount) {
-                console.log(`[${new Date().toISOString()}] ❌ Insufficient USD: ${userId}`);
+              if (parseFloat(wallet.usdBalance) < amount) {
+                console.log(`[${new Date().toISOString()}] ❌ Insufficient USD: ${userId} has $${wallet.usdBalance}, needs $${amount}`);
                 await databaseHelpers.order.cancelOrder(order.id);
                 errorCount++;
                 continue;
@@ -112,9 +118,10 @@ export async function GET(request) {
               
             } else {
               const usdToReceive = amount * currentPrice;
+              console.log(`[${new Date().toISOString()}] 💱 SELL calculation: ${amount} Von * ${currentPrice} = $${usdToReceive.toFixed(6)}`);
               
               if (parseFloat(wallet.VonBalance) < amount) {
-                console.log(`[${new Date().toISOString()}] ❌ Insufficient Von: ${userId}`);
+                console.log(`[${new Date().toISOString()}] ❌ Insufficient Von: ${userId} has ${wallet.VonBalance} Von, needs ${amount} Von`);
                 await databaseHelpers.order.cancelOrder(order.id);
                 errorCount++;
                 continue;

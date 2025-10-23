@@ -1,18 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/session';
 import { databaseHelpers } from '@/lib/database';
 
 export async function GET(request) {
   try {
-    // Check if user is admin (optional security)
-    const session = await getServerSession();
-    if (!session?.id) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     console.log('🔄 Running order matching via API...');
     
     // Get current token price
@@ -42,13 +32,19 @@ export async function GET(request) {
       const userId = order.userId;
       const orderType = order.orderType;
       
+      console.log(`🔍 Checking order ${order.id}: ${orderType} ${amount} at $${limitPrice.toFixed(6)} (Current: $${currentPrice.toFixed(6)})`);
+      
       let shouldExecute = false;
       
       // Check if order should be executed
       if (orderType === 'BUY' && currentPrice <= limitPrice) {
         shouldExecute = true;
+        console.log(`✅ BUY order ready: $${currentPrice.toFixed(6)} <= $${limitPrice.toFixed(6)}`);
       } else if (orderType === 'SELL' && currentPrice >= limitPrice) {
         shouldExecute = true;
+        console.log(`✅ SELL order ready: $${currentPrice.toFixed(6)} >= $${limitPrice.toFixed(6)}`);
+      } else {
+        console.log(`⏸️ Order waiting: ${orderType} - Current: $${currentPrice.toFixed(6)}, Limit: $${limitPrice.toFixed(6)}`);
       }
       
       if (shouldExecute) {
@@ -65,7 +61,7 @@ export async function GET(request) {
           if (orderType === 'BUY') {
             const tokensToReceive = amount / currentPrice;
             
-            if (parseFloat(wallet.balance) < amount) {
+            if (parseFloat(wallet.usdBalance) < amount) {
               console.log(`   ❌ Insufficient USD balance`);
               await databaseHelpers.order.cancelOrder(order.id);
               continue;
