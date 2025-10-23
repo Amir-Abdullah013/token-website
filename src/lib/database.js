@@ -441,6 +441,40 @@ export const databaseHelpers = {
       }
     },
 
+    async updateUsdBalance(userId, amount) {
+      try {
+        const result = await pool.query(`
+          UPDATE wallets 
+          SET balance = balance + $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
+          WHERE "userId" = $2
+          RETURNING *
+        `, [amount, userId]);
+        
+        console.log('✅ USD balance updated:', { userId, amount });
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating USD balance:', error);
+        throw error;
+      }
+    },
+
+    async updateVonBalance(userId, amount) {
+      try {
+        const result = await pool.query(`
+          UPDATE wallets 
+          SET "VonBalance" = "VonBalance" + $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
+          WHERE "userId" = $2
+          RETURNING *
+        `, [amount, userId]);
+        
+        console.log('✅ Von balance updated:', { userId, amount });
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error updating Von balance:', error);
+        throw error;
+      }
+    },
+
     async updateBalance(userId, amount) {
       try {
         const result = await pool.query(`
