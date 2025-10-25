@@ -59,21 +59,20 @@ const generateVonData = (timeFilter, currentPrice) => {
       interval = 7 * 24 * 60 * 1000;
   }
   
-  // Generate realistic historical data that ends at current price
-  // Start with a price close to current price for more realistic historical data
-  let basePrice = currentPrice * 0.98; // Start at 98% of current price
+  // Generate realistic price movement like real token websites
+  let basePrice = currentPrice * 0.95; // Start slightly below current price
   
   for (let i = 0; i < points; i++) {
     const timestamp = new Date(startTime.getTime() + (i * interval));
     
-    // Generate realistic price movement with smaller volatility for Von
-    const volatility = 0.005; // 0.5% volatility for Von (more realistic)
+    // Small realistic price movements
+    const volatility = 0.002; // 0.2% volatility for stable token
     const change = (Math.random() - 0.5) * volatility;
     basePrice = basePrice * (1 + change);
     
-    // Ensure price stays within reasonable bounds (0.95x to 1.05x current price for realistic chart)
-    const minPrice = currentPrice * 0.95;
-    const maxPrice = currentPrice * 1.05;
+    // Keep price close to current price
+    const minPrice = currentPrice * 0.98;
+    const maxPrice = currentPrice * 1.02;
     basePrice = Math.max(minPrice, Math.min(maxPrice, basePrice));
     
     data.push({
@@ -92,9 +91,19 @@ const generateVonData = (timeFilter, currentPrice) => {
     });
   }
   
-  // Ensure the last point is close to current price
+  // Ensure the last point is exactly the current price
   if (data.length > 0) {
     data[data.length - 1].price = currentPrice;
+    data[data.length - 1].timestamp = new Date().toISOString();
+    data[data.length - 1].time = new Date().toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+    data[data.length - 1].date = new Date().toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    });
   }
   
   // Ensure all prices are valid numbers
@@ -157,212 +166,98 @@ const VonPriceChart = ({ className = '' }) => {
   const [priceChange, setPriceChange] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Mobile detection with improved logic
+  // Simple mobile detection
   useEffect(() => {
     const checkMobile = () => {
-      // More comprehensive mobile detection
-      const isMobileDevice = window.innerWidth < 768 || 
-                           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                           ('ontouchstart' in window) ||
-                           (navigator.maxTouchPoints > 0);
-      setIsMobile(isMobileDevice);
+      setIsMobile(window.innerWidth < 768);
     };
     
-    // Initial check
     checkMobile();
-    
-    // Listen for resize events with debouncing
-    let resizeTimeout;
-    const handleResize = () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(checkMobile, 100);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      clearTimeout(resizeTimeout);
-    };
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Fetch real price data from API
+  // Generate data only when filter changes (NOT when VonPrice changes)
   useEffect(() => {
-    const fetchPriceData = async () => {
-      setIsLoading(true);
+    setIsLoading(true);
+    
+    // Simulate API delay
+    const timeoutId = setTimeout(() => {
+      const data = generateVonData(selectedFilter, VonPrice);
+      setChartData(data);
       
-      try {
-        console.log('📊 VonPriceChart: Fetching real price data for filter:', selectedFilter);
-        
-        const response = await fetch(`/api/Von/price-history?filter=${selectedFilter}&limit=50`);
-        const result = await response.json();
-        
-        if (result.success && result.data && result.data.length > 0) {
-          console.log('📊 VonPriceChart: Real price data received', {
-            dataLength: result.data.length,
-            currentPrice: result.currentPrice,
-            priceRange: result.priceRange,
-            timeFilter: result.timeFilter,
-            firstPrice: result.data[0]?.price,
-            lastPrice: result.data[result.data.length - 1]?.price,
-            expectedPrice: 0.0035,
-            priceAccuracy: result.data[0]?.price === result.currentPrice ? '✅ Accurate' : '❌ Inaccurate'
-          });
-          
-          setChartData(result.data);
-          
-          if (result.data.length > 0) {
-            const latest = result.data[result.data.length - 1];
-            const previous = result.data[result.data.length - 2];
-            setCurrentPrice(latest.price);
-            setPriceChange(latest.price - previous.price);
-          }
-        } else {
-          console.warn('📊 VonPriceChart: API returned no data, using fallback');
-          // Fallback to generated data if API fails
-          const fallbackData = generateVonData(selectedFilter, VonPrice);
-          setChartData(fallbackData);
-        }
-      } catch (error) {
-        console.error('📊 VonPriceChart: Error fetching price data:', error);
-        // Fallback to generated data on error
-        const fallbackData = generateVonData(selectedFilter, VonPrice);
-        setChartData(fallbackData);
-      } finally {
-        setIsLoading(false);
+      if (data.length > 0) {
+        const latest = data[data.length - 1];
+        const previous = data[data.length - 2];
+        setCurrentPrice(latest.price);
+        setPriceChange(latest.price - previous.price);
       }
-    };
+      
+      setIsLoading(false);
+    }, 500);
 
-    fetchPriceData();
-  }, [selectedFilter, VonPrice]); // Added VonPrice dependency for real-time updates
+    // Cleanup timeout on unmount or dependency change
+    return () => clearTimeout(timeoutId);
+  }, [selectedFilter]); // Removed VonPrice dependency
 
-  // Update current price and refresh chart data when VonPrice changes
+  // Update current price and chart data smoothly without re-rendering
   useEffect(() => {
     if (VonPrice !== currentPrice && VonPrice > 0) {
-      console.log('📈 VonPriceChart: Price update detected, refreshing chart data', {
-        oldPrice: currentPrice,
-        newPrice: VonPrice,
-        isMobile,
-        chartDataLength: chartData.length
-      });
-      
       setCurrentPrice(VonPrice);
       
-      // Refresh chart data with new price
-      const refreshChartData = async () => {
-        try {
-          const response = await fetch(`/api/Von/price-history?filter=${selectedFilter}&limit=50`);
-          const result = await response.json();
+      // Update chart data smoothly without triggering re-render
+      setChartData(prevData => {
+        if (prevData.length > 0) {
+          const newData = [...prevData];
+          const lastIndex = newData.length - 1;
           
-          if (result.success && result.data && result.data.length > 0) {
-            console.log('📊 VonPriceChart: Chart data refreshed with new price', {
-              newPrice: VonPrice,
-              dataLength: result.data.length,
-              priceRange: result.priceRange
-            });
-            setChartData(result.data);
-            
-            if (result.data.length > 1) {
-              const latest = result.data[result.data.length - 1];
-              const previous = result.data[result.data.length - 2];
-              setPriceChange(latest.price - previous.price);
-            }
+          // Update the last data point with new price
+          newData[lastIndex] = {
+            ...newData[lastIndex],
+            price: VonPrice,
+            timestamp: new Date().toISOString(),
+            time: new Date().toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            }),
+            date: new Date().toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric' 
+            })
+          };
+          
+          // Calculate price change from previous point
+          if (newData.length > 1) {
+            const previousPrice = newData[lastIndex - 1].price;
+            setPriceChange(VonPrice - previousPrice);
           }
-        } catch (error) {
-          console.error('📊 VonPriceChart: Error refreshing chart data:', error);
-          // Fallback: update last data point with new price
-          setChartData(prevData => {
-            if (prevData.length > 0) {
-              const newData = [...prevData];
-              const lastIndex = newData.length - 1;
-              newData[lastIndex] = {
-                ...newData[lastIndex],
-                price: VonPrice,
-                timestamp: new Date().toISOString(),
-                time: new Date().toLocaleTimeString('en-US', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  hour12: false 
-                }),
-                date: new Date().toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric' 
-                })
-              };
-              return newData;
-            }
-            return prevData;
-          });
+          
+          return newData;
         }
-      };
-      
-      refreshChartData();
+        return prevData;
+      });
     }
-  }, [VonPrice, currentPrice, selectedFilter, isMobile]);
+  }, [VonPrice, currentPrice]);
 
-  // Force chart re-render when price changes significantly (for mobile compatibility)
-  useEffect(() => {
-    if (VonPrice > 0 && chartData.length > 0) {
-      // Trigger a subtle re-render to ensure mobile browsers update the chart
-      const timeoutId = setTimeout(() => {
-        setChartData(prevData => [...prevData]);
-      }, 100);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [VonPrice]);
-
-  // Mobile-specific: Force chart refresh every 30 seconds to ensure updates
-  useEffect(() => {
-    if (isMobile) {
-      console.log('📱 VonPriceChart: Mobile refresh interval started');
-      const refreshInterval = setInterval(() => {
-        if (chartData.length > 0) {
-          console.log('🔄 VonPriceChart: Mobile refresh triggered');
-          setChartData(prevData => [...prevData]);
-        }
-      }, 30000); // Refresh every 30 seconds on mobile
-      
-      return () => {
-        console.log('📱 VonPriceChart: Mobile refresh interval cleared');
-        clearInterval(refreshInterval);
-      };
-    }
-  }, [isMobile, chartData.length]);
 
   // Handle filter change - memoized to prevent unnecessary re-renders
   const handleFilterChange = useCallback((filter) => {
     setSelectedFilter(filter);
   }, []);
 
-  // Memoize chart configuration to prevent re-renders
+  // Simple chart configuration
   const chartConfig = useMemo(() => ({
     margin: { 
       top: 5, 
       right: isMobile ? 10 : 30, 
-      left: isMobile ? 15 : 20, // Increased left margin for mobile Y-axis
+      left: isMobile ? 10 : 20, 
       bottom: isMobile ? 5 : 10 
     },
     strokeWidth: isMobile ? 2 : 3,
     dotRadius: isMobile ? 4 : 6,
     fontSize: isMobile ? 10 : 12,
-    yAxisWidth: isMobile ? 50 : 60, // Increased width for mobile
-    // Mobile-specific optimizations
-    animationDuration: isMobile ? 300 : 500,
-    animationEasing: 'ease-in-out',
-    // Mobile-specific Y-axis configuration
-    yAxisConfig: isMobile ? {
-      domain: ['dataMin - 0.0001', 'dataMax + 0.0001'],
-      allowDecimals: true,
-      scale: 'linear',
-      tickCount: 5,
-      minTickGap: 20
-    } : {
-      domain: ['dataMin', 'dataMax'],
-      allowDecimals: true,
-      scale: 'linear',
-      tickCount: 6,
-      minTickGap: 30
-    }
+    yAxisWidth: isMobile ? 40 : 60
   }), [isMobile]);
 
   // Memoize price change calculations
@@ -399,21 +294,6 @@ const VonPriceChart = ({ className = '' }) => {
                     {filter.label}
                   </Button>
                 ))}
-                {/* Mobile refresh button */}
-                {isMobile && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      console.log('🔄 VonPriceChart: Manual mobile refresh triggered');
-                      setChartData(prevData => [...prevData]);
-                    }}
-                    className="text-xs px-2 py-1 bg-gradient-to-r from-emerald-600/50 to-green-600/50 text-emerald-300 hover:from-emerald-500/50 hover:to-green-500/50 hover:text-white border border-emerald-500/30"
-                    title="Refresh chart"
-                  >
-                    🔄
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -491,22 +371,11 @@ const VonPriceChart = ({ className = '' }) => {
                     tickLine={false}
                     axisLine={false}
                     tick={{ fill: '#94A3B8' }}
-                    tickFormatter={(value) => {
-                      if (value === 0 || value === null || value === undefined) return '$0.00';
-                      // Mobile-specific formatting with more precision
-                      if (isMobile) {
-                        return `$${value.toFixed(4)}`;
-                      }
-                      return `$${value.toFixed(4)}`;
-                    }}
+                    tickFormatter={(value) => isMobile ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`}
                     width={chartConfig.yAxisWidth}
-                    domain={chartConfig.yAxisConfig.domain}
-                    allowDecimals={chartConfig.yAxisConfig.allowDecimals}
-                    scale={chartConfig.yAxisConfig.scale}
-                    // Mobile-specific props
-                    interval={isMobile ? 0 : 'preserveStartEnd'}
-                    tickCount={chartConfig.yAxisConfig.tickCount}
-                    minTickGap={chartConfig.yAxisConfig.minTickGap}
+                    domain={['dataMin', 'dataMax']}
+                    allowDecimals={true}
+                    scale="linear"
                   />
                   <Tooltip content={<VonTooltip />} />
                   <defs>

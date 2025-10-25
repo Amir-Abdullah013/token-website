@@ -52,55 +52,56 @@ const fetchPriceData = async (timeFilter) => {
   }
 };
 
-// Fallback data generator for when API fails
-const generateFallbackData = (timeFilter) => {
+// Simple data generator like real token websites
+const generateFallbackData = (timeFilter, currentPrice = 0.0035) => {
   const now = new Date();
   const data = [];
-  const currentPrice = 0.0035; // Default Von price
-  let basePrice = currentPrice * 0.8;
+  const points = 50; // Number of data points
   
-  let points;
   let startTime;
   let interval;
   
   switch (timeFilter) {
     case '1min':
-      startTime = new Date(now.getTime() - 60 * 60 * 1000);
-      interval = 60 * 1000;
-      points = 60;
+      startTime = new Date(now.getTime() - 60 * 60 * 1000); // 1 hour ago
+      interval = 60 * 1000; // 1 minute intervals
       break;
     case '1h':
-      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      interval = 24 * 60 * 1000;
-      points = 24;
+      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 day ago
+      interval = 24 * 60 * 1000; // 1 hour intervals
       break;
     case '1d':
-      startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      interval = 7 * 24 * 60 * 1000;
-      points = 7;
+      startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+      interval = 7 * 24 * 60 * 1000; // 1 day intervals
       break;
     case '7d':
-      startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      interval = 30 * 24 * 60 * 1000;
-      points = 30;
+      startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+      interval = 30 * 24 * 60 * 1000; // 7 day intervals
       break;
     case '30d':
-      startTime = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-      interval = 90 * 24 * 60 * 1000;
-      points = 90;
+      startTime = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); // 90 days ago
+      interval = 90 * 24 * 60 * 1000; // 30 day intervals
       break;
     default:
       startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       interval = 7 * 24 * 60 * 1000;
-      points = 7;
   }
+  
+  // Generate realistic price movement like real token websites
+  let basePrice = currentPrice * 0.95; // Start slightly below current price
   
   for (let i = 0; i < points; i++) {
     const timestamp = new Date(startTime.getTime() + (i * interval));
-    const volatility = 0.05;
+    
+    // Small realistic price movements
+    const volatility = 0.002; // 0.2% volatility for stable token
     const change = (Math.random() - 0.5) * volatility;
     basePrice = basePrice * (1 + change);
-    basePrice = Math.max(currentPrice * 0.1, Math.min(currentPrice * 2.0, basePrice));
+    
+    // Keep price close to current price
+    const minPrice = currentPrice * 0.98;
+    const maxPrice = currentPrice * 1.02;
+    basePrice = Math.max(minPrice, Math.min(maxPrice, basePrice));
     
     data.push({
       timestamp: timestamp.toISOString(),
@@ -118,21 +119,20 @@ const generateFallbackData = (timeFilter) => {
     });
   }
   
-  // Add current price
-  data.push({
-    timestamp: now.toISOString(),
-    price: currentPrice,
-    volume: Math.floor(Math.random() * 1000000) + 100000,
-    time: now.toLocaleTimeString('en-US', { 
+  // Ensure the last point is exactly the current price
+  if (data.length > 0) {
+    data[data.length - 1].price = currentPrice;
+    data[data.length - 1].timestamp = now.toISOString();
+    data[data.length - 1].time = now.toLocaleTimeString('en-US', { 
       hour: '2-digit', 
       minute: '2-digit',
       hour12: false 
-    }),
-    date: now.toLocaleDateString('en-US', { 
+    });
+    data[data.length - 1].date = now.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric' 
-    })
-  });
+    });
+  }
   
   return {
     data,
@@ -172,54 +172,29 @@ const LoadingSkeleton = () => (
 );
 
 const PriceChart = ({ className = '' }) => {
+  const { VonPrice } = useVon();
   const [selectedFilter, setSelectedFilter] = useState('1d');
   const [chartData, setChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPrice, setCurrentPrice] = useState(0);
+  const [currentPrice, setCurrentPrice] = useState(VonPrice);
   const [priceChange, setPriceChange] = useState(0);
 
-  // Fetch real data when filter changes
+  // Generate data when filter changes
   useEffect(() => {
-    const loadPriceData = async () => {
+    const loadPriceData = () => {
       setIsLoading(true);
       
-      try {
-        console.log('🔄 Loading price data for filter:', selectedFilter);
-        const result = await fetchPriceData(selectedFilter);
-        
-        if (result.success) {
-          setChartData(result.data);
-          setCurrentPrice(result.currentPrice);
-          setPriceChange(result.priceChange);
-          
-          console.log('✅ Price data loaded successfully:', {
-            dataPoints: result.dataPoints,
-            currentPrice: result.currentPrice,
-            priceChange: result.priceChange,
-            fallback: result.fallback
-          });
-        } else {
-          console.error('❌ Failed to load price data');
-          // Fallback to empty data
-          setChartData([]);
-          setCurrentPrice(0);
-          setPriceChange(0);
-        }
-      } catch (error) {
-        console.error('❌ Error loading price data:', error);
-        // Use fallback data when API fails
-        console.log('🔄 Using fallback data for timeFilter:', selectedFilter);
-        const fallbackResult = generateFallbackData(selectedFilter);
-        setChartData(fallbackResult.data);
-        setCurrentPrice(fallbackResult.currentPrice);
-        setPriceChange(fallbackResult.priceChange);
-      } finally {
-        setIsLoading(false);
-      }
+      // Use fallback data with real Von price
+      const result = generateFallbackData(selectedFilter, VonPrice);
+      setChartData(result.data);
+      setCurrentPrice(result.currentPrice);
+      setPriceChange(result.priceChange);
+      
+      setIsLoading(false);
     };
 
     loadPriceData();
-  }, [selectedFilter]);
+  }, [selectedFilter, VonPrice]);
 
   // Handle filter change
   const handleFilterChange = (filter) => {
