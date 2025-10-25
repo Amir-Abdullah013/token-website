@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   const manifest = {
-    name: "Token Website",
-    short_name: "TokenApp",
+    name: "Pryvons",
+    short_name: "Pryvons",
     description: "A modern token management platform with secure authentication",
     start_url: "/",
     display: "standalone",

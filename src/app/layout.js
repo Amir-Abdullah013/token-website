@@ -7,7 +7,7 @@ import { VonProvider } from '@/lib/Von-context';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Token Website - Secure Token Management',
+  title: 'Pryvons - Secure Token Management',
   description: 'A modern token management platform with secure authentication and advanced features.',
   manifest: '/site.webmanifest',
   icons: {

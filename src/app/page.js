@@ -16,7 +16,7 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="Token Website - Secure Digital Wallet Platform"
+        title="Pryvons - Secure Digital Wallet Platform"
         description="Experience lightning-fast crypto trading with institutional-grade security. Join thousands of traders who trust our platform for secure digital wallet management."
         keywords="digital wallet, cryptocurrency, secure trading, blockchain, crypto platform, token management"
         url="/"

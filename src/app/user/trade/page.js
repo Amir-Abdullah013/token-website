@@ -31,8 +31,24 @@ export default function TradePage() {
     message: ''
   });
   
+  // Mobile detection for responsive design - must be before usePriceUpdates
+  const [isMobileView, setIsMobileView] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Enable real-time price updates every 30 seconds (minimal frequency for static chart)
-  usePriceUpdates(30000);
+  // Use shorter interval on mobile for better responsiveness
+  const updateInterval = isMobileView ? 15000 : 30000;
+  console.log('📱 TradePage: Price update interval set to', updateInterval, 'ms (mobile:', isMobileView, ')');
+  usePriceUpdates(updateInterval);
 
   // Helper function to show trade modal
   const showTradeModalMessage = (type, title, message) => {
@@ -124,18 +140,6 @@ export default function TradePage() {
     }
   }, [amount, price]);
 
-  // Mobile detection for responsive design
-  const [isMobile, setIsMobile] = useState(false);
-  
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Fetch user orders
   const fetchUserOrders = async () => {
@@ -538,7 +542,7 @@ export default function TradePage() {
                           <div className="text-sm text-gray-600">
                             <div className="flex justify-between items-center mb-1">
                               <span>{tradeType === 'buy' ? 'USD Amount:' : 'Von Amount:'}</span>
-                              <span className="font-medium">${amountValue.toFixed(2)}</span>
+                              <span className="font-medium">{amountValue.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between items-center mb-1">
                               <span>Fee ({feeCalculation.feePercentage}%):</span>
@@ -676,6 +680,8 @@ export default function TradePage() {
 
             {/* Center Column - Charts and Market Data */}
             <div className="lg:col-span-2 space-y-4 lg:space-y-6">
+             
+              
               {/* Von Price Chart */}
               <VonPriceChart />
 
