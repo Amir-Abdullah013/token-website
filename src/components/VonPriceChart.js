@@ -125,17 +125,31 @@ const generateVonData = (timeFilter, currentPrice) => {
   return data;
 };
 
-// Premium custom tooltip component for Von
+// Premium custom tooltip component for Von with smart price formatting
 const VonTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+    
+    // Smart price formatting for tooltip
+    const formatPrice = (price) => {
+      if (price < 0.01) {
+        return `$${price.toFixed(6)}`;
+      } else if (price < 1) {
+        return `$${price.toFixed(4)}`;
+      } else if (price < 100) {
+        return `$${price.toFixed(3)}`;
+      } else {
+        return `$${price.toFixed(2)}`;
+      }
+    };
+    
     return (
       <div className="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md p-4 border border-slate-600/30 rounded-lg shadow-2xl">
         <p className="text-sm text-slate-300 mb-2 font-medium">
           {data.date} {data.time}
         </p>
         <p className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-          ${data.price.toFixed(4)}
+          {formatPrice(data.price)}
         </p>
         <p className="text-xs text-slate-400 font-medium">
           Volume: {data.volume.toLocaleString()} Von
@@ -246,18 +260,18 @@ const VonPriceChart = ({ className = '' }) => {
     setSelectedFilter(filter);
   }, []);
 
-  // Simple chart configuration
+  // Enhanced chart configuration for better mobile experience
   const chartConfig = useMemo(() => ({
     margin: { 
       top: 5, 
-      right: isMobile ? 10 : 30, 
-      left: isMobile ? 10 : 20, 
+      right: isMobile ? 15 : 30, 
+      left: isMobile ? 50 : 20, // Increased left margin for y-axis labels
       bottom: isMobile ? 5 : 10 
     },
-    strokeWidth: isMobile ? 2 : 3,
+    strokeWidth: isMobile ? 2.5 : 3,
     dotRadius: isMobile ? 4 : 6,
-    fontSize: isMobile ? 10 : 12,
-    yAxisWidth: isMobile ? 40 : 60
+    fontSize: isMobile ? 11 : 12, // Slightly larger font for mobile
+    yAxisWidth: isMobile ? 60 : 60 // Increased width for better label display
   }), [isMobile]);
 
   // Memoize price change calculations
@@ -305,14 +319,14 @@ const VonPriceChart = ({ className = '' }) => {
               <div className="text-center sm:text-left">
                 <p className="text-xs sm:text-sm text-slate-300 font-medium">Current Von Price</p>
                 <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                  {formatCurrency(currentPrice, 'USD')}
+                  {currentPrice < 0.01 ? `$${currentPrice.toFixed(6)}` : formatCurrency(currentPrice, 'USD')}
                 </p>
               </div>
               <div className="text-center sm:text-right">
                 <div className={`flex items-center justify-center sm:justify-end text-xs sm:text-sm font-semibold ${priceChangeInfo.color}`}>
                   <span className="mr-1">{priceChangeInfo.icon}</span>
                   <span>
-                    {priceChange >= 0 ? '+' : ''}{formatCurrency(priceChange, 'USD')} 
+                    {priceChange >= 0 ? '+' : ''}{Math.abs(priceChange) < 0.01 ? `$${priceChange.toFixed(6)}` : formatCurrency(priceChange, 'USD')} 
                     ({priceChangeInfo.percentage}%)
                   </span>
                 </div>
@@ -371,7 +385,22 @@ const VonPriceChart = ({ className = '' }) => {
                     tickLine={false}
                     axisLine={false}
                     tick={{ fill: '#94A3B8' }}
-                    tickFormatter={(value) => isMobile ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`}
+                    tickFormatter={(value) => {
+                      // Smart formatting based on price magnitude
+                      if (value < 0.01) {
+                        // For very small prices like $0.0035, show 4 decimal places
+                        return `$${value.toFixed(4)}`;
+                      } else if (value < 1) {
+                        // For prices between $0.01 and $1, show 3 decimal places
+                        return `$${value.toFixed(3)}`;
+                      } else if (value < 100) {
+                        // For prices between $1 and $100, show 2 decimal places
+                        return `$${value.toFixed(2)}`;
+                      } else {
+                        // For larger prices, show 1 decimal place
+                        return `$${value.toFixed(1)}`;
+                      }
+                    }}
                     width={chartConfig.yAxisWidth}
                     domain={['dataMin', 'dataMax']}
                     allowDecimals={true}
