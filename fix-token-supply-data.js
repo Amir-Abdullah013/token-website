@@ -150,6 +150,6 @@ async function fixTokenSupply() {
   }
 }
 
-// Run the migration
+// Run the migratio
 fixTokenSupply();
 
