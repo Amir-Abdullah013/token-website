@@ -35,11 +35,11 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
 
     const mailOptions = {
       from: {
-        name: 'Token Website',
+        name: 'Pryvons',
         address: process.env.SMTP_USER || process.env.EMAIL_USER || 'noreply@tokenwebsite.com'
       },
       to: email,
-      subject: 'Password Reset OTP - Token Website',
+      subject: 'Password Reset OTP - Pryvons',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
@@ -88,7 +88,7 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
         If you didn't request this reset, please ignore this email.
         
         Best regards,
-        Token Website Team
+        Pryvons Team
       `
     };
 
@@ -119,22 +119,22 @@ const sendWelcomeEmail = async (email, userName) => {
 
     const mailOptions = {
       from: {
-        name: 'Token Website',
+        name: 'Pryvons',
         address: process.env.SMTP_USER || process.env.EMAIL_USER || 'noreply@tokenwebsite.com'
       },
       to: email,
-      subject: 'Welcome to Token Website!',
+      subject: 'Welcome to Pryvons!',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Token Website!</h1>
+            <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Pryvons!</h1>
           </div>
           
           <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
             <h2 style="color: #333; margin-top: 0;">Hello ${userName}!</h2>
             
             <p style="color: #666; font-size: 16px; line-height: 1.6;">
-              Welcome to Token Website! Your account has been successfully created.
+              Welcome to Pryvons! Your account has been successfully created.
             </p>
             
             <p style="color: #666; font-size: 16px; line-height: 1.6;">
@@ -151,7 +151,7 @@ const sendWelcomeEmail = async (email, userName) => {
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
               <p style="color: #999; font-size: 12px; margin: 0;">
                 Best regards,<br>
-                Token Website Team
+                PryvonsTeam
               </p>
             </div>
           </div>

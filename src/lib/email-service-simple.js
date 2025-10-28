@@ -61,7 +61,7 @@ const sendOTPEmail = async (email, otp, userName = 'User', type = 'password-rese
 
     const mailOptions = {
       from: {
-        name: 'Token Website',
+        name: 'Pryvons',
         address: process.env.SMTP_USER || process.env.EMAIL_USER || 'noreply@tokenwebsite.com'
       },
       to: email,
@@ -129,8 +129,8 @@ const generateOTPEmailContent = (otp, userName, type) => {
 
   return {
     subject: type === 'signin' 
-      ? 'Sign In Verification Code - Token Website'
-      : 'Password Reset OTP - Token Website',
+      ? 'Sign In Verification Code - Pryvons'
+      : 'Password Reset OTP - Pryvons',
     html: baseStyle
   };
 };
