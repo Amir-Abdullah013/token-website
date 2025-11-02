@@ -1,4 +1,5 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   
   "functions": {
     "src/app/api/cron/auto-match-orders/route.js": {

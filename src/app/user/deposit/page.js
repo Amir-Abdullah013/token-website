@@ -32,6 +32,10 @@ export default function DepositPage() {
   const [convertedAmount, setConvertedAmount] = useState(0);
   const [depositAddresses, setDepositAddresses] = useState({ bep20: '', trc20: '' });
 
+  // Deposit history state
+  const [deposits, setDeposits] = useState([]);
+  const [loadingDeposits, setLoadingDeposits] = useState(true);
+
   // Validation rules
   const MIN_AMOUNT = 10;
   const MAX_AMOUNT = 10000;
@@ -82,6 +86,7 @@ export default function DepositPage() {
       } else {
         loadBinanceAddress();
         loadExchangeRates();
+        loadDeposits();
       }
     }
   }, [mounted, loading, isAuthenticated, router]);
@@ -119,6 +124,21 @@ export default function DepositPage() {
       console.error('Error loading Binance address:', err);
       // Use fallback address
       setBinanceAddress('TX7k8t9w2ZkDh8mA1pQw6yLbNvF3gHjK9mP2qR5sT8uV1wX4yZ7aBcEfGhJkLmNoPqRsTuVwXyZ');
+    }
+  };
+
+  const loadDeposits = async () => {
+    try {
+      setLoadingDeposits(true);
+      const response = await fetch('/api/deposit');
+      if (response.ok) {
+        const data = await response.json();
+        setDeposits(data.depositRequests || []);
+      }
+    } catch (err) {
+      console.error('Error loading deposits:', err);
+    } finally {
+      setLoadingDeposits(false);
     }
   };
 
@@ -327,10 +347,13 @@ export default function DepositPage() {
         success('Deposit request submitted successfully. Waiting for admin confirmation.');
         
         // Reset form
-        setFormData({ amount: '', currency: 'USD', screenshot: null });
+        setFormData({ amount: '', currency: 'USD', network: '', screenshot: null });
         setConvertedAmount(0);
         const fileInput = document.getElementById('screenshot');
         if (fileInput) fileInput.value = '';
+        
+        // Reload deposits to show the new request
+        loadDeposits();
       } else {
         console.error('❌ Deposit request failed:', data);
         
@@ -348,6 +371,24 @@ export default function DepositPage() {
       error('Failed to submit deposit request. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+      case 'COMPLETED': return 'bg-green-100 text-green-800';
+      case 'FAILED': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'PENDING': return 'Pending';
+      case 'COMPLETED': return 'Approved';
+      case 'FAILED': return 'Rejected';
+      default: return status;
     }
   };
 
@@ -678,6 +719,55 @@ export default function DepositPage() {
           </CardContent>
         </Card>
 
+        {/* Premium Deposit History */}
+        <Card className="mt-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Deposit History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingDeposits ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-2"></div>
+                <p className="text-slate-300">Loading deposits...</p>
+              </div>
+            ) : deposits.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-slate-400">No deposit requests yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {deposits.map((deposit) => (
+                  <div key={deposit.id} className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 border border-slate-600/30 rounded-lg p-4 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-medium text-white">
+                          {formatCurrency(deposit.amount, 'USD')}
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          {new Date(deposit.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(deposit.status)}`}>
+                        {getStatusText(deposit.status)}
+                      </span>
+                    </div>
+                    <div className="text-sm text-slate-300">
+                      {deposit.binanceAddress && (
+                        <p><strong>Binance Address:</strong> {deposit.binanceAddress}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Premium Information Card */}
         <Card className="mt-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
