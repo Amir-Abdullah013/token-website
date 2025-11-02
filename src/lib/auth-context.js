@@ -174,10 +174,23 @@ export const AuthProvider = ({ children }) => {
 
     // Use requestAnimationFrame to ensure DOM is ready
     if (typeof window !== 'undefined') {
-      // Add small delay to ensure session data is properly loaded
-      setTimeout(() => {
-        requestAnimationFrame(initializeAuth);
-      }, 50);
+      // Initialize immediately for faster response
+      requestAnimationFrame(initializeAuth);
+      
+      // Also listen for session updates (e.g., after sign-in)
+      const handleSessionUpdate = (event) => {
+        console.log('Session update event received, re-initializing auth...');
+        // Re-run initialization to pick up new session
+        initializeAuth();
+      };
+      
+      window.addEventListener('userSessionUpdated', handleSessionUpdate);
+      
+      // Cleanup listeners on unmount
+      return () => {
+        window.removeEventListener('userSessionUpdated', handleSessionUpdate);
+        if (cleanup) cleanup();
+      };
     } else {
       setLoading(false);
     }

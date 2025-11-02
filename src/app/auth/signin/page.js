@@ -180,12 +180,26 @@ export default function SignIn() {
         localStorage.setItem('userSession', JSON.stringify(data.user));
         localStorage.removeItem('signupEmail');
         
-        const redirectTo = searchParams.get('redirect');
-        if (data.user.role === 'admin') {
-          router.push(redirectTo && redirectTo.startsWith('/admin') ? redirectTo : '/admin/dashboard');
-        } else {
-          router.push(redirectTo && redirectTo.startsWith('/user') ? redirectTo : '/user/dashboard');
+        // Dispatch custom event to notify auth context that session is ready
+        // This helps auth context re-initialize faster
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('userSessionUpdated', {
+            detail: { user: data.user }
+          }));
         }
+        
+        // Wait for auth context to initialize before redirecting
+        // This prevents race condition where dashboard checks auth before context is ready
+        const redirectTo = searchParams.get('redirect');
+        const targetPath = data.user.role === 'admin' 
+          ? (redirectTo && redirectTo.startsWith('/admin') ? redirectTo : '/admin/dashboard')
+          : (redirectTo && redirectTo.startsWith('/user') ? redirectTo : '/user/dashboard');
+        
+        // Use window.location.href for more reliable redirect
+        // Small delay ensures auth context has time to read localStorage
+        setTimeout(() => {
+          window.location.href = targetPath;
+        }, 300); // 300ms gives auth context enough time to initialize
       } else {
         // Handle OTP verification errors
         console.error('OTP verification failed:', data);

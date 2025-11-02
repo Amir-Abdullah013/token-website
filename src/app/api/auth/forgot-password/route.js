@@ -69,6 +69,20 @@ export async function POST(request) {
     } catch (emailError) {
       console.error('❌ Failed to send OTP email:', emailError);
       
+      // In development mode, log OTP to console so testing can continue
+      if (process.env.NODE_ENV === 'development') {
+        console.log('\n========================================');
+        console.log('🚨 EMAIL SERVICE FAILED - DEVELOPMENT MODE');
+        console.log('========================================');
+        console.log(`📧 Email: ${email}`);
+        console.log(`🔑 OTP Code: ${otp}`);
+        console.log(`⏰ Expires in: 10 minutes`);
+        console.log('========================================');
+        console.log('⚠️  This OTP is logged because email service is not configured.');
+        console.log('⚠️  In production, configure SMTP credentials properly.');
+        console.log('========================================\n');
+      }
+      
       // If email fails, we should still return success to prevent OTP enumeration
       // but log the error for debugging
       console.error('Email service error - OTP generated but not sent:', emailError.message);

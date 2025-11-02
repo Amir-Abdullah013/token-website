@@ -1,15 +1,49 @@
 // Simple email service for Next.js compatibility
 
 // Email configuration
-const getEmailConfig = () => ({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT) || 587,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.SMTP_USER || process.env.EMAIL_USER,
-    pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
-  },
-});
+const getEmailConfig = () => {
+  // Get credentials - check both possible env var names
+  // In Next.js, make sure to check process.env directly
+  const smtpUserRaw = process.env.SMTP_USER || process.env.EMAIL_USER || '';
+  const smtpPassRaw = process.env.SMTP_PASS || process.env.EMAIL_PASS || '';
+  
+  // Trim and clean
+  const smtpUser = String(smtpUserRaw).trim();
+  // Remove ALL whitespace from password (including spaces, tabs, newlines)
+  const smtpPass = String(smtpPassRaw).trim().replace(/\s+/g, '');
+  
+  // Log configuration for debugging (without exposing password)
+  console.log('📧 Email Config Check:', {
+    host: process.env.SMTP_HOST || 'gmail (default)',
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    user: smtpUser ? `${smtpUser.substring(0, 3)}***${smtpUser.substring(smtpUser.length - 4)}` : 'NOT SET',
+    passSet: !!smtpPass,
+    passLength: smtpPass ? smtpPass.length : 0,
+    usingGmailService: (process.env.SMTP_HOST || '').includes('gmail.com') || !process.env.SMTP_HOST
+  });
+  
+  if (!smtpUser || !smtpPass) {
+    console.error('❌ SMTP credentials not configured!');
+    console.error('   SMTP_USER:', smtpUser ? 'SET' : 'NOT SET');
+    console.error('   SMTP_PASS:', smtpPass ? 'SET' : 'NOT SET');
+  }
+  
+  // Build config object
+  const config = {
+    host: (process.env.SMTP_HOST || 'smtp.gmail.com').trim(),
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: false, // Use TLS instead of SSL for port 587
+    requireTLS: true,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  };
+  
+  // For Gmail specifically, we can use service OR host/port
+  // Using host/port is more explicit and reliable
+  return config;
+};
 
 // Create transporter
 const createTransporter = async () => {
@@ -17,20 +51,38 @@ const createTransporter = async () => {
     // Dynamic import to avoid build-time issues
     const nodemailerModule = await import('nodemailer');
     
-    // Log module structure for debugging
-    console.log('Nodemailer module keys:', Object.keys(nodemailerModule));
+    // Get configuration
+    const config = getEmailConfig();
+    
+    // Detailed logging of config (without password)
+    console.log('📧 Creating transporter with config:', {
+      ...config,
+      auth: {
+        user: config.auth?.user || 'NOT SET',
+        pass: config.auth?.pass ? `[${config.auth.pass.length} chars]` : 'NOT SET'
+      }
+    });
+    
+    // Validate config before creating transporter
+    if (!config.auth?.user || !config.auth?.pass) {
+      console.error('❌ Email config missing credentials!');
+      console.error('   User:', config.auth?.user || 'MISSING');
+      console.error('   Pass:', config.auth?.pass ? 'SET' : 'MISSING');
+      throw new Error('SMTP credentials not configured - check SMTP_USER and SMTP_PASS environment variables');
+    }
     
     // Try different ways to access nodemailer
     const nodemailer = nodemailerModule.default || nodemailerModule;
-    const config = getEmailConfig();
     
     // Use createTransport (correct method name)
     if (typeof nodemailerModule.createTransport === 'function') {
       console.log('✅ Using nodemailerModule.createTransport');
-      return nodemailerModule.createTransport(config);
+      const transporter = nodemailerModule.createTransport(config);
+      return transporter;
     } else if (typeof nodemailer.createTransport === 'function') {
       console.log('✅ Using nodemailer.createTransport');
-      return nodemailer.createTransport(config);
+      const transporter = nodemailer.createTransport(config);
+      return transporter;
     } else {
       console.error('❌ Could not find createTransport method');
       console.error('Available methods:', Object.keys(nodemailer));
@@ -50,11 +102,18 @@ const sendOTPEmail = async (email, otp, userName = 'User', type = 'password-rese
     const transporter = await createTransporter();
     
     if (!transporter) {
-      throw new Error('Email service not configured');
+      throw new Error('Email service not configured - transporter could not be created');
     }
 
     // Verify transporter configuration
-    await transporter.verify();
+    console.log('🔍 Verifying email transporter configuration...');
+    try {
+      await transporter.verify();
+      console.log('✅ Email transporter verified successfully');
+    } catch (verifyError) {
+      console.error('❌ Email transporter verification failed:', verifyError.message);
+      throw verifyError;
+    }
 
     // Generate email content based on type
     const emailContent = generateOTPEmailContent(otp, userName, type);
@@ -80,7 +139,21 @@ const sendOTPEmail = async (email, otp, userName = 'User', type = 'password-rese
 
   } catch (error) {
     console.error('❌ Failed to send OTP email:', error);
-    throw new Error(`Failed to send email: ${error.message}`);
+    
+    // Provide more helpful error messages for common issues
+    let errorMessage = `Failed to send email: ${error.message}`;
+    
+    if (error.code === 'EAUTH' || error.responseCode === 535) {
+      errorMessage = 'Email authentication failed. Please check your SMTP credentials. ' +
+        'For Gmail, ensure you are using an App Password (not your regular password). ' +
+        'Generate one at: https://myaccount.google.com/apppasswords';
+    } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+      errorMessage = 'Email server connection failed. Please check your SMTP_HOST and SMTP_PORT settings.';
+    } else if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      errorMessage = 'Email service not configured. Please set SMTP_USER and SMTP_PASS environment variables.';
+    }
+    
+    throw new Error(errorMessage);
   }
 };
 

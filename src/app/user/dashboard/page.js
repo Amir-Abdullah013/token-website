@@ -260,16 +260,42 @@ export default function UserDashboard() {
     requestAnimationFrame(initializeDashboard);
   }, []);
 
-  // Handle authentication redirect
+  // Handle authentication redirect with longer wait for auth context initialization
   useEffect(() => {
-    if (mounted && !loading) {
-      if (!isAuthenticated && !user) {
-        console.log('Dashboard: User not authenticated, redirecting to sign in');
-        setTimeout(() => {
-          router.push('/auth/signin?redirect=/user/dashboard');
-        }, 100);
+    if (!mounted) return;
+    
+    // Give auth context more time to initialize (especially after sign-in redirect)
+    // Wait for both loading to complete AND check if localStorage has session
+    const checkAuthAndRedirect = () => {
+      if (!loading) {
+        // Double-check localStorage in case auth context hasn't finished initializing
+        const userSession = localStorage.getItem('userSession');
+        const hasSessionInStorage = userSession !== null;
+        
+        // Only redirect if truly not authenticated (no session in storage AND auth context says no)
+        if (!isAuthenticated && !user && !hasSessionInStorage) {
+          console.log('Dashboard: User not authenticated, redirecting to sign in');
+          setTimeout(() => {
+            router.push('/auth/signin?redirect=/user/dashboard');
+          }, 100);
+        } else if (!isAuthenticated && !user && hasSessionInStorage) {
+          // Session exists but auth context hasn't picked it up yet - wait a bit longer
+          console.log('Dashboard: Session found in storage but auth context not ready, waiting...');
+          setTimeout(() => {
+            // Force auth context to re-check by triggering a storage event
+            window.dispatchEvent(new Event('storage'));
+          }, 200);
+        }
       }
-    }
+    };
+    
+    // Immediate check
+    checkAuthAndRedirect();
+    
+    // Also check after a delay to handle race conditions
+    const timeoutId = setTimeout(checkAuthAndRedirect, 500);
+    
+    return () => clearTimeout(timeoutId);
   }, [mounted, loading, isAuthenticated, user, router]);
 
   // ✅ Show loading state while checking authentication
@@ -284,8 +310,25 @@ export default function UserDashboard() {
     );
   }
 
-  // ✅ Show loading state if not authenticated (NO REDIRECT)
+  // ✅ Show loading state if not authenticated - but check localStorage first
   if (!isAuthenticated && !user) {
+    // Double-check localStorage before redirecting (auth context might not have initialized yet)
+    if (typeof window !== 'undefined') {
+      const userSession = localStorage.getItem('userSession');
+      if (userSession) {
+        // Session exists but auth context hasn't loaded it yet - show loading
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+              <p className="text-gray-300">Loading your session...</p>
+            </div>
+          </div>
+        );
+      }
+    }
+    
+    // No session found - redirect to sign in
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
         <div className="text-center">

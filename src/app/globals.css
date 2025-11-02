@@ -25,6 +25,16 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ✅ Forces smoother paint and avoids white flickers */
+html, body {
+  background-color: #000; /* or your site background color */
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+  scroll-behavior: smooth;
+}
+
+
 /* Ultra-wide screen optimizations - Fluid layout */
 @media (min-width: 1920px) {
   .container-ultra-wide {
