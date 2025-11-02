@@ -31,8 +31,8 @@ CREATE INDEX IF NOT EXISTS admin_supply_transfers_admin_id_idx ON admin_supply_t
 CREATE INDEX IF NOT EXISTS admin_supply_transfers_created_at_idx ON admin_supply_transfers("createdAt");
 
 -- Add comment for documentation
-COMMENT ON COLUMN token_supply."userSupplyRemaining" IS '20% of total supply available for user activities (staking, referrals, buying)';
-COMMENT ON COLUMN token_supply."adminReserve" IS '80% of total supply locked under admin control';
+COMMENT ON COLUMN token_supply."userSupplyRemaining" IS '20% of total supply available for user activities (referrals, buying)';
+COMMENT ON COLUMN token_supply."adminReserve" IS '80% of total supply locked under admin control - used for staking rewards';
 COMMENT ON TABLE admin_supply_transfers IS 'Tracks admin transfers from reserve to user supply';
 
 

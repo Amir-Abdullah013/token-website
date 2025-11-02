@@ -94,17 +94,17 @@ export async function POST(request, { params }) {
     // NOTE: Referral bonus is now distributed immediately when stake is created,
     // not when staking is claimed, so we don't add it here anymore
 
-    // Check if sufficient tokens are available
-    if (Number(tokenSupply.userSupplyRemaining) < totalTokensNeeded) {
+    // Check if sufficient tokens are available in admin reserve
+    if (Number(tokenSupply.adminReserve) < totalTokensNeeded) {
       return NextResponse.json(
         { 
           success: false, 
           error: 'Insufficient token supply',
           details: {
             required: totalTokensNeeded,
-            available: Number(tokenSupply.userSupplyRemaining),
-            shortfall: totalTokensNeeded - Number(tokenSupply.userSupplyRemaining),
-            message: 'User supply limit reached. Admin needs to unlock tokens from reserve.'
+            available: Number(tokenSupply.adminReserve),
+            shortfall: totalTokensNeeded - Number(tokenSupply.adminReserve),
+            message: 'Admin reserve limit reached. Admin needs to add tokens to reserve.'
           }
         },
         { status: 400 }
@@ -119,10 +119,10 @@ export async function POST(request, { params }) {
       client = await databaseHelpers.pool.connect();
       await client.query('BEGIN');
 
-      // Deduct tokens from supply first
+      // Deduct tokens from admin reserve (staking rewards come from admin reserve)
       await client.query(`
         UPDATE token_supply 
-        SET "userSupplyRemaining" = "userSupplyRemaining" - $1, "updatedAt" = NOW()
+        SET "adminReserve" = "adminReserve" - $1, "updatedAt" = NOW()
         WHERE id = $2
         RETURNING *
       `, [totalTokensNeeded, tokenSupply.id]);
@@ -199,8 +199,10 @@ export async function POST(request, { params }) {
       },
       tokenSupply: {
         totalSupply: Number(updatedTokenSupply.totalSupply),
+        adminReserve: Number(updatedTokenSupply.adminReserve),
         userSupplyRemaining: Number(updatedTokenSupply.userSupplyRemaining),
-        tokensDeducted: totalTokensNeeded
+        tokensDeducted: totalTokensNeeded,
+        deductedFrom: 'adminReserve'
       },
       tokenValue: {
         baseValue: tokenValue.baseValue,

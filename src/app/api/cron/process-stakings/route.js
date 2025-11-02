@@ -53,9 +53,9 @@ export async function GET(request) {
         // NOTE: Referral bonus is now distributed immediately when stake is created,
         // not when staking completes, so we don't add it here anymore
 
-        // Check if sufficient tokens are available
-        if (Number(tokenSupply.userSupplyRemaining) < totalTokensNeeded) {
-          console.log(`⚠️ Insufficient user supply for staking ${staking.id}. Required: ${totalTokensNeeded}, Available: ${tokenSupply.userSupplyRemaining}. Admin needs to unlock tokens.`);
+        // Check if sufficient tokens are available in admin reserve
+        if (Number(tokenSupply.adminReserve) < totalTokensNeeded) {
+          console.log(`⚠️ Insufficient admin reserve for staking ${staking.id}. Required: ${totalTokensNeeded}, Available: ${tokenSupply.adminReserve}. Admin needs to add tokens to reserve.`);
           // Mark as completed but don't process rewards yet
           await databaseHelpers.pool.query(`
             UPDATE staking 
@@ -71,10 +71,10 @@ export async function GET(request) {
           client = await databaseHelpers.pool.connect();
           await client.query('BEGIN');
 
-          // Deduct tokens from supply
+          // Deduct tokens from admin reserve (staking rewards come from admin reserve)
           await client.query(`
             UPDATE token_supply 
-            SET "userSupplyRemaining" = "userSupplyRemaining" - $1, "updatedAt" = NOW()
+            SET "adminReserve" = "adminReserve" - $1, "updatedAt" = NOW()
             WHERE id = $2
           `, [totalTokensNeeded, tokenSupply.id]);
 

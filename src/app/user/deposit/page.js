@@ -37,7 +37,7 @@ export default function DepositPage() {
   const [loadingDeposits, setLoadingDeposits] = useState(true);
 
   // Validation rules
-  const MIN_AMOUNT = 10;
+  const MIN_AMOUNT = 1;
   const MAX_AMOUNT = 10000;
 
   // Currency options
