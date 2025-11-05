@@ -159,20 +159,49 @@ const sendOTPEmail = async (email, otp, userName = 'User', type = 'password-rese
 
 // Generate email content based on type
 const generateOTPEmailContent = (otp, userName, type) => {
+  const getTitle = () => {
+    if (type === 'signin') return 'Sign In Verification';
+    if (type === 'signup') return 'Account Verification';
+    return 'Password Reset';
+  };
+
+  const getMessage = () => {
+    if (type === 'signin') {
+      return 'You are signing in to your account. Use the following OTP to complete your sign-in:';
+    }
+    if (type === 'signup') {
+      return 'You are creating a new account. Use the following OTP to complete your registration:';
+    }
+    return 'You requested a password reset for your account. Use the following OTP to reset your password:';
+  };
+
+  const getWarning = () => {
+    if (type === 'signin') {
+      return 'If you didn\'t attempt to sign in, please secure your account immediately';
+    }
+    if (type === 'signup') {
+      return 'If you didn\'t attempt to create an account, please ignore this email';
+    }
+    return 'If you didn\'t request this reset, please ignore this email';
+  };
+
+  const getSubject = () => {
+    if (type === 'signin') return 'Sign In Verification Code - Pryvons';
+    if (type === 'signup') return 'Account Verification Code - Pryvons';
+    return 'Password Reset OTP - Pryvons';
+  };
+
   const baseStyle = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-        <h1 style="color: white; margin: 0; font-size: 28px;">${type === 'signin' ? 'Sign In Verification' : 'Password Reset'}</h1>
+        <h1 style="color: white; margin: 0; font-size: 28px;">${getTitle()}</h1>
       </div>
       
       <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
         <h2 style="color: #333; margin-top: 0;">Hello ${userName}!</h2>
         
         <p style="color: #666; font-size: 16px; line-height: 1.6;">
-          ${type === 'signin' 
-            ? 'You are signing in to your account. Use the following OTP to complete your sign-in:'
-            : 'You requested a password reset for your account. Use the following OTP to reset your password:'
-          }
+          ${getMessage()}
         </p>
         
         <div style="background: #fff; border: 2px dashed #667eea; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
@@ -185,10 +214,7 @@ const generateOTPEmailContent = (otp, userName, type) => {
         <ul style="color: #666; font-size: 14px; line-height: 1.6; padding-left: 20px;">
           <li>This OTP is valid for <strong>10 minutes</strong> only</li>
           <li>Do not share this OTP with anyone</li>
-          <li>${type === 'signin' 
-            ? 'If you didn\'t attempt to sign in, please secure your account immediately'
-            : 'If you didn\'t request this reset, please ignore this email'
-          }</li>
+          <li>${getWarning()}</li>
         </ul>
         
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
@@ -201,9 +227,7 @@ const generateOTPEmailContent = (otp, userName, type) => {
   `;
 
   return {
-    subject: type === 'signin' 
-      ? 'Sign In Verification Code - Pryvons'
-      : 'Password Reset OTP - Pryvons',
+    subject: getSubject(),
     html: baseStyle
   };
 };

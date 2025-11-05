@@ -32,10 +32,8 @@ export async function POST(request) {
     // Dynamic import to avoid build-time issues
     const bcrypt = (await import('bcryptjs')).default;
     
-    // Try to use database - this should always work now
-    let user;
     try {
-      console.log('🔍 Starting user creation process for:', email);
+      console.log('🔍 Starting signup OTP process for:', email);
       
       // Import database helpers dynamically to avoid import errors
       const { databaseHelpers } = await import('../../../../lib/database.js');
@@ -52,20 +50,11 @@ export async function POST(request) {
         );
       }
 
-      // Hash password
-      console.log('🔐 Hashing password...');
-      const saltRounds = 12;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-      // Handle referral code validation
+      // Validate referral code if provided (but don't create user yet)
       let referrerId = null;
       if (referralCode) {
         console.log('🔍 Validating referral code:', referralCode);
-        console.log('🔍 Referral code type:', typeof referralCode);
-        console.log('🔍 Referral code length:', referralCode.length);
-        
         const referrer = await databaseHelpers.user.getUserById(referralCode);
-        console.log('🔍 Referrer lookup result:', referrer ? 'Found' : 'Not found');
         
         if (!referrer) {
           console.log('❌ Referral code not found in database');
@@ -77,139 +66,98 @@ export async function POST(request) {
         
         referrerId = referrer.id;
         console.log('✅ Valid referral code found for user:', referrer.email);
-      } else {
-        console.log('ℹ️ No referral code provided');
       }
 
-      // Create user in database
-      console.log('👤 Creating user in database...');
-      const userData = {
-        email,
-        password: hashedPassword,
-        name,
-        emailVerified: true,
-        role: 'USER',
-        referrerId
-      };
+      // Generate and send OTP
+      try {
+        const { generateOTP, hashOTP, getOTPExpiry } = await import('../../../../lib/otp-utils-simple.js');
+        const { sendOTPEmail } = await import('../../../../lib/email-service-simple.js');
 
-      user = await databaseHelpers.user.createUser(userData);
-      console.log('✅ User created successfully:', user.email);
+        // Generate OTP
+        const otp = generateOTP();
+        console.log(`🔍 Generated OTP for signup ${email}: ${otp}`);
 
-      // Create referral record if referral code was provided
-      let referralRecord = null;
-      if (referrerId) {
+        // Hash the OTP using bcrypt (12 salt rounds for security)
+        const otpHash = await hashOTP(otp);
+        console.log(`🔍 Hashed OTP: ${otpHash.substring(0, 20)}...`);
+
+        // Set expiry time (10 minutes from now)
+        const expiresAt = getOTPExpiry(10);
+
+        // Store OTP record in database with hashed OTP
+        const otpRecord = await databaseHelpers.passwordReset.createPasswordReset({
+          email,
+          otpHash,
+          expiresAt
+        });
+
+        console.log(`OTP record created for signup ${email} with ID: ${otpRecord.id}`);
+
+        // Send OTP email
         try {
-          console.log('🔗 Creating referral record...');
-          console.log('🔗 Referrer ID:', referrerId);
-          console.log('🔗 Referred ID:', user.id);
+          console.log(`🔍 Sending signup OTP email to ${email} with OTP: ${otp}`);
+          const emailResult = await sendOTPEmail(email, otp, name, 'signup');
+          console.log(`✅ Signup OTP email sent successfully to ${email}:`, emailResult.messageId);
+        } catch (emailError) {
+          console.error('❌ Failed to send signup OTP email:', emailError);
           
-          referralRecord = await databaseHelpers.referral.createReferral({
-            referrerId,
-            referredId: user.id
-          });
-          console.log('✅ Referral record created successfully:', referralRecord.id);
-
-        } catch (referralError) {
-          console.error('❌ Error creating referral record:', referralError);
-          console.error('❌ Referral error details:', {
-            message: referralError.message,
-            code: referralError.code,
-            detail: referralError.detail
-          });
-          // Don't fail the signup if referral creation fails
+          // In development mode, log OTP to console so testing can continue
+          if (process.env.NODE_ENV === 'development') {
+            console.log('\n========================================');
+            console.log('🚨 EMAIL SERVICE FAILED - DEVELOPMENT MODE');
+            console.log('========================================');
+            console.log(`📧 Email: ${email}`);
+            console.log(`🔑 OTP Code: ${otp}`);
+            console.log(`⏰ Expires in: 10 minutes`);
+            console.log('========================================');
+            console.log('⚠️  This OTP is logged because email service is not configured.');
+            console.log('⚠️  In production, configure SMTP credentials properly.');
+            console.log('========================================\n');
+          }
         }
-      }
 
-      // Create wallet for the user
-      console.log('💰 Creating wallet for user...');
-      try {
-        await databaseHelpers.wallet.createWallet(user.id);
-        console.log('✅ Wallet created successfully for user:', user.id);
-      } catch (walletError) {
-        console.error('❌ Error creating wallet for user:', walletError);
-        // Don't fail the signup if wallet creation fails
-      }
+        // Clean up expired OTPs (run in background)
+        databaseHelpers.passwordReset.cleanupExpiredResets()
+          .then(result => {
+            if (result.count > 0) {
+              console.log(`Cleaned up ${result.count} expired OTPs`);
+            }
+          })
+          .catch(error => {
+            console.error('Error cleaning up expired OTPs:', error);
+          });
 
-      // Schedule wallet fee (30-day free trial)
-      console.log('📅 Scheduling wallet fee for user...');
-      try {
-        const walletFeeService = (await import('../../../../lib/walletFeeService.js')).default;
-        await walletFeeService.scheduleWalletFee(user);
-        console.log('✅ Wallet fee scheduled successfully for user:', user.id);
-      } catch (feeError) {
-        console.error('❌ Error scheduling wallet fee:', feeError);
-        // Don't fail the signup if fee scheduling fails
+        // Return success - signup data will be sent from frontend during OTP verification
+        return NextResponse.json({
+          success: true,
+          message: 'OTP sent successfully to your email. Please check your inbox and enter the 6-digit code to complete registration.',
+          requiresOTP: true,
+          email: email
+        });
+
+      } catch (otpError) {
+        console.error('Error generating/sending OTP:', otpError);
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Failed to send verification code. Please try again.',
+            details: process.env.NODE_ENV === 'development' ? otpError.message : undefined
+          },
+          { status: 500 }
+        );
       }
 
     } catch (dbError) {
       console.error('❌ Database error during signup:', dbError);
       
-      // If user was created but other operations failed, still return success
-      if (user && user.id) {
-        console.log('✅ User was created successfully, returning success despite other errors');
-        const { password: _, ...userWithoutPassword } = user;
-        
-        return NextResponse.json({
-          success: true,
-          userId: user.id,
-          message: 'Account created successfully! You can now sign in.',
-          user: {
-            ...userWithoutPassword,
-            $id: user.id
-          }
-        });
-      }
-      
-      // Return error only if user creation failed
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Failed to create account. Database connection error.',
+          error: 'Failed to process signup. Database connection error.',
           details: process.env.NODE_ENV === 'development' ? dbError.message : undefined
         },
         { status: 500 }
       );
-    }
-
-    // Return user data (without password)
-    try {
-      const { password: _, ...userWithoutPassword } = user;
-      
-      // Prepare response data
-      const responseData = {
-        success: true,
-        userId: user.id,
-        message: referralRecord ? 'Signup successful with referral' : 'Account created successfully! You can now sign in.',
-        user: {
-          ...userWithoutPassword,
-          $id: user.id
-        }
-      };
-
-      // Add referral information if applicable
-      if (referralRecord) {
-        responseData.referrerId = referrerId;
-        responseData.referralId = referralRecord.id;
-      }
-      
-      console.log('✅ Returning success response for user:', user.email);
-      return NextResponse.json(responseData);
-      
-    } catch (responseError) {
-      console.error('❌ Error preparing response:', responseError);
-      
-      // Return basic success response even if response preparation fails
-      return NextResponse.json({
-        success: true,
-        userId: user.id,
-        message: 'Account created successfully! You can now sign in.',
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          $id: user.id
-        }
-      });
     }
 
   } catch (error) {
