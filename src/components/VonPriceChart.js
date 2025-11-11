@@ -60,24 +60,43 @@ const generateVonData = (timeFilter, currentPrice) => {
   }
   
   // Generate realistic price movement like real token websites
-  let basePrice = currentPrice * 0.95; // Start slightly below current price
+  // Start at current price (0.0035) and create visible fluctuations
+  let basePrice = currentPrice; // Start at current price
   
+  // Create a trend that starts at current price, fluctuates, and returns to current price
   for (let i = 0; i < points; i++) {
     const timestamp = new Date(startTime.getTime() + (i * interval));
     
-    // Small realistic price movements
-    const volatility = 0.002; // 0.2% volatility for stable token
-    const change = (Math.random() - 0.5) * volatility;
-    basePrice = basePrice * (1 + change);
-    
-    // Keep price close to current price
-    const minPrice = currentPrice * 0.98;
-    const maxPrice = currentPrice * 1.02;
-    basePrice = Math.max(minPrice, Math.min(maxPrice, basePrice));
+    // For the first point, use exact current price
+    if (i === 0) {
+      basePrice = currentPrice;
+    } else if (i === points - 1) {
+      // Last point should be current price
+      basePrice = currentPrice;
+    } else {
+      // Create visible price movements with trend
+      // Use a combination of trend and random volatility
+      const progress = i / (points - 1); // 0 to 1
+      
+      // Create a wave pattern that starts and ends at current price
+      // This creates visible up and down movements
+      const wave = Math.sin(progress * Math.PI * 2) * 0.003; // Wave amplitude
+      const trend = (progress - 0.5) * 0.002; // Slight trend
+      const volatility = 0.002; // 0.2% random volatility
+      const randomChange = (Math.random() - 0.5) * volatility;
+      
+      // Combine wave, trend, and random changes
+      basePrice = currentPrice * (1 + wave + trend + randomChange);
+      
+      // Keep price within reasonable range (2% above/below current price)
+      const minPrice = currentPrice * 0.98; // 2% below
+      const maxPrice = currentPrice * 1.02; // 2% above
+      basePrice = Math.max(minPrice, Math.min(maxPrice, basePrice));
+    }
     
     data.push({
       timestamp: timestamp.toISOString(),
-      price: parseFloat(basePrice.toFixed(4)), // More precision for Von
+      price: parseFloat(basePrice.toFixed(6)), // More precision for Von
       volume: Math.floor(Math.random() * 10000000) + 1000000, // Higher volume for crypto
       time: timestamp.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
@@ -89,6 +108,35 @@ const generateVonData = (timeFilter, currentPrice) => {
         day: 'numeric' 
       })
     });
+  }
+  
+  // Ensure all prices are valid numbers BEFORE calculating baseline
+  data.forEach((point, index) => {
+    if (isNaN(point.price) || point.price <= 0) {
+      // If invalid, set to a value between currentPrice * 0.98 and currentPrice * 1.02
+      const progress = index / (data.length - 1);
+      point.price = currentPrice * (0.98 + progress * 0.04);
+    }
+  });
+  
+  // Calculate baseline from minimum price in the dataset (excluding first point which will be forced to currentPrice)
+  // This shows the change from the lowest point, which is more meaningful
+  const pricesForBaseline = data.length > 1 ? data.slice(1, -1).map(d => d.price) : [currentPrice];
+  const minPrice = Math.min(...pricesForBaseline, currentPrice);
+  const maxPrice = Math.max(...pricesForBaseline, currentPrice);
+  
+  // Use minimum price as baseline to show gain from lowest point
+  // This is more meaningful than using first point since first point is forced to currentPrice
+  const baselinePrice = minPrice;
+  
+  // Calculate price change from baseline (min price) to current price
+  // This shows the change over the selected time period
+  const priceChange = currentPrice - baselinePrice;
+  
+  // Ensure the first point is exactly the current price (for visual consistency)
+  if (data.length > 0) {
+    data[0].price = currentPrice;
+    data[0].timestamp = startTime.toISOString();
   }
   
   // Ensure the last point is exactly the current price
@@ -106,23 +154,24 @@ const generateVonData = (timeFilter, currentPrice) => {
     });
   }
   
-  // Ensure all prices are valid numbers
-  data.forEach((point, index) => {
-    if (isNaN(point.price) || point.price <= 0) {
-      point.price = currentPrice * (0.9 + (index / data.length) * 0.2); // Gradual increase
-    }
-  });
-  
   console.log('📊 VonPriceChart: Data generation complete', {
     dataLength: data.length,
     priceRange: {
       min: Math.min(...data.map(d => d.price)),
       max: Math.max(...data.map(d => d.price))
     },
-    currentPrice
+    currentPrice,
+    baselinePrice,
+    priceChange
   });
   
-  return data;
+  // Return data with price change info (same format as PriceChart)
+  return {
+    data: data,
+    currentPrice: currentPrice,
+    priceChange: priceChange,
+    baselinePrice: baselinePrice
+  };
 };
 
 // Premium custom tooltip component for Von with smart price formatting
@@ -144,14 +193,14 @@ const VonTooltip = ({ active, payload, label }) => {
     };
     
     return (
-      <div className="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-md p-4 border border-slate-600/30 rounded-lg shadow-2xl">
-        <p className="text-sm text-slate-300 mb-2 font-medium">
+      <div className="bg-gradient-to-br from-slate-900/98 to-slate-800/98 backdrop-blur-md p-3 border-2 border-cyan-500/50 rounded-lg shadow-2xl">
+        <p className="text-xs text-slate-300 mb-1.5 font-medium">
           {data.date} {data.time}
         </p>
-        <p className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+        <p className="text-lg font-bold text-cyan-400">
           {formatPrice(data.price)}
         </p>
-        <p className="text-xs text-slate-400 font-medium">
+        <p className="text-xs text-slate-400 font-medium mt-1">
           Volume: {data.volume.toLocaleString()} Von
         </p>
       </div>
@@ -178,7 +227,27 @@ const VonPriceChart = ({ className = '' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPrice, setCurrentPrice] = useState(VonPrice);
   const [priceChange, setPriceChange] = useState(0);
+  const [baselinePrice, setBaselinePrice] = useState(VonPrice);
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Calculate Y-axis domain based on current price to ensure proper display
+  // Make sure domain shows the full range of price fluctuations
+  const yAxisDomain = useMemo(() => {
+    if (chartData.length === 0 || !currentPrice) {
+      return [0, 0.01];
+    }
+    const prices = chartData.map(d => d.price);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const range = maxPrice - minPrice;
+    const padding = range * 0.1 || currentPrice * 0.01; // 10% padding or 1% of current price
+    
+    // Ensure domain shows visible range around current price
+    const domainMin = Math.max(0, Math.min(minPrice - padding, currentPrice * 0.98));
+    const domainMax = Math.max(maxPrice + padding, currentPrice * 1.02);
+    
+    return [domainMin, domainMax];
+  }, [chartData, currentPrice]);
 
   // Simple mobile detection
   useEffect(() => {
@@ -197,15 +266,11 @@ const VonPriceChart = ({ className = '' }) => {
     
     // Simulate API delay
     const timeoutId = setTimeout(() => {
-      const data = generateVonData(selectedFilter, VonPrice);
-      setChartData(data);
-      
-      if (data.length > 0) {
-        const latest = data[data.length - 1];
-        const previous = data[data.length - 2];
-        setCurrentPrice(latest.price);
-        setPriceChange(latest.price - previous.price);
-      }
+      const result = generateVonData(selectedFilter, VonPrice);
+      setChartData(result.data);
+      setCurrentPrice(result.currentPrice);
+      setPriceChange(result.priceChange); // Use priceChange from generator (same as PriceChart)
+      setBaselinePrice(result.baselinePrice || result.currentPrice); // Store baseline for percentage calculation
       
       setIsLoading(false);
     }, 500);
@@ -241,10 +306,10 @@ const VonPriceChart = ({ className = '' }) => {
             })
           };
           
-          // Calculate price change from previous point
-          if (newData.length > 1) {
-            const previousPrice = newData[lastIndex - 1].price;
-            setPriceChange(VonPrice - previousPrice);
+          // Recalculate price change when VonPrice updates
+          // Use the stored baselinePrice to maintain consistency
+          if (newData.length > 0) {
+            setPriceChange(VonPrice - baselinePrice);
           }
           
           return newData;
@@ -263,23 +328,28 @@ const VonPriceChart = ({ className = '' }) => {
   // Enhanced chart configuration for better mobile experience
   const chartConfig = useMemo(() => ({
     margin: { 
-      top: 5, 
-      right: isMobile ? 15 : 30, 
-      left: isMobile ? 50 : 20, // Increased left margin for y-axis labels
-      bottom: isMobile ? 5 : 10 
+      top: 10, 
+      right: isMobile ? 15 : 20, 
+      left: isMobile ? 10 : 10, // Optimized left margin
+      bottom: isMobile ? 10 : 10 
     },
     strokeWidth: isMobile ? 2.5 : 3,
-    dotRadius: isMobile ? 4 : 6,
+    dotRadius: isMobile ? 5 : 6,
     fontSize: isMobile ? 11 : 12, // Slightly larger font for mobile
-    yAxisWidth: isMobile ? 60 : 60 // Increased width for better label display
+    yAxisWidth: isMobile ? 70 : 80 // Increased width for better label display
   }), [isMobile]);
 
   // Memoize price change calculations
-  const priceChangeInfo = useMemo(() => ({
-    color: priceChange >= 0 ? 'text-green-600' : 'text-red-600',
-    icon: priceChange >= 0 ? '📈' : '📉',
-    percentage: currentPrice > 0 ? ((priceChange / (currentPrice - priceChange)) * 100).toFixed(2) : '0.00'
-  }), [priceChange, currentPrice]);
+  const priceChangeInfo = useMemo(() => {
+    // Use stored baselinePrice for consistent percentage calculation (same as PriceChart)
+    const percentage = baselinePrice > 0 ? ((priceChange / baselinePrice) * 100).toFixed(2) : '0.00';
+    
+    return {
+      color: priceChange >= 0 ? 'text-green-600' : 'text-red-600',
+      icon: priceChange >= 0 ? '📈' : '📉',
+      percentage: percentage
+    };
+  }, [priceChange, baselinePrice]);
 
 
   return (
@@ -369,30 +439,35 @@ const VonPriceChart = ({ className = '' }) => {
                   syncId="von-price-chart"
                   key={`chart-${chartData.length}-${currentPrice}`}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#64748B" opacity={0.2} />
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke="#475569" 
+                    opacity={0.3}
+                    vertical={false}
+                  />
                   <XAxis 
                     dataKey="time"
                     stroke="#94A3B8"
                     fontSize={chartConfig.fontSize}
                     tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: '#94A3B8' }}
-                    interval={isMobile ? 'preserveStartEnd' : 0}
+                    axisLine={{ stroke: '#475569', strokeWidth: 1 }}
+                    tick={{ fill: '#94A3B8', fontSize: chartConfig.fontSize }}
+                    interval={isMobile ? 'preserveStartEnd' : 'preserveStartEnd'}
                   />
                   <YAxis 
                     stroke="#94A3B8"
                     fontSize={chartConfig.fontSize}
                     tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: '#94A3B8' }}
+                    axisLine={{ stroke: '#475569', strokeWidth: 1 }}
+                    tick={{ fill: '#94A3B8', fontSize: chartConfig.fontSize }}
                     tickFormatter={(value) => {
                       // Smart formatting based on price magnitude
                       if (value < 0.01) {
-                        // For very small prices like $0.0035, show 4 decimal places
-                        return `$${value.toFixed(4)}`;
+                        // For very small prices like $0.0035, show 6 decimal places
+                        return `$${value.toFixed(6)}`;
                       } else if (value < 1) {
-                        // For prices between $0.01 and $1, show 3 decimal places
-                        return `$${value.toFixed(3)}`;
+                        // For prices between $0.01 and $1, show 4 decimal places
+                        return `$${value.toFixed(4)}`;
                       } else if (value < 100) {
                         // For prices between $1 and $100, show 2 decimal places
                         return `$${value.toFixed(2)}`;
@@ -402,44 +477,47 @@ const VonPriceChart = ({ className = '' }) => {
                       }
                     }}
                     width={chartConfig.yAxisWidth}
-                    domain={['dataMin', 'dataMax']}
+                    domain={yAxisDomain}
                     allowDecimals={true}
                     scale="linear"
                   />
                   <Tooltip content={<VonTooltip />} />
                   <defs>
                     <linearGradient id="VonPriceGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.8}/>
-                      <stop offset="50%" stopColor="#3B82F6" stopOpacity={0.4}/>
-                      <stop offset="100%" stopColor="#6366F1" stopOpacity={0.1}/>
+                      <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.3}/>
+                      <stop offset="50%" stopColor="#3B82F6" stopOpacity={0.2}/>
+                      <stop offset="100%" stopColor="#6366F1" stopOpacity={0.05}/>
                     </linearGradient>
                     <linearGradient id="VonPriceLine" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#06B6D4"/>
-                      <stop offset="50%" stopColor="#3B82F6"/>
-                      <stop offset="100%" stopColor="#6366F1"/>
+                      <stop offset="0%" stopColor="#06B6D4" stopOpacity={1}/>
+                      <stop offset="50%" stopColor="#3B82F6" stopOpacity={1}/>
+                      <stop offset="100%" stopColor="#6366F1" stopOpacity={1}/>
                     </linearGradient>
                   </defs>
                   <Line
                     type="monotone"
                     dataKey="price"
-                    stroke="url(#VonPriceLine)"
-                    strokeWidth={chartConfig.strokeWidth}
+                    stroke="#06B6D4"
+                    strokeWidth={isMobile ? 2.5 : 3}
                     dot={false}
                     activeDot={{ 
-                      r: chartConfig.dotRadius, 
+                      r: isMobile ? 5 : 6, 
                       fill: '#06B6D4', 
-                      stroke: '#0891B2', 
+                      stroke: '#ffffff', 
                       strokeWidth: 2,
-                      filter: 'drop-shadow(0 0 4px rgba(6, 182, 212, 0.5))'
+                      filter: 'drop-shadow(0 0 4px rgba(6, 182, 212, 0.8))'
                     }}
                     fill="url(#VonPriceGradient)"
+                    isAnimationActive={true}
+                    animationDuration={300}
                   />
                   <ReferenceLine 
                     y={currentPrice} 
                     stroke="#10B981" 
-                    strokeDasharray="4 4"
-                    strokeOpacity={0.8}
-                    strokeWidth={isMobile ? 1 : 2}
+                    strokeDasharray="5 5"
+                    strokeOpacity={0.6}
+                    strokeWidth={isMobile ? 1.5 : 2}
+                    label={{ value: 'Current', position: 'right', fill: '#10B981', fontSize: 10 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
