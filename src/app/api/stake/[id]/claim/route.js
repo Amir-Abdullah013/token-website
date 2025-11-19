@@ -48,9 +48,14 @@ export async function POST(request, { params }) {
     }
 
     // Calculate reward amount and profit
-    const rewardAmount = (staking.amountStaked * staking.rewardPercent) / 100;
-    const profit = rewardAmount; // The profit is the reward amount
-    const totalAmount = staking.amountStaked + rewardAmount;
+    const totalRewardAmount = Number(
+      staking.rewardAmount ?? (staking.amountStaked * staking.rewardPercent) / 100
+    );
+    const rewardAccrued = Number(staking.rewardAccrued || 0);
+    const remainingReward = Math.max(0, totalRewardAmount - rewardAccrued);
+    const updatedRewardAccrued = Math.max(totalRewardAmount, rewardAccrued + remainingReward);
+    const principalAmount = Number(staking.amountStaked);
+    const totalPayout = principalAmount + remainingReward;
 
     // Get current token value for inflation calculations
     const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
@@ -89,21 +94,18 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Calculate total tokens needed (referral bonus already distributed on stake creation)
-    let totalTokensNeeded = profit;
-    // NOTE: Referral bonus is now distributed immediately when stake is created,
-    // not when staking is claimed, so we don't add it here anymore
-
-    // Check if sufficient tokens are available in admin reserve
-    if (Number(tokenSupply.adminReserve) < totalTokensNeeded) {
+    // Check if sufficient tokens are available in admin reserve for principal + any remaining rewards
+    const totalReserveNeeded = totalPayout;
+    const currentAdminReserve = Number(tokenSupply.adminReserve);
+    if (currentAdminReserve < totalReserveNeeded) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Insufficient token supply',
+          error: 'Insufficient token supply for final staking payout',
           details: {
-            required: totalTokensNeeded,
-            available: Number(tokenSupply.adminReserve),
-            shortfall: totalTokensNeeded - Number(tokenSupply.adminReserve),
+            required: totalReserveNeeded,
+            available: currentAdminReserve,
+            shortfall: totalReserveNeeded - currentAdminReserve,
             message: 'Admin reserve limit reached. Admin needs to add tokens to reserve.'
           }
         },
@@ -119,23 +121,14 @@ export async function POST(request, { params }) {
       client = await databaseHelpers.pool.connect();
       await client.query('BEGIN');
 
-      // Deduct tokens from admin reserve (staking rewards come from admin reserve)
       await client.query(`
         UPDATE token_supply 
         SET "adminReserve" = "adminReserve" - $1, "updatedAt" = NOW()
         WHERE id = $2
-        RETURNING *
-      `, [totalTokensNeeded, tokenSupply.id]);
+      `, [totalPayout, tokenSupply.id]);
 
-      // Get updated token supply
-      const updatedSupplyResult = await client.query(
-        'SELECT * FROM token_supply WHERE id = $1',
-        [tokenSupply.id]
-      );
-      updatedTokenSupply = updatedSupplyResult.rows[0];
-
-      // Add staked amount + reward back to user's wallet
-      const newVonBalance = userWallet.VonBalance + totalAmount;
+      // Add principal (and any final reward) back to user's wallet
+      const newVonBalance = userWallet.VonBalance + totalPayout;
       await client.query(
         'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
         [newVonBalance, session.id]
@@ -147,9 +140,16 @@ export async function POST(request, { params }) {
       // Update staking record with profit and mark as claimed
       await client.query(`
         UPDATE staking 
-        SET status = 'CLAIMED', claimed = true, profit = $1, "updatedAt" = NOW()
+        SET 
+          status = 'CLAIMED', 
+          claimed = true, 
+          profit = $1, 
+          "rewardAccrued" = GREATEST($1, "rewardAccrued"), 
+          "daysRewarded" = GREATEST("daysRewarded", "durationDays"),
+          "nextRewardDate" = NULL,
+          "updatedAt" = NOW()
         WHERE id = $2
-      `, [profit, id]);
+      `, [totalRewardAmount, id]);
 
       await client.query('COMMIT');
       console.log('✅ Transaction committed successfully');
@@ -166,22 +166,26 @@ export async function POST(request, { params }) {
       }
     }
 
+    if (!updatedTokenSupply) {
+      updatedTokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
+    }
+
     // Create transaction record
     await databaseHelpers.transaction.createTransaction({
       userId: session.id,
-      type: 'BUY',
-      amount: totalAmount,
+      type: 'UNSTAKE',
+      amount: totalPayout,
       currency: 'Von',
       status: 'COMPLETED',
       gateway: 'Staking',
-      description: `Auto-claimed staking rewards: ${staking.amountStaked} Von + ${rewardAmount} Von reward`
+      description: `Staking principal released${remainingReward > 0 ? ` with ${remainingReward} Von final reward` : ''}`
     });
 
     // Send notification
     await databaseHelpers.notification.createNotification({
       userId: session.id,
-      title: 'Staking Rewards Claimed',
-      message: `You have successfully claimed your staking rewards! Received ${totalAmount} Von (${staking.amountStaked} staked + ${rewardAmount} reward).`,
+      title: 'Staking Completed',
+      message: `You have successfully claimed your ${principalAmount} Von principal${remainingReward > 0 ? ` along with a final ${remainingReward.toFixed(4)} Von reward` : ''}.`,
       type: 'STAKE'
     });
 
@@ -192,24 +196,25 @@ export async function POST(request, { params }) {
       staker: {
         userId: session.id,
         stakedAmount: staking.amountStaked,
-        rewardAmount: rewardAmount,
-        profit: profit,
-        totalAmount: totalAmount,
-        newBalance: userWallet.VonBalance + totalAmount
+        rewardAmount: totalRewardAmount,
+        rewardAccrued: updatedRewardAccrued,
+        remainingReward,
+        totalPayout,
+        newBalance: userWallet.VonBalance + totalPayout
       },
       tokenSupply: {
         totalSupply: Number(updatedTokenSupply.totalSupply),
         adminReserve: Number(updatedTokenSupply.adminReserve),
         userSupplyRemaining: Number(updatedTokenSupply.userSupplyRemaining),
-        tokensDeducted: totalTokensNeeded,
+        tokensDeducted: totalPayout,
         deductedFrom: 'adminReserve'
       },
       tokenValue: {
         baseValue: tokenValue.baseValue,
         currentValue: tokenValue.currentTokenValue,
         inflationFactor: tokenValue.inflationFactor,
-        profitUSDValue: profit * tokenValue.currentTokenValue,
-        totalUSDValue: totalAmount * tokenValue.currentTokenValue
+        profitUSDValue: totalRewardAmount * tokenValue.currentTokenValue,
+        totalUSDValue: totalPayout * tokenValue.currentTokenValue
       }
     };
 

@@ -262,6 +262,8 @@ enum TransactionType {
   BUY
   SELL
   WALLET_FEE
+  UNSTAKE
+  STAKE_REWARD
 }
 
 enum TransactionStatus {
@@ -297,7 +299,12 @@ model Staking {
   endDate       DateTime
   status        StakingStatus @default(ACTIVE)
   claimed       Boolean       @default(false)
-  rewardAmount  Float?        // Calculated reward amount
+  rewardAmount  Float         @default(0) // Total reward to be distributed
+  dailyRewardAmount Float     @default(0) // Reward paid out each day
+  rewardAccrued Float         @default(0) // Reward already credited to the user
+  daysRewarded  Int           @default(0) // Number of daily payouts processed
+  lastRewardDate DateTime?
+  nextRewardDate DateTime?
   profit        Float?        // Actual profit earned from staking
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

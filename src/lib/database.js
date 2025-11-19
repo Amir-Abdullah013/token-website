@@ -1406,14 +1406,51 @@ export const databaseHelpers = {
   staking: {
     async createStaking(stakingData) {
       try {
-        const { userId, amountStaked, durationDays, rewardPercent, startDate, endDate } = stakingData;
+        const { 
+          userId, 
+          amountStaked, 
+          durationDays, 
+          rewardPercent, 
+          startDate, 
+          endDate,
+          rewardAmount: rewardAmountInput,
+          dailyRewardAmount: dailyRewardInput,
+          nextRewardDate
+        } = stakingData;
         const id = randomUUID();
+        const computedRewardAmount = typeof rewardAmountInput === 'number' 
+          ? rewardAmountInput 
+          : (amountStaked * rewardPercent) / 100;
+        const computedDailyReward = typeof dailyRewardInput === 'number' 
+          ? dailyRewardInput 
+          : (durationDays > 0 ? computedRewardAmount / durationDays : 0);
         
         const result = await pool.query(`
-          INSERT INTO staking (id, "userId", "amountStaked", "durationDays", "rewardPercent", "startDate", "endDate", status, claimed, "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, $6, $7, 'ACTIVE', false, NOW(), NOW())
+          INSERT INTO staking (
+            id, "userId", "amountStaked", "durationDays", "rewardPercent", 
+            "startDate", "endDate", status, claimed, "rewardAmount", 
+            "dailyRewardAmount", "rewardAccrued", "daysRewarded", 
+            "nextRewardDate", "createdAt", "updatedAt"
+          )
+          VALUES (
+            $1, $2, $3, $4, $5,
+            $6, $7, 'ACTIVE', false, $8,
+            $9, 0, 0,
+            $10, NOW(), NOW()
+          )
           RETURNING *
-        `, [id, userId, amountStaked, durationDays, rewardPercent, startDate, endDate]);
+        `, [
+          id, 
+          userId, 
+          amountStaked, 
+          durationDays, 
+          rewardPercent, 
+          startDate, 
+          endDate,
+          computedRewardAmount,
+          computedDailyReward,
+          nextRewardDate || (startDate ? new Date(new Date(startDate).getTime() + 24 * 60 * 60 * 1000) : null)
+        ]);
 
         console.log('✅ Staking created:', result.rows[0]);
         return result.rows[0];
@@ -1574,7 +1611,8 @@ export const databaseHelpers = {
             COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completed,
             COUNT(CASE WHEN status = 'CLAIMED' THEN 1 END) as claimed,
             COALESCE(SUM(CASE WHEN status = 'ACTIVE' THEN "amountStaked" END), 0) as totalStaked,
-            COALESCE(SUM(CASE WHEN status = 'COMPLETED' OR status = 'CLAIMED' THEN "rewardAmount" END), 0) as totalRewards
+            COALESCE(SUM("rewardAccrued"), 0) as totalRewards,
+            COALESCE(SUM("rewardAmount"), 0) as totalRewardsPlanned
           FROM staking
         `);
         
@@ -1747,6 +1785,58 @@ export const databaseHelpers = {
         console.error('Error getting token supply:', error);
         throw error;
       }
+    },
+
+    async adjustAdminReserve(amountDelta) {
+      try {
+        if (!amountDelta || Number(amountDelta) === 0) {
+          return await this.getTokenSupply();
+        }
+
+        const tokenSupply = await this.getTokenSupply();
+        if (!tokenSupply) {
+          throw new Error('TokenSupply record not found');
+        }
+
+        const currentReserve = Number(tokenSupply.adminReserve);
+        const newReserve = currentReserve + Number(amountDelta);
+
+        if (newReserve < 0) {
+          throw new Error(`Insufficient admin reserve. Available: ${currentReserve}, Requested: ${Math.abs(amountDelta)}`);
+        }
+
+        const result = await pool.query(`
+          UPDATE token_supply
+          SET "adminReserve" = "adminReserve" + $1, "updatedAt" = NOW()
+          WHERE id = $2
+          RETURNING *
+        `, [amountDelta, tokenSupply.id]);
+
+        console.log('🔄 Admin reserve adjusted:', {
+          delta: amountDelta,
+          previous: currentReserve,
+          updated: Number(result.rows[0].adminReserve)
+        });
+
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error adjusting admin reserve:', error);
+        throw error;
+      }
+    },
+
+    async depositStakeToAdminReserve(amount) {
+      if (!amount || amount <= 0) {
+        return this.getTokenSupply();
+      }
+      return this.adjustAdminReserve(Math.abs(Number(amount)));
+    },
+
+    async releaseStakeFromAdminReserve(amount) {
+      if (!amount || amount <= 0) {
+        return this.getTokenSupply();
+      }
+      return this.adjustAdminReserve(-Math.abs(Number(amount)));
     },
 
     async createTokenSupply(totalSupply = 10000000, remainingSupply = 10000000) {

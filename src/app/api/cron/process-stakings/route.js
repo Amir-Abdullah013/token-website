@@ -1,131 +1,188 @@
 import { NextResponse } from 'next/server';
 import { databaseHelpers } from '@/lib/database';
 
-export async function GET(request) {
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const EPSILON = 0.000001;
+
+export async function GET() {
   try {
-    console.log('🔄 Processing automatic staking completions...');
-    
-    // Get all active stakings that have reached their end date
-    const completedStakings = await databaseHelpers.pool.query(`
-      SELECT s.*, u.name as user_name, u.email as user_email, u."referrerId"
+    console.log('🔄 Processing daily staking rewards...');
+
+    const activeStakingsResult = await databaseHelpers.pool.query(`
+      SELECT s.*, u.name as user_name, u.email as user_email
       FROM staking s
       LEFT JOIN users u ON s."userId" = u.id
-      WHERE s.status = 'ACTIVE' 
-      AND s."endDate" <= NOW()
-      ORDER BY s."endDate" ASC
+      WHERE s.status = 'ACTIVE'
+      ORDER BY s."startDate" ASC
     `);
 
-    console.log(`📊 Found ${completedStakings.rows.length} stakings ready for completion`);
+    const activeStakings = activeStakingsResult.rows;
+    console.log(`📊 Found ${activeStakings.length} active stakings to evaluate`);
 
-    const processedStakings = [];
+    if (activeStakings.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No active stakings found',
+        processed: [],
+        completed: [],
+        skipped: [],
+        errors: [],
+        totalActive: 0,
+        totalRewardsPaid: 0
+      });
+    }
+
+    const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
+    if (!tokenSupply) {
+      throw new Error('Token supply not initialized');
+    }
+
+    let availableAdminReserve = Number(tokenSupply.adminReserve);
+    let totalPrincipalReleased = 0;
+    const processed = [];
+    const completed = [];
+    const skipped = [];
     const errors = [];
+    let totalRewardsPaid = 0;
+    const now = new Date();
 
-    for (const staking of completedStakings.rows) {
+    for (const staking of activeStakings) {
       try {
-        console.log(`🔄 Processing staking ${staking.id} for user ${staking.user_name}`);
-        
-        // Mark staking as completed
-        await databaseHelpers.pool.query(`
-          UPDATE staking 
-          SET status = 'COMPLETED', "updatedAt" = NOW()
-          WHERE id = $1
-        `, [staking.id]);
+        const totalReward = Number(
+          staking.rewardAmount ?? (staking.amountStaked * staking.rewardPercent) / 100
+        );
+        const dailyReward = Number(
+          staking.dailyRewardAmount ?? (staking.durationDays > 0 ? totalReward / staking.durationDays : 0)
+        );
+        const durationDays = Number(staking.durationDays);
+        const startDate = new Date(staking.startDate);
+        const endDate = new Date(staking.endDate);
+        const previousDaysRewarded = Number(staking.daysRewarded || 0);
+        const previousAccrued = Number(staking.rewardAccrued || 0);
 
-        // Calculate reward amount
-        const rewardAmount = (staking.amountStaked * staking.rewardPercent) / 100;
-        const profit = rewardAmount;
-        const totalAmount = staking.amountStaked + rewardAmount;
-
-        // Get user's wallet
-        const userWallet = await databaseHelpers.wallet.getWalletByUserId(staking.userId);
-        if (!userWallet) {
-          throw new Error(`Wallet not found for user ${staking.userId}`);
-        }
-
-        // Get token supply
-        const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
-        if (!tokenSupply) {
-          throw new Error('Token supply not initialized');
-        }
-
-        // Calculate total tokens needed (referral bonus already distributed on stake creation)
-        let totalTokensNeeded = profit;
-        // NOTE: Referral bonus is now distributed immediately when stake is created,
-        // not when staking completes, so we don't add it here anymore
-
-        // Check if sufficient tokens are available in admin reserve
-        if (Number(tokenSupply.adminReserve) < totalTokensNeeded) {
-          console.log(`⚠️ Insufficient admin reserve for staking ${staking.id}. Required: ${totalTokensNeeded}, Available: ${tokenSupply.adminReserve}. Admin needs to add tokens to reserve.`);
-          // Mark as completed but don't process rewards yet
-          await databaseHelpers.pool.query(`
-            UPDATE staking 
-            SET status = 'COMPLETED', "updatedAt" = NOW()
-            WHERE id = $1
-          `, [staking.id]);
+        if (durationDays <= 0) {
+          skipped.push({
+            stakingId: staking.id,
+            reason: 'Invalid duration',
+          });
           continue;
         }
 
-        // Process the staking completion in a transaction
+        const elapsedDays = Math.max(
+          0,
+          Math.floor((now.getTime() - startDate.getTime()) / DAY_IN_MS)
+        );
+        const cappedElapsedDays = Math.min(durationDays, elapsedDays);
+        let pendingDays = Math.max(0, cappedElapsedDays - previousDaysRewarded);
+        let rewardIncrement = pendingDays * dailyReward;
+        const willCompleteAfterThisRun =
+          previousDaysRewarded + pendingDays >= durationDays && now >= endDate;
+
+        if (willCompleteAfterThisRun) {
+          // Make sure any floating-point remainder is paid on the final run
+          const totalRewardRemaining = totalReward - (previousAccrued + rewardIncrement);
+          if (totalRewardRemaining > EPSILON) {
+            rewardIncrement += totalRewardRemaining;
+          }
+        }
+
+        if (rewardIncrement <= EPSILON && !willCompleteAfterThisRun) {
+          continue; // Nothing to pay today
+        }
+
+        if (rewardIncrement > 0 && rewardIncrement > availableAdminReserve + EPSILON) {
+          skipped.push({
+            stakingId: staking.id,
+            reason: 'Insufficient admin reserve',
+            required: rewardIncrement,
+            available: availableAdminReserve
+          });
+          continue;
+        }
+
+        const daysRewardedAfter = willCompleteAfterThisRun
+          ? durationDays
+          : previousDaysRewarded + pendingDays;
+
         let client;
+        const principalAmount = Number(staking.amountStaked);
+        let principalReleased = false;
         try {
           client = await databaseHelpers.pool.connect();
           await client.query('BEGIN');
 
-          // Deduct tokens from admin reserve (staking rewards come from admin reserve)
-          await client.query(`
-            UPDATE token_supply 
-            SET "adminReserve" = "adminReserve" - $1, "updatedAt" = NOW()
-            WHERE id = $2
-          `, [totalTokensNeeded, tokenSupply.id]);
+          if (rewardIncrement > 0) {
+            await client.query(
+              `
+              UPDATE token_supply 
+              SET "adminReserve" = "adminReserve" - $1, "updatedAt" = NOW()
+              WHERE id = $2
+            `,
+              [rewardIncrement, tokenSupply.id]
+            );
 
-          // Add staked amount + reward back to user's wallet
-          const newVonBalance = userWallet.VonBalance + totalAmount;
+            await client.query(
+              'UPDATE wallets SET "VonBalance" = "VonBalance" + $1, "updatedAt" = NOW() WHERE "userId" = $2',
+              [rewardIncrement, staking.userId]
+            );
+          }
+
+          if (willCompleteAfterThisRun) {
+            const reserveResult = await client.query(
+              `
+              UPDATE token_supply 
+              SET "adminReserve" = "adminReserve" - $1, "updatedAt" = NOW()
+              WHERE id = $2 AND "adminReserve" >= $1
+              RETURNING "adminReserve"
+            `,
+              [principalAmount, tokenSupply.id]
+            );
+
+            if (reserveResult.rowCount === 0) {
+              throw new Error('Insufficient admin reserve to release staking principal');
+            }
+
+            await client.query(
+              'UPDATE wallets SET "VonBalance" = "VonBalance" + $1, "updatedAt" = NOW() WHERE "userId" = $2',
+              [principalAmount, staking.userId]
+            );
+
+            principalReleased = true;
+          }
+
+          const nextRewardDateValue = willCompleteAfterThisRun
+            ? null
+            : new Date(startDate.getTime() + (daysRewardedAfter + 1) * DAY_IN_MS);
+
           await client.query(
-            'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
-            [newVonBalance, staking.userId]
+            `
+            UPDATE staking 
+            SET 
+              "rewardAmount" = CASE WHEN "rewardAmount" = 0 THEN $1 ELSE "rewardAmount" END,
+              "dailyRewardAmount" = CASE WHEN "dailyRewardAmount" = 0 THEN $2 ELSE "dailyRewardAmount" END,
+              "rewardAccrued" = COALESCE("rewardAccrued", 0) + $3,
+              "daysRewarded" = $4,
+              "lastRewardDate" = CASE WHEN $3 > 0 THEN NOW() ELSE "lastRewardDate" END,
+              "nextRewardDate" = $5,
+              status = CASE WHEN $6 THEN 'CLAIMED' ELSE status END,
+              claimed = CASE WHEN $6 THEN true ELSE claimed END,
+              profit = CASE WHEN $6 THEN $8 ELSE profit END,
+              "updatedAt" = NOW()
+            WHERE id = $7
+          `,
+            [
+              totalReward,
+              dailyReward,
+              rewardIncrement,
+              daysRewardedAfter,
+              nextRewardDateValue,
+              willCompleteAfterThisRun,
+              staking.id,
+              totalReward
+            ]
           );
 
-          // Referral bonus already distributed on stake creation
-          // No need to process it again here
-
-          // Update staking record with profit and mark as claimed
-          await client.query(`
-            UPDATE staking 
-            SET status = 'CLAIMED', claimed = true, profit = $1, "updatedAt" = NOW()
-            WHERE id = $2
-          `, [profit, staking.id]);
-
           await client.query('COMMIT');
-          console.log(`✅ Staking ${staking.id} processed successfully`);
-
-          // Create transaction record
-          await databaseHelpers.transaction.createTransaction({
-            userId: staking.userId,
-            type: 'UNSTAKE',
-            amount: totalAmount,
-            currency: 'Von',
-            status: 'COMPLETED',
-            gateway: 'Staking',
-            description: `Auto-claimed staking rewards: ${staking.amountStaked} Von + ${rewardAmount} Von reward`
-          });
-
-          // Send notification to user
-          await databaseHelpers.notification.createNotification({
-            userId: staking.userId,
-            title: 'Staking Rewards Auto-Claimed',
-            message: `Your staking has completed and rewards have been automatically claimed! Received ${totalAmount} Von (${staking.amountStaked} staked + ${rewardAmount} reward).`,
-            type: 'STAKE'
-          });
-
-          processedStakings.push({
-            id: staking.id,
-            userId: staking.userId,
-            userName: staking.user_name,
-            amountStaked: staking.amountStaked,
-            rewardAmount: rewardAmount,
-            totalAmount: totalAmount
-          });
-
         } catch (transactionError) {
           if (client) {
             await client.query('ROLLBACK');
@@ -137,6 +194,44 @@ export async function GET(request) {
           }
         }
 
+        if (rewardIncrement > 0) {
+          await databaseHelpers.transaction.createTransaction({
+            userId: staking.userId,
+            type: 'STAKE_REWARD',
+            amount: rewardIncrement,
+            currency: 'Von',
+            status: 'COMPLETED',
+            gateway: 'Staking',
+            description: `Daily staking reward payout (${daysRewardedAfter}/${durationDays} days)`
+          });
+          totalRewardsPaid += rewardIncrement;
+          availableAdminReserve -= rewardIncrement;
+        }
+
+        if (principalReleased) {
+          totalPrincipalReleased += principalAmount;
+          availableAdminReserve -= principalAmount;
+        }
+
+        processed.push({
+          stakingId: staking.id,
+          userId: staking.userId,
+          rewardPaid: rewardIncrement,
+          daysRewardedBefore: previousDaysRewarded,
+          daysRewardedAfter,
+          completed: willCompleteAfterThisRun,
+          principalReleased
+        });
+
+        if (willCompleteAfterThisRun) {
+          completed.push(staking.id);
+          await databaseHelpers.notification.createNotification({
+            userId: staking.userId,
+            title: 'Staking Completed',
+            message: `Your ${staking.amountStaked} Von principal has been returned automatically and all rewards have been paid.`,
+            type: 'SUCCESS'
+          });
+        }
       } catch (error) {
         console.error(`❌ Error processing staking ${staking.id}:`, error);
         errors.push({
@@ -149,21 +244,27 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
-      message: `Processed ${processedStakings.length} stakings automatically`,
-      processed: processedStakings,
-      errors: errors,
-      totalFound: completedStakings.rows.length,
-      totalProcessed: processedStakings.length,
-      totalErrors: errors.length
+      message: `Processed ${processed.length} stakings for daily rewards`,
+      processed,
+      completed,
+      skipped,
+      errors,
+      totalActive: activeStakings.length,
+      totalProcessed: processed.length,
+      totalCompleted: completed.length,
+      totalSkipped: skipped.length,
+      totalErrors: errors.length,
+      totalRewardsPaid,
+      totalPrincipalReleased,
+      remainingAdminReserve: availableAdminReserve
     });
-
   } catch (error) {
-    console.error('❌ Error in automatic staking processing:', error);
+    console.error('❌ Error in daily staking processing:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to process automatic stakings',
-        details: error.message 
+      {
+        success: false,
+        error: 'Failed to process daily staking rewards',
+        details: error.message
       },
       { status: 500 }
     );

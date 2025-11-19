@@ -40,6 +40,16 @@ export async function POST(request) {
     };
 
     const rewardPercent = rewardPercentages[durationDays];
+    const rewardAmount = (amount * rewardPercent) / 100;
+    const dailyRewardAmount = durationDays > 0 ? rewardAmount / durationDays : 0;
+
+    const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
+    if (!tokenSupply) {
+      return NextResponse.json(
+        { success: false, error: 'Token supply not initialized' },
+        { status: 500 }
+      );
+    }
 
     // Resolve a real DB user ID to satisfy FK constraints (by id or email)
     let userId = session.id;
@@ -104,6 +114,8 @@ export async function POST(request) {
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(startDate.getDate() + durationDays);
+    const nextRewardDate = new Date(startDate);
+    nextRewardDate.setDate(nextRewardDate.getDate() + 1);
 
     // Create staking record
     let staking;
@@ -114,7 +126,10 @@ export async function POST(request) {
         durationDays,
         rewardPercent,
         startDate,
-        endDate
+        endDate,
+        rewardAmount,
+        dailyRewardAmount,
+        nextRewardDate
       });
       console.log('✅ Staking record created:', staking.id);
     } catch (stakingErr) {
@@ -145,6 +160,25 @@ export async function POST(request) {
         error: 'Failed to update wallet for staking',
         step: 'wallet_update',
         details: walletErr.message
+      }, { status: 500 });
+    }
+
+    try {
+      await databaseHelpers.tokenSupply.depositStakeToAdminReserve(amount);
+      console.log('🏦 Staked tokens moved to admin reserve pool');
+    } catch (reserveError) {
+      console.error('❌ Error moving staked tokens to admin reserve:', reserveError);
+      try {
+        await databaseHelpers.wallet.updateVonBalance(userId, amount);
+        await databaseHelpers.staking.updateStakingStatus(staking.id, 'CANCELLED');
+      } catch (revertError) {
+        console.error('❌ Failed to rollback after reserve error:', revertError);
+      }
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to lock staked tokens in reserve',
+        step: 'reserve_update',
+        details: reserveError.message
       }, { status: 500 });
     }
 
@@ -305,6 +339,11 @@ export async function POST(request) {
         amountStaked: staking.amountStaked,
         durationDays: staking.durationDays,
         rewardPercent: staking.rewardPercent,
+        rewardAmount: staking.rewardAmount,
+        dailyRewardAmount: staking.dailyRewardAmount,
+        rewardAccrued: staking.rewardAccrued,
+        daysRewarded: staking.daysRewarded,
+        nextRewardDate: staking.nextRewardDate,
         startDate: staking.startDate,
         endDate: staking.endDate,
         status: staking.status

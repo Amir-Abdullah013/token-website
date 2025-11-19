@@ -43,6 +43,7 @@ export default function StakingPage() {
   const [stakings, setStakings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedStakingId, setExpandedStakingId] = useState(null);
 
   // Validation rules
   const MIN_AMOUNT = 100;
@@ -178,6 +179,32 @@ export default function StakingPage() {
     return STAKING_OPTIONS.find(option => option.days.toString() === formData.duration) || STAKING_OPTIONS[0];
   };
 
+  const getStakingRewardDetails = (staking) => {
+    if (!staking) {
+      return {
+        totalReward: 0,
+        dailyReward: 0,
+        rewardAccrued: 0,
+        daysRewarded: 0,
+        progressPercent: 0
+      };
+    }
+    const totalReward = staking.rewardAmount ?? ((staking.amountStaked * staking.rewardPercent) / 100);
+    const dailyReward = staking.dailyRewardAmount ?? (
+      staking.durationDays > 0 ? totalReward / staking.durationDays : 0
+    );
+    const rewardAccrued = staking.rewardAccrued ?? 0;
+    const daysRewarded = staking.daysRewarded ?? 0;
+    const progressPercent = totalReward > 0 ? Math.min(100, (rewardAccrued / totalReward) * 100) : 0;
+    return {
+      totalReward,
+      dailyReward,
+      rewardAccrued,
+      daysRewarded,
+      progressPercent
+    };
+  };
+
   const calculateReward = () => {
     const amount = parseFloat(formData.amount) || 0;
     const selectedOption = getSelectedOption();
@@ -193,6 +220,16 @@ export default function StakingPage() {
     });
   };
 
+  const formatDateWithTime = (dateString) => {
+    if (!dateString) return '—';
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'ACTIVE':
@@ -204,6 +241,27 @@ export default function StakingPage() {
       default:
         return 'bg-gradient-to-r from-slate-500/40 to-gray-500/40 text-white border border-slate-400/60';
     }
+  };
+
+  const buildRewardSchedule = (staking) => {
+    if (!staking?.durationDays) return [];
+    const schedule = [];
+    const baseDate = new Date(staking.startDate);
+    for (let day = 1; day <= staking.durationDays; day++) {
+      const payoutDate = new Date(baseDate.getTime());
+      payoutDate.setDate(baseDate.getDate() + day);
+      schedule.push({
+        day,
+        date: payoutDate,
+        paid: day <= (staking.daysRewarded || 0),
+        reward: staking.dailyRewardAmount ?? (
+          staking.durationDays > 0 
+            ? ((staking.rewardAmount ?? ((staking.amountStaked * staking.rewardPercent) / 100)) / staking.durationDays)
+            : 0
+        )
+      });
+    }
+    return schedule;
   };
 
   const getDaysRemaining = (endDate) => {
@@ -439,6 +497,10 @@ export default function StakingPage() {
                   <div className="space-y-4">
                     {stakings.map((staking) => {
                       const daysRemaining = getDaysRemaining(staking.endDate);
+                      const rewardDetails = getStakingRewardDetails(staking);
+                      const nextPayoutDisplay = staking.nextRewardDate ? formatDateWithTime(staking.nextRewardDate) : '—';
+                      const isExpanded = expandedStakingId === staking.id;
+                      const schedule = isExpanded ? buildRewardSchedule(staking) : [];
                       return (
                         <div
                           key={staking.id}
@@ -512,6 +574,95 @@ export default function StakingPage() {
                               <span className="text-white">{formatDate(staking.endDate)}</span>
                             </div>
                           </div>
+
+                          {/* Daily Reward Overview */}
+                          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 p-4 rounded-lg border border-cyan-400/30">
+                              <div className="text-sm text-slate-300 mb-1">Daily Reward</div>
+                              <div className="text-2xl font-semibold text-white mb-2">
+                                {formatVon(rewardDetails.dailyReward)} Von
+                                <span className="text-sm text-slate-300 ml-1">/ day</span>
+                              </div>
+                              <p className="text-slate-300 text-sm">
+                                Earned {formatVon(rewardDetails.rewardAccrued)} / {formatVon(rewardDetails.totalReward)} Von
+                              </p>
+                              <div className="mt-3">
+                                <div className="flex items-center justify-between text-xs text-slate-400">
+                                  <span>{rewardDetails.daysRewarded} / {staking.durationDays} days paid</span>
+                                  <span>{rewardDetails.progressPercent.toFixed(1)}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-700/40 rounded-full mt-1">
+                                  <div
+                                    className="h-2 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-300"
+                                    style={{ width: `${rewardDetails.progressPercent}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 p-4 rounded-lg border border-violet-400/30 flex flex-col gap-3">
+                              <div>
+                                <div className="text-sm text-slate-300">Next Payout</div>
+                                <div className="text-white font-semibold">{nextPayoutDisplay}</div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <div className="text-slate-300">Total Reward</div>
+                                  <div className="text-white font-semibold">{formatVon(rewardDetails.totalReward)} Von</div>
+                                </div>
+                                <div>
+                                  <div className="text-slate-300">Status</div>
+                                  <div className="text-white font-semibold">
+                                    {rewardDetails.progressPercent >= 100 ? 'Completed' : 'In progress'}
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => setExpandedStakingId(isExpanded ? null : staking.id)}
+                                className="w-full bg-gradient-to-r from-violet-500/80 to-purple-500/80 border border-violet-400/40 text-white"
+                              >
+                                {isExpanded ? 'Hide Daily Schedule' : 'View Daily Schedule'}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Daily Reward Schedule */}
+                          {isExpanded && (
+                            <div className="mt-4 bg-slate-800/40 border border-slate-600/30 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div>
+                                  <div className="text-sm text-slate-300">Daily Reward Schedule</div>
+                                  <div className="text-xs text-slate-400">Scroll to explore each payout</div>
+                                </div>
+                                <div className="text-xs text-slate-400">
+                                  Showing {schedule.length} days
+                                </div>
+                              </div>
+                              <div className="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                {schedule.map((entry) => (
+                                  <div
+                                    key={`${staking.id}-${entry.day}`}
+                                    className={`flex items-center justify-between text-sm rounded-md px-3 py-2 border ${
+                                      entry.paid
+                                        ? 'border-emerald-400/40 bg-emerald-500/10 text-white'
+                                        : 'border-slate-600/30 bg-slate-700/20 text-slate-200'
+                                    }`}
+                                  >
+                                    <div>
+                                      <div className="text-xs text-slate-300">Day {entry.day}</div>
+                                      <div className="font-semibold">{entry.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-xs text-slate-300">Reward</div>
+                                      <div className="font-semibold">{formatVon(entry.reward)} Von</div>
+                                      <div className={`text-xs ${entry.paid ? 'text-emerald-300' : 'text-slate-400'}`}>
+                                        {entry.paid ? 'Paid' : 'Pending'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -547,7 +698,7 @@ export default function StakingPage() {
                       <h3 className="text-sm font-medium text-white">Reward Structure</h3>
                     </div>
                     <p className="text-sm text-slate-300">
-                      Earn 10-75% annual returns based on your staking duration. Choose from 15 days to 1 year. Rewards are calculated and paid upon completion.
+                      Earn 10-75% annual returns based on your staking duration. Rewards are now divided into daily payouts so you can watch your balance grow every day while your principal stays locked until the term ends.
                     </p>
                   </div>
 
@@ -557,7 +708,7 @@ export default function StakingPage() {
                       <h3 className="text-sm font-medium text-white">Important Notes</h3>
                     </div>
                     <p className="text-sm text-slate-300">
-                      Staked tokens are locked until the end of the staking period. Early withdrawal is not possible.
+                      Staked tokens are locked until the end of the staking period. Early withdrawal is not possible, but rewards continue to arrive daily and you can track every payout from your dashboard.
                     </p>
                   </div>
                 </div>
