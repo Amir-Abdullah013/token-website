@@ -134,11 +134,11 @@ export async function GET(request) {
       
       switch (staking.status) {
         case 'ACTIVE':
-          message = `New staking of $${staking.amountStaked} by ${staking.userName}`;
+          message = `New staking of ${staking.amountStaked} VON by ${staking.userName}`;
           status = 'success';
           break;
         case 'COMPLETED':
-          message = `Staking completed for $${staking.amountStaked} by ${staking.userName}`;
+          message = `Staking completed for ${staking.amountStaked} VON by ${staking.userName}`;
           status = 'success';
           break;
         case 'CLAIMED':
