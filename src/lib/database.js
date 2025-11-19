@@ -541,6 +541,7 @@ export const databaseHelpers = {
           feeAmount = null, netAmount = null, feeReceiverId = null, transactionType = null
         } = transactionData;
         const id = randomUUID();
+        const normalizedFeeAmount = feeAmount ?? 0;
         
         // Validate required fields
         if (!userId || !type || !amount) {
@@ -563,7 +564,7 @@ export const databaseHelpers = {
             INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", network, screenshot, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
             RETURNING *
-          `, [id, userId, txTypePrimary, amount, currency, txStatusPrimary, description, gateway, binanceAddress, network, screenshot, feeAmount, netAmount, feeReceiverId, transactionType]);
+          `, [id, userId, txTypePrimary, amount, currency, txStatusPrimary, description, gateway, binanceAddress, network, screenshot, normalizedFeeAmount, netAmount, feeReceiverId, transactionType]);
           console.log('✅ Transaction created:', id);
           return result.rows[0];
         } catch (enumErr) {
@@ -575,7 +576,7 @@ export const databaseHelpers = {
               INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", network, screenshot, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
               RETURNING *
-            `, [id, userId, txTypeFallback, amount, currency, txStatusFallback, description, gateway, binanceAddress, network, screenshot, feeAmount, netAmount, feeReceiverId, transactionType]);
+            `, [id, userId, txTypeFallback, amount, currency, txStatusFallback, description, gateway, binanceAddress, network, screenshot, normalizedFeeAmount, netAmount, feeReceiverId, transactionType]);
             console.log('✅ Transaction created with fallback enum casing:', id);
             return result.rows[0];
           }
