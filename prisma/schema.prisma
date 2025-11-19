@@ -419,10 +419,10 @@ enum OrderStatus {
 
 model TokenSupply {
   id                    Int      @id @default(autoincrement())
-  totalSupply           BigInt   @default(10000000)    // 10,000,000 tokens total
-  remainingSupply       BigInt   @default(10000000)    // Legacy field (kept for compatibility)
-  userSupplyRemaining   BigInt   @default(2000000)     // 20% user-available tokens (2M)
-  adminReserve          BigInt   @default(8000000)     // 80% admin-locked tokens (8M)
+  totalSupply           Float    @default(10000000)    // 10,000,000 tokens total
+  remainingSupply       Float    @default(10000000)    // Legacy field (kept for compatibility)
+  userSupplyRemaining   Float    @default(2000000)     // 20% user-available tokens (2M)
+  adminReserve          Float    @default(8000000)     // 80% admin-locked tokens (8M)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -437,9 +437,9 @@ model AdminSupplyTransfer {
   id              String   @id @default(cuid())
   adminId         String   // Admin who performed the transfer
   tokenSupplyId   Int      // TokenSupply record
-  amount          BigInt   // Amount transferred from admin reserve to user supply
-  fromReserve     BigInt   // Admin reserve before transfer
-  toUserSupply    BigInt   // User supply after transfer
+  amount          Float    // Amount transferred from admin reserve to user supply
+  fromReserve     Float    // Admin reserve before transfer
+  toUserSupply    Float    // User supply after transfer
   reason          String?  // Optional reason for transfer
   createdAt       DateTime @default(now())
 
@@ -454,10 +454,10 @@ model TokenMinting {
   id            String   @id @default(cuid())
   adminId       String   // Admin who performed the minting
   tokenSupplyId Int      // Reference to token supply record
-  amount        BigInt   // Amount of tokens minted
+  amount        Float    // Amount of tokens minted
   reason        String?  // Reason for minting (optional)
-  totalSupply   BigInt   // Total supply after minting
-  remainingSupply BigInt // Remaining supply after minting
+  totalSupply   Float    // Total supply after minting
+  remainingSupply Float  // Remaining supply after minting
   createdAt     DateTime @default(now())
 
   // Relations
@@ -470,7 +470,7 @@ model TokenMinting {
 model MintHistory {
   id        String   @id @default(cuid())
   adminId   String   // Admin who performed the minting
-  amount    BigInt   // Amount of tokens minted
+  amount    Float    // Amount of tokens minted
   createdAt DateTime @default(now())
 
   // Relations
