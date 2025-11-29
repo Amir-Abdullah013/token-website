@@ -350,10 +350,10 @@ export const databaseHelpers = {
         
         // Create wallet without foreign key constraint check for now
         const result = await pool.query(`
-          INSERT INTO wallets (id, "userId", balance, "VonBalance", currency, "lastUpdated", "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())
+          INSERT INTO wallets (id, "userId", balance, "VonBalance", "stakingTokensAmount", currency, "lastUpdated", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW())
           RETURNING *
-        `, [walletId, userId, 0, 0, currency]);
+        `, [walletId, userId, 0, 0, 0, currency]);
         
         if (result.rows.length === 0) {
           throw new Error('Wallet creation failed - no rows returned');
@@ -390,10 +390,10 @@ export const databaseHelpers = {
             
             // Try creating wallet again
             const retryResult = await pool.query(`
-              INSERT INTO wallets (id, "userId", balance, "VonBalance", currency, "lastUpdated", "createdAt", "updatedAt")
-              VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())
+              INSERT INTO wallets (id, "userId", balance, "VonBalance", "stakingTokensAmount", currency, "lastUpdated", "createdAt", "updatedAt")
+              VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW())
               RETURNING *
-            `, [randomUUID(), userId, 0, 0, currency]);
+            `, [randomUUID(), userId, 0, 0, 0, currency]);
             
             if (retryResult.rows.length > 0) {
               console.log('✅ Wallet created on retry:', retryResult.rows[0].id);
@@ -526,6 +526,61 @@ export const databaseHelpers = {
       } catch (error) {
         console.error('Error updating Von balance:', error);
         throw error;
+      }
+    },
+
+    // Staking tokens management functions
+    async lockStakingTokens(userId, amount) {
+      try {
+        const result = await pool.query(`
+          UPDATE wallets 
+          SET "stakingTokensAmount" = "stakingTokensAmount" + $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
+          WHERE "userId" = $2
+          RETURNING *
+        `, [amount, userId]);
+        
+        console.log('✅ Staking tokens locked:', { userId, amount });
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error locking staking tokens:', error);
+        throw error;
+      }
+    },
+
+    async unlockStakingTokens(userId, amount) {
+      try {
+        const result = await pool.query(`
+          UPDATE wallets 
+          SET "stakingTokensAmount" = "stakingTokensAmount" - $1, 
+              "VonBalance" = "VonBalance" + $1,
+              "lastUpdated" = NOW(), 
+              "updatedAt" = NOW()
+          WHERE "userId" = $2 AND "stakingTokensAmount" >= $1
+          RETURNING *
+        `, [amount, userId]);
+        
+        if (result.rowCount === 0) {
+          throw new Error('Insufficient staking tokens to unlock');
+        }
+        
+        console.log('✅ Staking tokens unlocked and added to VonBalance:', { userId, amount });
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error unlocking staking tokens:', error);
+        throw error;
+      }
+    },
+
+    async getStakingTokensAmount(userId) {
+      try {
+        const result = await pool.query(
+          'SELECT "stakingTokensAmount" FROM wallets WHERE "userId" = $1', 
+          [userId]
+        );
+        return Number(result.rows[0]?.stakingTokensAmount || 0);
+      } catch (error) {
+        console.error('Error getting staking tokens amount:', error);
+        return 0;
       }
     }
   },

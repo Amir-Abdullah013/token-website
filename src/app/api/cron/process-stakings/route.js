@@ -48,12 +48,8 @@ export async function GET() {
 
     for (const staking of activeStakings) {
       try {
-        const totalReward = Number(
-          staking.rewardAmount ?? (staking.amountStaked * staking.rewardPercent) / 100
-        );
-        const dailyReward = Number(
-          staking.dailyRewardAmount ?? (staking.durationDays > 0 ? totalReward / staking.durationDays : 0)
-        );
+        const amountStaked = Number(staking.amountStaked);
+        const rewardPercent = Number(staking.rewardPercent);
         const durationDays = Number(staking.durationDays);
         const startDate = new Date(staking.startDate);
         const endDate = new Date(staking.endDate);
@@ -68,23 +64,30 @@ export async function GET() {
           continue;
         }
 
+        // Calculate daily reward based on 365-day year (NEW LOGIC)
+        // Annual reward = amountStaked * rewardPercent / 100
+        // Daily reward = annual reward / 365
+        const annualRewardAmount = (amountStaked * rewardPercent) / 100;
+        const dailyReward = annualRewardAmount / 365;
+        
+        // Total reward for the staking period
+        const totalRewardForPeriod = dailyReward * durationDays;
+
+        // Calculate days since start (elapsed from startDate)
         const elapsedDays = Math.max(
           0,
           Math.floor((now.getTime() - startDate.getTime()) / DAY_IN_MS)
         );
-        const cappedElapsedDays = Math.min(durationDays, elapsedDays);
+        
+        // Users get daily rewards for up to 365 days (full year)
+        // But staking period determines when principal is released
+        const maxRewardDays = 365;
+        const cappedElapsedDays = Math.min(maxRewardDays, elapsedDays);
         let pendingDays = Math.max(0, cappedElapsedDays - previousDaysRewarded);
         let rewardIncrement = pendingDays * dailyReward;
-        const willCompleteAfterThisRun =
-          previousDaysRewarded + pendingDays >= durationDays && now >= endDate;
-
-        if (willCompleteAfterThisRun) {
-          // Make sure any floating-point remainder is paid on the final run
-          const totalRewardRemaining = totalReward - (previousAccrued + rewardIncrement);
-          if (totalRewardRemaining > EPSILON) {
-            rewardIncrement += totalRewardRemaining;
-          }
-        }
+        
+        // Check if staking period has ended (for principal release)
+        const willCompleteAfterThisRun = now >= endDate;
 
         if (rewardIncrement <= EPSILON && !willCompleteAfterThisRun) {
           continue; // Nothing to pay today
@@ -100,9 +103,7 @@ export async function GET() {
           continue;
         }
 
-        const daysRewardedAfter = willCompleteAfterThisRun
-          ? durationDays
-          : previousDaysRewarded + pendingDays;
+        const daysRewardedAfter = Math.min(maxRewardDays, previousDaysRewarded + pendingDays);
 
         let client;
         const principalAmount = Number(staking.amountStaked);
@@ -111,6 +112,7 @@ export async function GET() {
           client = await databaseHelpers.pool.connect();
           await client.query('BEGIN');
 
+          // Pay daily rewards from admin reserve
           if (rewardIncrement > 0) {
             await client.query(
               `
@@ -127,32 +129,41 @@ export async function GET() {
             );
           }
 
+          // Auto-release principal on end date by unlocking from stakingTokensAmount
           if (willCompleteAfterThisRun) {
-            const reserveResult = await client.query(
+            // Unlock staking tokens and add to VonBalance (NEW LOGIC)
+            const unlockResult = await client.query(
               `
-              UPDATE token_supply 
-              SET "adminReserve" = "adminReserve" - $1, "updatedAt" = NOW()
-              WHERE id = $2 AND "adminReserve" >= $1
-              RETURNING "adminReserve"
+              UPDATE wallets 
+              SET "stakingTokensAmount" = "stakingTokensAmount" - $1,
+                  "VonBalance" = "VonBalance" + $1,
+                  "updatedAt" = NOW()
+              WHERE "userId" = $2 
+                AND "stakingTokensAmount" >= $1
+              RETURNING "stakingTokensAmount", "VonBalance"
             `,
-              [principalAmount, tokenSupply.id]
-            );
-
-            if (reserveResult.rowCount === 0) {
-              throw new Error('Insufficient admin reserve to release staking principal');
-            }
-
-            await client.query(
-              'UPDATE wallets SET "VonBalance" = "VonBalance" + $1, "updatedAt" = NOW() WHERE "userId" = $2',
               [principalAmount, staking.userId]
             );
 
+            if (unlockResult.rowCount === 0) {
+              throw new Error('Insufficient staking tokens to release principal');
+            }
+
             principalReleased = true;
+            console.log('✅ Principal released from stakingTokensAmount:', {
+              userId: staking.userId,
+              amount: principalAmount,
+              remainingStakingTokens: unlockResult.rows[0].stakingTokensAmount
+            });
           }
 
+          // Calculate next reward date (only if not completed)
           const nextRewardDateValue = willCompleteAfterThisRun
             ? null
             : new Date(startDate.getTime() + (daysRewardedAfter + 1) * DAY_IN_MS);
+
+          // Calculate total accrued reward
+          const newRewardAccrued = previousAccrued + rewardIncrement;
 
           await client.query(
             `
@@ -160,25 +171,26 @@ export async function GET() {
             SET 
               "rewardAmount" = CASE WHEN "rewardAmount" = 0 THEN $1 ELSE "rewardAmount" END,
               "dailyRewardAmount" = CASE WHEN "dailyRewardAmount" = 0 THEN $2 ELSE "dailyRewardAmount" END,
-              "rewardAccrued" = COALESCE("rewardAccrued", 0) + $3,
+              "rewardAccrued" = $3,
               "daysRewarded" = $4,
-              "lastRewardDate" = CASE WHEN $3 > 0 THEN NOW() ELSE "lastRewardDate" END,
-              "nextRewardDate" = $5,
-              status = CASE WHEN $6 THEN 'CLAIMED' ELSE status END,
-              claimed = CASE WHEN $6 THEN true ELSE claimed END,
-              profit = CASE WHEN $6 THEN $8 ELSE profit END,
+              "lastRewardDate" = CASE WHEN $5 > 0 THEN NOW() ELSE "lastRewardDate" END,
+              "nextRewardDate" = $6,
+              status = CASE WHEN $7 THEN 'COMPLETED' ELSE status END,
+              claimed = CASE WHEN $7 THEN false ELSE claimed END,
+              profit = CASE WHEN $7 THEN $8 ELSE profit END,
               "updatedAt" = NOW()
-            WHERE id = $7
+            WHERE id = $9
           `,
             [
-              totalReward,
+              totalRewardForPeriod,
               dailyReward,
-              rewardIncrement,
+              newRewardAccrued,
               daysRewardedAfter,
+              rewardIncrement,
               nextRewardDateValue,
               willCompleteAfterThisRun,
-              staking.id,
-              totalReward
+              newRewardAccrued, // profit is total reward accrued
+              staking.id
             ]
           );
 
@@ -210,7 +222,7 @@ export async function GET() {
 
         if (principalReleased) {
           totalPrincipalReleased += principalAmount;
-          availableAdminReserve -= principalAmount;
+          // Note: Principal is now released from user's stakingTokensAmount, not admin reserve
         }
 
         processed.push({

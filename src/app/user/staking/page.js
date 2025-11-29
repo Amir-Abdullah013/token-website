@@ -182,25 +182,42 @@ export default function StakingPage() {
   const getStakingRewardDetails = (staking) => {
     if (!staking) {
       return {
-        totalReward: 0,
+        annualReward: 0,
         dailyReward: 0,
+        totalRewardForPeriod: 0,
         rewardAccrued: 0,
         daysRewarded: 0,
+        maxRewardDays: 365,
         progressPercent: 0
       };
     }
-    const totalReward = staking.rewardAmount ?? ((staking.amountStaked * staking.rewardPercent) / 100);
-    const dailyReward = staking.dailyRewardAmount ?? (
-      staking.durationDays > 0 ? totalReward / staking.durationDays : 0
-    );
-    const rewardAccrued = staking.rewardAccrued ?? 0;
-    const daysRewarded = staking.daysRewarded ?? 0;
-    const progressPercent = totalReward > 0 ? Math.min(100, (rewardAccrued / totalReward) * 100) : 0;
+    
+    // Calculate based on new 365-day system
+    const amountStaked = Number(staking.amountStaked || 0);
+    const rewardPercent = Number(staking.rewardPercent || 0);
+    const durationDays = Number(staking.durationDays || 0);
+    
+    // Annual reward
+    const annualReward = (amountStaked * rewardPercent) / 100;
+    // Daily reward based on 365-day year (NEW LOGIC)
+    const dailyReward = annualReward / 365;
+    // Total reward for the staking period
+    const totalRewardForPeriod = dailyReward * durationDays;
+    
+    const rewardAccrued = Number(staking.rewardAccrued || 0);
+    const daysRewarded = Number(staking.daysRewarded || 0);
+    
+    // Progress is based on how many days of rewards have been paid (max 365 days)
+    const maxRewardDays = 365;
+    const progressPercent = maxRewardDays > 0 ? Math.min(100, (daysRewarded / maxRewardDays) * 100) : 0;
+    
     return {
-      totalReward,
+      annualReward,
       dailyReward,
+      totalRewardForPeriod,
       rewardAccrued,
       daysRewarded,
+      maxRewardDays,
       progressPercent
     };
   };
@@ -208,8 +225,18 @@ export default function StakingPage() {
   const calculateReward = () => {
     const amount = parseFloat(formData.amount) || 0;
     const selectedOption = getSelectedOption();
-    const reward = (amount * selectedOption.rewardPercent) / 100;
-    return reward;
+    // Calculate annual reward (NEW LOGIC)
+    const annualReward = (amount * selectedOption.rewardPercent) / 100;
+    return annualReward;
+  };
+
+  const calculateDailyReward = () => {
+    const amount = parseFloat(formData.amount) || 0;
+    const selectedOption = getSelectedOption();
+    // Calculate daily reward based on 365-day year (NEW LOGIC)
+    const annualReward = (amount * selectedOption.rewardPercent) / 100;
+    const dailyReward = annualReward / 365;
+    return dailyReward;
   };
 
   const formatDate = (dateString) => {
@@ -244,21 +271,28 @@ export default function StakingPage() {
   };
 
   const buildRewardSchedule = (staking) => {
-    if (!staking?.durationDays) return [];
+    if (!staking) return [];
+    
+    // Calculate daily reward based on 365-day year (NEW LOGIC)
+    const amountStaked = Number(staking.amountStaked || 0);
+    const rewardPercent = Number(staking.rewardPercent || 0);
+    const annualReward = (amountStaked * rewardPercent) / 100;
+    const dailyReward = annualReward / 365;
+    
+    // Show schedule for up to 365 days (full year of rewards)
+    const maxRewardDays = 365;
     const schedule = [];
     const baseDate = new Date(staking.startDate);
-    for (let day = 1; day <= staking.durationDays; day++) {
+    const daysRewarded = Number(staking.daysRewarded || 0);
+    
+    for (let day = 1; day <= maxRewardDays; day++) {
       const payoutDate = new Date(baseDate.getTime());
       payoutDate.setDate(baseDate.getDate() + day);
       schedule.push({
         day,
         date: payoutDate,
-        paid: day <= (staking.daysRewarded || 0),
-        reward: staking.dailyRewardAmount ?? (
-          staking.durationDays > 0 
-            ? ((staking.rewardAmount ?? ((staking.amountStaked * staking.rewardPercent) / 100)) / staking.durationDays)
-            : 0
-        )
+        paid: day <= daysRewarded,
+        reward: dailyReward
       });
     }
     return schedule;
@@ -418,10 +452,10 @@ export default function StakingPage() {
 
                   {/* Reward Preview */}
                   {formData.amount && parseFloat(formData.amount) > 0 && (
-                    <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 p-4 rounded-lg border border-emerald-400/30">
+                    <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 p-4 rounded-lg border border-emerald-400/30 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-emerald-200 text-sm font-medium">Expected Reward</div>
+                          <div className="text-emerald-200 text-sm font-medium">Annual Reward</div>
                           <div className="text-white text-xl font-bold">
                             {formatVon(calculateReward())} Von
                           </div>
@@ -432,6 +466,24 @@ export default function StakingPage() {
                             {getSelectedOption().rewardPercent}%
                           </div>
                         </div>
+                      </div>
+                      <div className="pt-3 border-t border-emerald-400/30">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-emerald-200 text-sm font-medium">Daily Reward</div>
+                            <div className="text-white text-lg font-semibold">
+                              {formatVon(calculateDailyReward())} Von
+                              <span className="text-sm text-emerald-300 ml-1">/ day</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-emerald-200 text-xs">For up to 365 days</div>
+                            <div className="text-emerald-300 text-xs">(full year)</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-emerald-300/80 pt-2">
+                        💡 Daily rewards continue for up to 365 days regardless of staking period
                       </div>
                     </div>
                   )}
@@ -584,11 +636,14 @@ export default function StakingPage() {
                                 <span className="text-sm text-slate-300 ml-1">/ day</span>
                               </div>
                               <p className="text-slate-300 text-sm">
-                                Earned {formatVon(rewardDetails.rewardAccrued)} / {formatVon(rewardDetails.totalReward)} Von
+                                Earned {formatVon(rewardDetails.rewardAccrued)} Von
+                              </p>
+                              <p className="text-slate-400 text-xs mt-1">
+                                Daily rewards for up to {rewardDetails.maxRewardDays} days (full year)
                               </p>
                               <div className="mt-3">
                                 <div className="flex items-center justify-between text-xs text-slate-400">
-                                  <span>{rewardDetails.daysRewarded} / {staking.durationDays} days paid</span>
+                                  <span>{rewardDetails.daysRewarded} / {rewardDetails.maxRewardDays} days paid</span>
                                   <span>{rewardDetails.progressPercent.toFixed(1)}%</span>
                                 </div>
                                 <div className="h-2 bg-slate-700/40 rounded-full mt-1">
@@ -606,8 +661,8 @@ export default function StakingPage() {
                               </div>
                               <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
-                                  <div className="text-slate-300">Total Reward</div>
-                                  <div className="text-white font-semibold">{formatVon(rewardDetails.totalReward)} Von</div>
+                                  <div className="text-slate-300">Annual Reward</div>
+                                  <div className="text-white font-semibold">{formatVon(rewardDetails.annualReward)} Von</div>
                                 </div>
                                 <div>
                                   <div className="text-slate-300">Status</div>
@@ -698,7 +753,7 @@ export default function StakingPage() {
                       <h3 className="text-sm font-medium text-white">Reward Structure</h3>
                     </div>
                     <p className="text-sm text-slate-300">
-                      Earn 10-75% annual returns based on your staking duration. Rewards are now divided into daily payouts so you can watch your balance grow every day while your principal stays locked until the term ends.
+                      Earn 10-75% annual returns based on your staking duration. Rewards are calculated daily over a 365-day year, regardless of your staking period. You'll receive daily rewards for up to 365 days while your principal stays locked until the staking period ends.
                     </p>
                   </div>
 

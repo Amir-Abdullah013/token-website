@@ -30,6 +30,7 @@ export async function POST(request) {
     }
 
     // Define reward percentages (annual rates)
+    // Rewards are calculated daily over 365 days regardless of staking period
     const rewardPercentages = {
       15: 10,   // 15 days → 10% annual
       30: 15,   // 1 month → 15% annual
@@ -40,8 +41,12 @@ export async function POST(request) {
     };
 
     const rewardPercent = rewardPercentages[durationDays];
-    const rewardAmount = (amount * rewardPercent) / 100;
-    const dailyRewardAmount = durationDays > 0 ? rewardAmount / durationDays : 0;
+    // Annual reward amount
+    const annualRewardAmount = (amount * rewardPercent) / 100;
+    // Daily reward calculated over 365 days (regardless of staking period)
+    const dailyRewardAmount = annualRewardAmount / 365;
+    // Total reward for the staking period (daily reward * staking duration)
+    const rewardAmount = dailyRewardAmount * durationDays;
 
     const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
     if (!tokenSupply) {
@@ -142,12 +147,41 @@ export async function POST(request) {
       }, { status: 500 });
     }
 
-    // Deduct Von tokens from user's wallet
+    // Lock staked tokens in user's account (using transaction for atomicity)
+    let client;
     try {
-      await databaseHelpers.wallet.updateVonBalance(userId, -amount);
-      console.log('✅ Von balance deducted');
+      client = await databaseHelpers.pool.connect();
+      await client.query('BEGIN');
+
+      // Deduct from VonBalance and lock in stakingTokensAmount
+      await client.query(`
+        UPDATE wallets 
+        SET "VonBalance" = "VonBalance" - $1,
+            "stakingTokensAmount" = "stakingTokensAmount" + $1,
+            "lastUpdated" = NOW(),
+            "updatedAt" = NOW()
+        WHERE "userId" = $2 AND "VonBalance" >= $1
+      `, [amount, userId]);
+
+      const checkResult = await client.query(
+        'SELECT "VonBalance", "stakingTokensAmount" FROM wallets WHERE "userId" = $1',
+        [userId]
+      );
+
+      if (checkResult.rows.length === 0) {
+        throw new Error('Wallet not found after update');
+      }
+
+      await client.query('COMMIT');
+      console.log('✅ Tokens locked in user account:', {
+        amount,
+        stakingTokensAmount: checkResult.rows[0].stakingTokensAmount
+      });
     } catch (walletErr) {
-      console.error('❌ Error deducting Von balance for staking:', walletErr);
+      if (client) {
+        await client.query('ROLLBACK');
+      }
+      console.error('❌ Error locking tokens in user account:', walletErr);
       // Attempt to cancel staking record to keep consistency
       try {
         await databaseHelpers.staking.updateStakingStatus(staking.id, 'CANCELLED');
@@ -157,29 +191,16 @@ export async function POST(request) {
       }
       return NextResponse.json({
         success: false,
-        error: 'Failed to update wallet for staking',
+        error: walletErr.message.includes('VonBalance') 
+          ? 'Insufficient Von balance' 
+          : 'Failed to lock tokens in account',
         step: 'wallet_update',
         details: walletErr.message
       }, { status: 500 });
-    }
-
-    try {
-      await databaseHelpers.tokenSupply.depositStakeToAdminReserve(amount);
-      console.log('🏦 Staked tokens moved to admin reserve pool');
-    } catch (reserveError) {
-      console.error('❌ Error moving staked tokens to admin reserve:', reserveError);
-      try {
-        await databaseHelpers.wallet.updateVonBalance(userId, amount);
-        await databaseHelpers.staking.updateStakingStatus(staking.id, 'CANCELLED');
-      } catch (revertError) {
-        console.error('❌ Failed to rollback after reserve error:', revertError);
+    } finally {
+      if (client) {
+        client.release();
       }
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to lock staked tokens in reserve',
-        step: 'reserve_update',
-        details: reserveError.message
-      }, { status: 500 });
     }
 
     // Process immediate referral bonus (NEW LOGIC)

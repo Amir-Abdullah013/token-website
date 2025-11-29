@@ -30,3 +30,8 @@ ALTER TABLE staking
   ALTER COLUMN "rewardAmount" SET NOT NULL;
 
 
+
+
+
+
+

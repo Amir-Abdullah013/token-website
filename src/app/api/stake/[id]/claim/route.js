@@ -48,14 +48,22 @@ export async function POST(request, { params }) {
     }
 
     // Calculate reward amount and profit
-    const totalRewardAmount = Number(
-      staking.rewardAmount ?? (staking.amountStaked * staking.rewardPercent) / 100
-    );
+    // Note: Principal is automatically released on end date, so we only handle remaining rewards
+    const amountStaked = Number(staking.amountStaked);
+    const rewardPercent = Number(staking.rewardPercent);
+    const durationDays = Number(staking.durationDays);
+    
+    // Calculate total reward based on new 365-day system
+    const annualRewardAmount = (amountStaked * rewardPercent) / 100;
+    const dailyReward = annualRewardAmount / 365;
+    const totalRewardForPeriod = dailyReward * durationDays;
+    
     const rewardAccrued = Number(staking.rewardAccrued || 0);
-    const remainingReward = Math.max(0, totalRewardAmount - rewardAccrued);
-    const updatedRewardAccrued = Math.max(totalRewardAmount, rewardAccrued + remainingReward);
+    const remainingReward = Math.max(0, totalRewardForPeriod - rewardAccrued);
+    
+    // Principal should already be released automatically on end date
+    // This endpoint only handles any remaining rewards
     const principalAmount = Number(staking.amountStaked);
-    const totalPayout = principalAmount + remainingReward;
 
     // Get current token value for inflation calculations
     const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
@@ -94,18 +102,37 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Check if sufficient tokens are available in admin reserve for principal + any remaining rewards
-    const totalReserveNeeded = totalPayout;
+    // Check if there are any remaining rewards to claim
+    if (remainingReward <= 0.000001) {
+      // No remaining rewards, just mark as claimed
+      await databaseHelpers.staking.updateStakingStatus(staking.id, 'CLAIMED');
+      try {
+        await databaseHelpers.pool.query(
+          'UPDATE staking SET claimed = true, "updatedAt" = NOW() WHERE id = $1',
+          [id]
+        );
+      } catch (err) {
+        console.error('Error marking staking as claimed:', err);
+      }
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Staking already fully processed - marked as claimed',
+        remainingReward: 0
+      });
+    }
+
+    // Check if sufficient tokens are available in admin reserve for remaining rewards
     const currentAdminReserve = Number(tokenSupply.adminReserve);
-    if (currentAdminReserve < totalReserveNeeded) {
+    if (currentAdminReserve < remainingReward) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Insufficient token supply for final staking payout',
+          error: 'Insufficient admin reserve for remaining rewards',
           details: {
-            required: totalReserveNeeded,
+            required: remainingReward,
             available: currentAdminReserve,
-            shortfall: totalReserveNeeded - currentAdminReserve,
+            shortfall: remainingReward - currentAdminReserve,
             message: 'Admin reserve limit reached. Admin needs to add tokens to reserve.'
           }
         },
@@ -121,35 +148,34 @@ export async function POST(request, { params }) {
       client = await databaseHelpers.pool.connect();
       await client.query('BEGIN');
 
+      // Pay remaining rewards from admin reserve
       await client.query(`
         UPDATE token_supply 
         SET "adminReserve" = "adminReserve" - $1, "updatedAt" = NOW()
         WHERE id = $2
-      `, [totalPayout, tokenSupply.id]);
+      `, [remainingReward, tokenSupply.id]);
 
-      // Add principal (and any final reward) back to user's wallet
-      const newVonBalance = userWallet.VonBalance + totalPayout;
+      // Add remaining reward to user's wallet
+      // Note: Principal should already be released automatically on end date
+      const newVonBalance = userWallet.VonBalance + remainingReward;
       await client.query(
         'UPDATE wallets SET "VonBalance" = $1, "updatedAt" = NOW() WHERE "userId" = $2',
         [newVonBalance, session.id]
       );
 
-      // Referral bonus already distributed on stake creation
-      // No need to process it again here
-
-      // Update staking record with profit and mark as claimed
+      // Update staking record with final reward accrued and mark as claimed
+      const finalRewardAccrued = rewardAccrued + remainingReward;
       await client.query(`
         UPDATE staking 
         SET 
           status = 'CLAIMED', 
           claimed = true, 
           profit = $1, 
-          "rewardAccrued" = GREATEST($1, "rewardAccrued"), 
-          "daysRewarded" = GREATEST("daysRewarded", "durationDays"),
+          "rewardAccrued" = $2,
           "nextRewardDate" = NULL,
           "updatedAt" = NOW()
-        WHERE id = $2
-      `, [totalRewardAmount, id]);
+        WHERE id = $3
+      `, [finalRewardAccrued, finalRewardAccrued, id]);
 
       await client.query('COMMIT');
       console.log('✅ Transaction committed successfully');
@@ -170,23 +196,23 @@ export async function POST(request, { params }) {
       updatedTokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
     }
 
-    // Create transaction record
+    // Create transaction record for remaining rewards (principal already released automatically)
     await databaseHelpers.transaction.createTransaction({
       userId: session.id,
-      type: 'UNSTAKE',
-      amount: totalPayout,
+      type: 'STAKE_REWARD',
+      amount: remainingReward,
       currency: 'Von',
       status: 'COMPLETED',
       gateway: 'Staking',
-      description: `Staking principal released${remainingReward > 0 ? ` with ${remainingReward} Von final reward` : ''}`
+      description: `Final staking reward claim (${remainingReward.toFixed(4)} Von)`
     });
 
     // Send notification
     await databaseHelpers.notification.createNotification({
       userId: session.id,
-      title: 'Staking Completed',
-      message: `You have successfully claimed your ${principalAmount} Von principal${remainingReward > 0 ? ` along with a final ${remainingReward.toFixed(4)} Von reward` : ''}.`,
-      type: 'STAKE'
+      title: 'Staking Claimed',
+      message: `You have successfully claimed your remaining ${remainingReward.toFixed(4)} Von reward. Your ${principalAmount} Von principal was already released automatically on the staking end date.`,
+      type: 'SUCCESS'
     });
 
     // Prepare response data
@@ -195,26 +221,26 @@ export async function POST(request, { params }) {
       message: 'Staking rewards claimed successfully',
       staker: {
         userId: session.id,
-        stakedAmount: staking.amountStaked,
-        rewardAmount: totalRewardAmount,
-        rewardAccrued: updatedRewardAccrued,
+        stakedAmount: amountStaked,
+        totalRewardForPeriod: totalRewardForPeriod,
+        rewardAccrued: finalRewardAccrued,
         remainingReward,
-        totalPayout,
-        newBalance: userWallet.VonBalance + totalPayout
+        newBalance: userWallet.VonBalance + remainingReward,
+        note: 'Principal was automatically released on staking end date'
       },
       tokenSupply: {
         totalSupply: Number(updatedTokenSupply.totalSupply),
         adminReserve: Number(updatedTokenSupply.adminReserve),
         userSupplyRemaining: Number(updatedTokenSupply.userSupplyRemaining),
-        tokensDeducted: totalPayout,
-        deductedFrom: 'adminReserve'
+        tokensDeducted: remainingReward,
+        deductedFrom: 'adminReserve (rewards only, principal already released)'
       },
       tokenValue: {
         baseValue: tokenValue.baseValue,
         currentValue: tokenValue.currentTokenValue,
         inflationFactor: tokenValue.inflationFactor,
-        profitUSDValue: totalRewardAmount * tokenValue.currentTokenValue,
-        totalUSDValue: totalPayout * tokenValue.currentTokenValue
+        profitUSDValue: totalRewardForPeriod * tokenValue.currentTokenValue,
+        remainingRewardUSDValue: remainingReward * tokenValue.currentTokenValue
       }
     };
 

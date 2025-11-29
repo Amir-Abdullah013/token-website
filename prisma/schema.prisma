@@ -83,6 +83,7 @@ model Wallet {
   userId     String   @unique
   balance    Float    @default(0)        // USD balance
   VonBalance Float   @default(0)        // Von token balance
+  stakingTokensAmount Float @default(0) // Locked staking tokens in user's account
   currency   String   @default("USD")
   lastUpdated DateTime @default(now())
   createdAt  DateTime @default(now())

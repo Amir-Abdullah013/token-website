@@ -182,7 +182,7 @@ export default function AdminStakingsPage() {
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">Staking History</h1>
                 <p className="mt-2 text-slate-300">
-                  View automatic staking processing and rewards (read-only)
+                  View automatic staking processing and rewards. Daily rewards are calculated over 365-day year regardless of staking period.
                 </p>
               </div>
               <div className="flex space-x-4">
@@ -260,6 +260,27 @@ export default function AdminStakingsPage() {
             </Card>
           </div>
 
+          {/* Reward System Info Card */}
+          <Card className="bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/30 mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-start">
+                <div className="p-2 bg-gradient-to-r from-amber-500/30 to-orange-500/30 rounded-lg border border-amber-400/30">
+                  <span className="text-2xl">ℹ️</span>
+                </div>
+                <div className="ml-4 flex-1">
+                  <h3 className="text-sm font-semibold text-amber-200 mb-2">New Reward System (365-Day Basis)</h3>
+                  <div className="text-sm text-slate-300 space-y-1">
+                    <p>• Daily rewards are calculated over a <strong>365-day year</strong>, regardless of staking period</p>
+                    <p>• Formula: <code className="bg-slate-800/50 px-1 rounded">Daily Reward = (Amount × Reward%) / 365</code></p>
+                    <p>• Users receive daily rewards for up to <strong>365 days</strong>, even if staking period is shorter</p>
+                    <p>• Principal is automatically released from user's <code className="bg-slate-800/50 px-1 rounded">stakingTokensAmount</code> on end date</p>
+                    <p>• Rewards continue after principal release until 365 days are completed</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Premium Search Bar */}
           <div className="mb-6">
             <div className="max-w-md">
@@ -316,16 +337,41 @@ export default function AdminStakingsPage() {
                           Status
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                          Daily Reward
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                          Days Rewarded
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                          Reward Accrued
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                           Auto-Processed
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-gradient-to-br from-slate-800/20 to-slate-900/20 divide-y divide-slate-600/20">
                       {isLoading ? (
-                        <LoadingSkeleton />
+                        <>
+                          {[...Array(5)].map((_, i) => (
+                            <tr key={i} className="border-b border-slate-600/20 animate-pulse">
+                              <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-24"></div></td>
+                              <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
+                              <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-16"></div></td>
+                              <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
+                              <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
+                              <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
+                              <td className="px-4 py-3"><div className="h-6 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded-full w-20"></div></td>
+                              <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
+                              <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
+                              <td className="px-4 py-3"><div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-20"></div></td>
+                              <td className="px-4 py-3"><div className="h-8 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded w-24"></div></td>
+                            </tr>
+                          ))}
+                        </>
                       ) : filteredStakings.length === 0 ? (
                         <tr>
-                          <td colSpan="8" className="px-4 py-8 text-center text-slate-400">
+                          <td colSpan="11" className="px-4 py-8 text-center text-slate-400">
                             No stakings found
                           </td>
                         </tr>
@@ -372,16 +418,47 @@ export default function AdminStakingsPage() {
                             <td className="px-4 py-3">
                               <StatusBadge status={staking.status} />
                             </td>
+                            <td className="px-4 py-3 text-sm text-white">
+                              {(() => {
+                                const amountStaked = Number(staking.amountStaked || 0);
+                                const rewardPercent = Number(staking.rewardPercent || 0);
+                                const annualReward = (amountStaked * rewardPercent) / 100;
+                                const dailyReward = annualReward / 365;
+                                return formatVon(dailyReward);
+                              })()}
+                              <div className="text-xs text-slate-400 mt-1">/ day (365-day basis)</div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-white">
+                              <div className="font-medium">{staking.daysRewarded || 0} / 365</div>
+                              <div className="text-xs text-slate-400 mt-1">
+                                {staking.status === 'ACTIVE' ? 'Active' : 'Completed'}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-white">
+                              <div className="font-medium">{formatVon(staking.rewardAccrued || 0)}</div>
+                              <div className="text-xs text-slate-400 mt-1">
+                                {(() => {
+                                  const amountStaked = Number(staking.amountStaked || 0);
+                                  const rewardPercent = Number(staking.rewardPercent || 0);
+                                  const annualReward = (amountStaked * rewardPercent) / 100;
+                                  const totalForPeriod = (annualReward / 365) * (staking.durationDays || 0);
+                                  const progress = annualReward > 0 ? ((staking.rewardAccrued || 0) / annualReward) * 100 : 0;
+                                  return `${progress.toFixed(1)}% of annual`;
+                                })()}
+                              </div>
+                            </td>
                             <td className="px-4 py-3">
                               {staking.status === 'ACTIVE' ? (
                                 <div className="flex items-center space-x-2">
                                   <div className="w-2 h-2 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full animate-pulse"></div>
-                                  <span className="text-sm text-amber-300">Auto-processing at end date</span>
+                                  <span className="text-sm text-amber-300">Auto-processing</span>
                                 </div>
-                              ) : staking.status === 'CLAIMED' ? (
+                              ) : staking.status === 'COMPLETED' || staking.status === 'CLAIMED' ? (
                                 <div className="flex items-center space-x-2">
                                   <div className="w-2 h-2 bg-gradient-to-r from-emerald-400 to-green-400 rounded-full"></div>
-                                  <span className="text-sm text-emerald-300">Auto-completed</span>
+                                  <span className="text-sm text-emerald-300">
+                                    {staking.status === 'COMPLETED' ? 'Principal released' : 'Auto-completed'}
+                                  </span>
                                 </div>
                               ) : (
                                 <span className="text-sm text-slate-400">View only</span>
