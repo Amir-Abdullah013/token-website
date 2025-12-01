@@ -165,15 +165,15 @@ export async function GET() {
             await client.query(
               `
               UPDATE token_supply 
-              SET "adminReserve" = "adminReserve" - $1, "updatedAt" = NOW()
+              SET "adminReserve" = "adminReserve" - $1::DECIMAL(30,8), "updatedAt" = NOW()
               WHERE id = $2
             `,
-              [rewardIncrement, tokenSupply.id]
+              [rewardIncrementStr, tokenSupply.id]
             );
 
             await client.query(
-              'UPDATE wallets SET "VonBalance" = "VonBalance" + $1, "updatedAt" = NOW() WHERE "userId" = $2',
-              [rewardIncrement, staking.userId]
+              `UPDATE wallets SET "VonBalance" = "VonBalance" + $1::DECIMAL(30,8), "updatedAt" = NOW() WHERE "userId" = $2`,
+              [rewardIncrementStr, staking.userId]
             );
           }
 
@@ -183,14 +183,14 @@ export async function GET() {
             const unlockResult = await client.query(
               `
               UPDATE wallets 
-              SET "stakingTokensAmount" = "stakingTokensAmount" - $1,
-                  "VonBalance" = "VonBalance" + $1,
+              SET "stakingTokensAmount" = "stakingTokensAmount" - $1::DECIMAL(30,8),
+                  "VonBalance" = "VonBalance" + $1::DECIMAL(30,8),
                   "updatedAt" = NOW()
               WHERE "userId" = $2 
-                AND "stakingTokensAmount" >= $1
+                AND "stakingTokensAmount" >= $1::DECIMAL(30,8)
               RETURNING "stakingTokensAmount", "VonBalance"
             `,
-              [principalAmount, staking.userId]
+              [principalAmountStr, staking.userId]
             );
 
             if (unlockResult.rowCount === 0) {
@@ -210,8 +210,16 @@ export async function GET() {
             ? null
             : new Date(startDate.getTime() + (daysRewardedAfter + 1) * DAY_IN_MS);
 
-          // Calculate total accrued reward
+          // Calculate total accrued reward (keep as Number for calculations)
           const newRewardAccrued = previousAccrued + rewardIncrement;
+
+          // CRITICAL: Convert all Decimal/numeric values to strings for PostgreSQL DECIMAL columns
+          // PostgreSQL DECIMAL columns work best with string representations to preserve precision
+          const totalRewardForPeriodStr = String(totalRewardForPeriod);
+          const dailyRewardStr = String(dailyReward);
+          const newRewardAccruedStr = String(newRewardAccrued);
+          const rewardIncrementStr = String(rewardIncrement);
+          const principalAmountStr = String(principalAmount);
 
           // CRITICAL: Ensure all integer values are properly formatted before SQL execution
           // Convert to integer using multiple methods for safety
@@ -263,28 +271,28 @@ export async function GET() {
             `
             UPDATE staking 
             SET 
-              "rewardAmount" = CASE WHEN "rewardAmount" = 0 THEN $1 ELSE "rewardAmount" END,
-              "dailyRewardAmount" = CASE WHEN "dailyRewardAmount" = 0 THEN $2 ELSE "dailyRewardAmount" END,
-              "rewardAccrued" = $3,
+              "rewardAmount" = CASE WHEN "rewardAmount" = 0 THEN $1::DECIMAL(30,8) ELSE "rewardAmount" END,
+              "dailyRewardAmount" = CASE WHEN "dailyRewardAmount" = 0 THEN $2::DECIMAL(30,8) ELSE "dailyRewardAmount" END,
+              "rewardAccrued" = $3::DECIMAL(30,8),
               "daysRewarded" = CAST($4 AS INTEGER),
-              "lastRewardDate" = CASE WHEN $5 > 0 THEN NOW() ELSE "lastRewardDate" END,
+              "lastRewardDate" = CASE WHEN $5::DECIMAL(30,8) > 0 THEN NOW() ELSE "lastRewardDate" END,
               "nextRewardDate" = $6,
               status = CASE WHEN $7 THEN 'COMPLETED' ELSE status END,
               claimed = CASE WHEN $7 THEN false ELSE claimed END,
-              profit = CASE WHEN $7 THEN $8 ELSE profit END,
+              profit = CASE WHEN $7 THEN $8::DECIMAL(30,8) ELSE profit END,
               "updatedAt" = NOW()
             WHERE id = $9
           `,
             [
-              totalRewardForPeriod,
-              dailyReward,
-              newRewardAccrued,
-              daysRewardedInt, // Already validated as integer
-              rewardIncrement,
-              nextRewardDateValue,
-              willCompleteAfterThisRun,
-              newRewardAccrued, // profit is total reward accrued
-              staking.id
+              totalRewardForPeriodStr,    // DECIMAL(30,8)
+              dailyRewardStr,              // DECIMAL(30,8)
+              newRewardAccruedStr,         // DECIMAL(30,8)
+              daysRewardedInt,             // INTEGER (already validated)
+              rewardIncrementStr,          // DECIMAL(30,8) for comparison
+              nextRewardDateValue,         // TIMESTAMP or NULL
+              willCompleteAfterThisRun,    // BOOLEAN
+              newRewardAccruedStr,         // DECIMAL(30,8) for profit
+              staking.id                   // UUID/TEXT
             ]
           );
 
