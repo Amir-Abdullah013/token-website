@@ -367,6 +367,7 @@ export async function GET() {
         }
 
         if (rewardIncrement > 0) {
+          // Staking rewards have no fees, so netAmount = amount
           await databaseHelpers.transaction.createTransaction({
             userId: staking.userId,
             type: 'STAKE_REWARD',
@@ -374,7 +375,9 @@ export async function GET() {
             currency: 'Von',
             status: 'COMPLETED',
             gateway: 'Staking',
-            description: `Daily staking reward payout (${daysRewardedAfter}/${durationDays} days)`
+            description: `Daily staking reward payout (${daysRewardedAfter}/${durationDays} days)`,
+            feeAmount: 0, // No fees on staking rewards
+            netAmount: rewardIncrement // Full amount (no fees deducted)
           });
           totalRewardsPaid += rewardIncrement;
           availableAdminReserve -= rewardIncrement;

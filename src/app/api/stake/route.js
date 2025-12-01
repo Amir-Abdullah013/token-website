@@ -330,7 +330,9 @@ export async function POST(request) {
         currency: 'USD',
         status: 'COMPLETED',
         gateway: 'Staking',
-        description: `Staked ${amount} Von for ${durationDays} days (${rewardPercent}% reward)`
+        description: `Staked ${amount} Von for ${durationDays} days (${rewardPercent}% reward)`,
+        feeAmount: 0, // No fees on staking creation
+        netAmount: amount // Full amount (no fees deducted)
       });
       console.log('✅ Transaction record created');
     } catch (txError) {

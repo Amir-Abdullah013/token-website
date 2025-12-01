@@ -598,6 +598,12 @@ export const databaseHelpers = {
         const id = randomUUID();
         const normalizedFeeAmount = feeAmount ?? 0;
         
+        // CRITICAL: Calculate netAmount if not provided (amount - feeAmount)
+        // netAmount is required (NOT NULL) in database
+        const normalizedNetAmount = netAmount !== null && netAmount !== undefined 
+          ? netAmount 
+          : (amount - normalizedFeeAmount);
+        
         // Validate required fields
         if (!userId || !type || !amount) {
           throw new Error('Missing required fields for transaction');
@@ -606,6 +612,11 @@ export const databaseHelpers = {
         // Validate amount
         if (isNaN(amount) || amount <= 0) {
           throw new Error('Invalid amount for transaction');
+        }
+        
+        // Validate netAmount
+        if (isNaN(normalizedNetAmount) || normalizedNetAmount < 0) {
+          throw new Error('Invalid netAmount for transaction');
         }
 
         client = await pool.connect();
@@ -619,7 +630,7 @@ export const databaseHelpers = {
             INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", network, screenshot, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
             RETURNING *
-          `, [id, userId, txTypePrimary, amount, currency, txStatusPrimary, description, gateway, binanceAddress, network, screenshot, normalizedFeeAmount, netAmount, feeReceiverId, transactionType]);
+          `, [id, userId, txTypePrimary, amount, currency, txStatusPrimary, description, gateway, binanceAddress, network, screenshot, normalizedFeeAmount, normalizedNetAmount, feeReceiverId, transactionType]);
           console.log('✅ Transaction created:', id);
           return result.rows[0];
         } catch (enumErr) {
@@ -631,7 +642,7 @@ export const databaseHelpers = {
               INSERT INTO transactions (id, "userId", type, amount, currency, status, description, gateway, "binanceAddress", network, screenshot, "feeAmount", "netAmount", "feeReceiverId", "transactionType", "createdAt", "updatedAt")
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
               RETURNING *
-            `, [id, userId, txTypeFallback, amount, currency, txStatusFallback, description, gateway, binanceAddress, network, screenshot, normalizedFeeAmount, netAmount, feeReceiverId, transactionType]);
+            `, [id, userId, txTypeFallback, amount, currency, txStatusFallback, description, gateway, binanceAddress, network, screenshot, normalizedFeeAmount, normalizedNetAmount, feeReceiverId, transactionType]);
             console.log('✅ Transaction created with fallback enum casing:', id);
             return result.rows[0];
           }

@@ -259,7 +259,9 @@ export async function POST(request, { params }) {
       currency: 'Von',
       status: 'COMPLETED',
       gateway: 'Staking',
-      description: `Final staking reward claim (${remainingReward.toFixed(4)} Von)`
+      description: `Final staking reward claim (${remainingReward.toFixed(4)} Von)`,
+      feeAmount: 0, // No fees on staking rewards
+      netAmount: remainingReward // Full amount (no fees deducted)
     });
 
     // Send notification
