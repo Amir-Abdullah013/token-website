@@ -77,6 +77,11 @@ export async function GET() {
           previousDaysRewarded = 0;
         }
 
+        // Users get daily rewards for up to 365 days (full year)
+        // But staking period determines when principal is released
+        // Define maxRewardDays first to avoid scope issues
+        const maxRewardDays = 365;
+        
         // Calculate daily reward based on 365-day year (NEW LOGIC)
         // Annual reward = amountStaked * rewardPercent / 100
         // Daily reward = annual reward / 365
@@ -93,9 +98,6 @@ export async function GET() {
           Math.floor((now.getTime() - startDate.getTime()) / DAY_IN_MS)
         );
         
-        // Users get daily rewards for up to 365 days (full year)
-        // But staking period determines when principal is released
-        const maxRewardDays = 365;
         const cappedElapsedDays = Math.min(maxRewardDays, Math.floor(elapsedDays));
         // CRITICAL: Ensure pendingDays is always an integer
         // Use parseInt to force integer conversion and avoid any decimal precision issues
@@ -152,8 +154,20 @@ export async function GET() {
           throw new Error(`Invalid daysRewardedAfter final value: ${daysRewardedAfter} (type: ${typeof daysRewardedAfter}, must be integer >= 0)`);
         }
 
-        let client;
+        // Calculate total accrued reward (keep as Number for calculations)
+        const newRewardAccrued = previousAccrued + rewardIncrement;
+
+        // CRITICAL: Convert all Decimal/numeric values to strings for PostgreSQL DECIMAL columns
+        // PostgreSQL DECIMAL columns work best with string representations to preserve precision
+        // MUST be defined BEFORE the try block where they're used
+        const totalRewardForPeriodStr = String(totalRewardForPeriod);
+        const dailyRewardStr = String(dailyReward);
+        const newRewardAccruedStr = String(newRewardAccrued);
+        const rewardIncrementStr = String(rewardIncrement);
         const principalAmount = Number(staking.amountStaked);
+        const principalAmountStr = String(principalAmount);
+
+        let client;
         let principalReleased = false;
         try {
           client = await databaseHelpers.pool.connect();
@@ -209,17 +223,6 @@ export async function GET() {
           const nextRewardDateValue = willCompleteAfterThisRun
             ? null
             : new Date(startDate.getTime() + (daysRewardedAfter + 1) * DAY_IN_MS);
-
-          // Calculate total accrued reward (keep as Number for calculations)
-          const newRewardAccrued = previousAccrued + rewardIncrement;
-
-          // CRITICAL: Convert all Decimal/numeric values to strings for PostgreSQL DECIMAL columns
-          // PostgreSQL DECIMAL columns work best with string representations to preserve precision
-          const totalRewardForPeriodStr = String(totalRewardForPeriod);
-          const dailyRewardStr = String(dailyReward);
-          const newRewardAccruedStr = String(newRewardAccrued);
-          const rewardIncrementStr = String(rewardIncrement);
-          const principalAmountStr = String(principalAmount);
 
           // CRITICAL: Ensure all integer values are properly formatted before SQL execution
           // Convert to integer using multiple methods for safety
