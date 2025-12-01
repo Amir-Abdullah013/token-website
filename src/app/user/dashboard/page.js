@@ -443,7 +443,7 @@ export default function UserDashboard() {
         {/* Trading Interface - Chart Hidden on Mobile */}
         <div className="space-y-4">
           {/* Price Chart - Hidden on Mobile, Visible on Desktop */}
-          <Card className="w-full hidden md:block bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
+          {/* <Card className="w-full hidden md:block bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="text-white text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Von/USD Chart</CardTitle>
@@ -460,7 +460,7 @@ export default function UserDashboard() {
                 <PriceChart />
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Trading & Staking - Below Chart on Desktop, Always Visible on Mobile */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

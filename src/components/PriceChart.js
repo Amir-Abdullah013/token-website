@@ -212,13 +212,25 @@ const LoadingSkeleton = () => (
 );
 
 const PriceChart = ({ className = '' }) => {
-  const { VonPrice } = useVon();
+  const { VonPrice, formatCurrency } = useVon();
   const [selectedFilter, setSelectedFilter] = useState('1d');
   const [chartData, setChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPrice, setCurrentPrice] = useState(VonPrice);
   const [priceChange, setPriceChange] = useState(0);
   const [baselinePrice, setBaselinePrice] = useState(VonPrice);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Calculate Y-axis domain based on current price to ensure proper display
   // Make sure domain shows the full range of price fluctuations
@@ -241,17 +253,36 @@ const PriceChart = ({ className = '' }) => {
 
   // Generate data when filter changes
   useEffect(() => {
-    const loadPriceData = () => {
+    const loadPriceData = async () => {
       setIsLoading(true);
       
-      // Use fallback data with real Von price
-      const result = generateFallbackData(selectedFilter, VonPrice);
-      setChartData(result.data);
-      setCurrentPrice(result.currentPrice);
-      setPriceChange(result.priceChange);
-      setBaselinePrice(result.baselinePrice || result.currentPrice); // Store baseline for percentage calculation
-      
-      setIsLoading(false);
+      try {
+        // Try to fetch real data first
+        const result = await fetchPriceData(selectedFilter);
+        if (result && result.success && result.data) {
+          setChartData(result.data);
+          setCurrentPrice(result.currentPrice || VonPrice);
+          setPriceChange(result.priceChange || 0);
+          setBaselinePrice(result.data.length > 0 ? result.data[0].price : VonPrice);
+        } else {
+          // Fallback to generated data
+          const fallbackResult = generateFallbackData(selectedFilter, VonPrice);
+          setChartData(fallbackResult.data);
+          setCurrentPrice(fallbackResult.currentPrice);
+          setPriceChange(fallbackResult.priceChange);
+          setBaselinePrice(fallbackResult.baselinePrice || fallbackResult.currentPrice);
+        }
+      } catch (error) {
+        console.error('Error loading price data:', error);
+        // Use fallback data
+        const fallbackResult = generateFallbackData(selectedFilter, VonPrice);
+        setChartData(fallbackResult.data);
+        setCurrentPrice(fallbackResult.currentPrice);
+        setPriceChange(fallbackResult.priceChange);
+        setBaselinePrice(fallbackResult.baselinePrice || fallbackResult.currentPrice);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadPriceData();
@@ -280,15 +311,15 @@ const PriceChart = ({ className = '' }) => {
   return (
     <div className={`w-full h-full ${className}`}>
       {/* Premium Time Range Filter */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-slate-300 font-medium">Time Range:</span>
-          <div className="flex space-x-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="text-xs sm:text-sm text-slate-300 font-medium">Time Range:</span>
+          <div className="flex flex-wrap gap-1 sm:gap-2">
             {TIME_FILTERS.map((filter) => (
               <button
                 key={filter.value}
                 onClick={() => handleFilterChange(filter.value)}
-                className={`text-xs px-3 py-1 rounded-md transition-all duration-200 font-medium ${
+                className={`text-xs px-2 sm:px-3 py-1 rounded-md transition-all duration-200 font-medium ${
                   selectedFilter === filter.value
                     ? 'bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30'
                     : 'bg-gradient-to-r from-slate-600/50 to-slate-700/50 text-slate-300 hover:from-slate-500/50 hover:to-slate-600/50 hover:text-white border border-slate-500/30'
@@ -302,19 +333,22 @@ const PriceChart = ({ className = '' }) => {
       </div>
 
       {/* Premium Current Price Display */}
-      <div className="mb-6 bg-gradient-to-r from-slate-800/40 to-slate-700/40 rounded-lg p-4 border border-slate-600/30 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-300 mb-1 font-medium">Current Price</p>
-            <p className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              {formatPrice(currentPrice)}
+      <div className="mb-4 sm:mb-6 bg-gradient-to-r from-slate-800/40 to-slate-700/40 rounded-lg p-3 sm:p-4 border border-slate-600/30 backdrop-blur-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="text-center sm:text-left">
+            <p className="text-xs sm:text-sm text-slate-300 mb-1 font-medium">Current Price</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+              {currentPrice < 0.01 ? `$${currentPrice.toFixed(6)}` : formatCurrency(currentPrice, 'USD')}
             </p>
           </div>
-          <div className="text-right">
-            <div className={`flex items-center text-sm font-semibold ${getPriceChangeColor()}`}>
-              <span className="mr-1 text-lg">{getPriceChangeIcon()}</span>
+          <div className="text-center sm:text-right">
+            <div className={`flex items-center justify-center sm:justify-end text-xs sm:text-sm font-semibold ${getPriceChangeColor()}`}>
+              <span className="mr-1">{getPriceChangeIcon()}</span>
               <span>
-                {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(6)} 
+                {priceChange >= 0 ? '+' : ''}
+                {Math.abs(priceChange) < 0.01 
+                  ? `$${priceChange.toFixed(6)}` 
+                  : formatCurrency(priceChange, 'USD')} 
                 ({baselinePrice > 0 ? ((priceChange / baselinePrice) * 100).toFixed(2) : '0.00'}%)
               </span>
             </div>
@@ -333,9 +367,19 @@ const PriceChart = ({ className = '' }) => {
       {isLoading ? (
         <LoadingSkeleton />
       ) : (
-        <div className="h-80 bg-gradient-to-br from-slate-800/20 to-slate-900/20 rounded-lg p-4 border border-slate-600/20">
+        <div className={`bg-gradient-to-br from-slate-800/20 to-slate-900/20 rounded-lg p-2 sm:p-4 border border-slate-600/20 ${
+          isMobile ? 'h-64' : 'h-80 lg:h-96'
+        }`}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+            <LineChart 
+              data={chartData} 
+              margin={{ 
+                top: 10, 
+                right: isMobile ? 15 : 20, 
+                left: isMobile ? 10 : 10, 
+                bottom: isMobile ? 10 : 10 
+              }}
+            >
               <CartesianGrid 
                 strokeDasharray="3 3" 
                 stroke="#475569" 
@@ -343,26 +387,36 @@ const PriceChart = ({ className = '' }) => {
                 vertical={false}
               />
               <XAxis 
-                dataKey="time"
+                dataKey={isMobile ? "date" : "time"}
                 stroke="#94A3B8"
-                fontSize={11}
+                fontSize={isMobile ? 10 : 11}
                 tickLine={false}
                 axisLine={{ stroke: '#475569', strokeWidth: 1 }}
-                tick={{ fill: '#94A3B8', fontSize: 11 }}
+                tick={{ fill: '#94A3B8', fontSize: isMobile ? 10 : 11 }}
                 interval="preserveStartEnd"
+                angle={isMobile ? -45 : 0}
+                textAnchor={isMobile ? "end" : "middle"}
+                height={isMobile ? 60 : 30}
               />
               <YAxis 
                 stroke="#94A3B8"
-                fontSize={11}
+                fontSize={isMobile ? 10 : 11}
                 tickLine={false}
                 axisLine={{ stroke: '#475569', strokeWidth: 1 }}
-                tick={{ fill: '#94A3B8', fontSize: 11 }}
-                tickFormatter={(value) => `$${value.toFixed(6)}`}
-                width={80}
+                tick={{ fill: '#94A3B8', fontSize: isMobile ? 10 : 11 }}
+                tickFormatter={(value) => {
+                  if (value < 0.01) return `$${value.toFixed(6)}`;
+                  if (value < 1) return `$${value.toFixed(4)}`;
+                  return `$${value.toFixed(2)}`;
+                }}
+                width={isMobile ? 70 : 80}
                 domain={yAxisDomain}
                 allowDecimals={true}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip 
+                content={<CustomTooltip />}
+                cursor={{ stroke: '#06B6D4', strokeWidth: 1, strokeDasharray: '5 5', opacity: 0.3 }}
+              />
               <defs>
                 <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.3}/>
@@ -378,11 +432,11 @@ const PriceChart = ({ className = '' }) => {
               <Line
                 type="monotone"
                 dataKey="price"
-                stroke="#06B6D4"
-                strokeWidth={2.5}
+                stroke="url(#priceLine)"
+                strokeWidth={isMobile ? 2.5 : 3}
                 dot={false}
                 activeDot={{ 
-                  r: 6, 
+                  r: isMobile ? 5 : 6, 
                   fill: '#06B6D4', 
                   stroke: '#ffffff', 
                   strokeWidth: 2,
@@ -391,14 +445,15 @@ const PriceChart = ({ className = '' }) => {
                 fill="url(#priceGradient)"
                 isAnimationActive={true}
                 animationDuration={300}
+                animationEasing="ease-out"
               />
               <ReferenceLine 
                 y={currentPrice} 
                 stroke="#10B981" 
                 strokeDasharray="5 5"
                 strokeOpacity={0.6}
-                strokeWidth={1.5}
-                label={{ value: 'Current', position: 'right', fill: '#10B981', fontSize: 10 }}
+                strokeWidth={isMobile ? 1.5 : 2}
+                label={{ value: 'Current', position: 'right', fill: '#10B981', fontSize: isMobile ? 9 : 10 }}
               />
             </LineChart>
           </ResponsiveContainer>

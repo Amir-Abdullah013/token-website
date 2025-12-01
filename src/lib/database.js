@@ -1868,10 +1868,23 @@ export const databaseHelpers = {
           RETURNING *
         `, [amountDelta, tokenSupply.id]);
 
+        const updatedReserve = Number(result.rows[0].adminReserve);
+
+        // Log admin reserve history for manual adjustments
+        await databaseHelpers.adminReserveHistory.logReserveTransaction({
+          transactionType: 'MANUAL_ADJUST',
+          amount: amountDelta, // Can be positive or negative
+          purpose: `Manual admin reserve adjustment`,
+          adminId: 'SYSTEM', // Will be set by admin when calling
+          reserveBefore: currentReserve,
+          reserveAfter: updatedReserve,
+          referenceType: 'MANUAL_ADJUSTMENT'
+        });
+
         console.log('🔄 Admin reserve adjusted:', {
           delta: amountDelta,
           previous: currentReserve,
-          updated: Number(result.rows[0].adminReserve)
+          updated: updatedReserve
         });
 
         return result.rows[0];
@@ -2134,6 +2147,19 @@ export const databaseHelpers = {
             RETURNING *
           `, [randomUUID(), adminId, amount]);
 
+          // Log admin reserve history for the added tokens
+          const reserveBefore = Number(supply.adminReserve);
+          await databaseHelpers.adminReserveHistory.logReserveTransaction({
+            transactionType: 'ADD',
+            amount: adminReserveAmount,
+            purpose: `Token minting - ${adminReserveAmount.toLocaleString()} tokens added to admin reserve (80% of ${amount.toLocaleString()} minted)`,
+            adminId: adminId,
+            reserveBefore: reserveBefore,
+            reserveAfter: newAdminReserve,
+            referenceId: mintHistory.rows[0].id,
+            referenceType: 'MINT'
+          });
+
           await client.query('COMMIT');
 
           console.log('✅ Tokens minted successfully with distribution:', {
@@ -2381,6 +2407,18 @@ export const databaseHelpers = {
             details: `Transferred ${amount} Von from admin reserve to user supply. Reason: ${reason || 'None'}`
           });
 
+          // Log admin reserve history
+          await databaseHelpers.adminReserveHistory.logReserveTransaction({
+            transactionType: 'TRANSFER_OUT',
+            amount: -amount, // Negative for removal
+            purpose: reason || 'Transfer from admin reserve to user supply',
+            adminId: adminId,
+            reserveBefore: currentReserve,
+            reserveAfter: Number(updatedSupply.adminReserve),
+            referenceId: transferId,
+            referenceType: 'SUPPLY_TRANSFER'
+          });
+
           await client.query('COMMIT');
 
           console.log('✅ Supply transferred successfully:', {
@@ -2446,6 +2484,257 @@ export const databaseHelpers = {
         return result.rows[0];
       } catch (error) {
         console.error('Error getting transfer stats:', error);
+        throw error;
+      }
+    }
+  },
+
+  // Admin Reserve History Helper
+  adminReserveHistory: {
+    /**
+     * Log an admin reserve transaction
+     * @param {Object} historyData - History data object
+     * @param {string} historyData.transactionType - Type of transaction (ADD, REMOVE, TRANSFER_OUT, STAKING_REWARD, MANUAL_ADJUST)
+     * @param {number} historyData.amount - Amount (positive for adds, negative for removes)
+     * @param {string} historyData.purpose - Purpose/reason
+     * @param {string} historyData.userId - User involved (optional)
+     * @param {string} historyData.adminId - Admin who performed action (or 'SYSTEM' for automated)
+     * @param {number} historyData.reserveBefore - Reserve before transaction
+     * @param {number} historyData.reserveAfter - Reserve after transaction
+     * @param {string} historyData.referenceId - Reference ID (optional)
+     * @param {string} historyData.referenceType - Reference type (optional)
+     */
+    async logReserveTransaction(historyData) {
+      try {
+        const {
+          transactionType,
+          amount,
+          purpose = null,
+          userId = null,
+          adminId,
+          reserveBefore,
+          reserveAfter,
+          referenceId = null,
+          referenceType = null
+        } = historyData;
+
+        // Validate required fields
+        if (!transactionType || amount === undefined || amount === null || !adminId || reserveBefore === undefined || reserveAfter === undefined) {
+          console.error('❌ Invalid reserve history data:', {
+            transactionType,
+            amount,
+            adminId,
+            reserveBefore,
+            reserveAfter
+          });
+          throw new Error('Missing required fields for reserve history logging');
+        }
+
+        // Use 'SYSTEM' as adminId if not provided for automated transactions
+        const finalAdminId = adminId || 'SYSTEM';
+
+        // Check if table exists first
+        const tableCheck = await pool.query(`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'admin_reserve_history'
+          );
+        `);
+
+        if (!tableCheck.rows[0].exists) {
+          console.error('❌ admin_reserve_history table does not exist. Please run migration.');
+          throw new Error('admin_reserve_history table does not exist');
+        }
+
+        const { randomUUID } = await import('crypto');
+        const historyId = randomUUID();
+
+        const result = await pool.query(`
+          INSERT INTO admin_reserve_history (
+            id, "transactionType", amount, purpose, "userId", "adminId",
+            "reserveBefore", "reserveAfter", "referenceId", "referenceType", "createdAt"
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+          RETURNING *
+        `, [
+          historyId,
+          transactionType,
+          amount,
+          purpose,
+          userId,
+          finalAdminId,
+          reserveBefore,
+          reserveAfter,
+          referenceId,
+          referenceType
+        ]);
+
+        if (!result.rows || result.rows.length === 0) {
+          throw new Error('Failed to insert reserve history record');
+        }
+
+        console.log('✅ Admin reserve history logged:', {
+          id: historyId,
+          type: transactionType,
+          amount,
+          userId: userId || 'N/A',
+          reserveBefore,
+          reserveAfter,
+          referenceId: referenceId || 'N/A'
+        });
+
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error logging admin reserve history:', {
+          error: error.message,
+          stack: error.stack,
+          historyData: {
+            transactionType: historyData?.transactionType,
+            amount: historyData?.amount,
+            userId: historyData?.userId
+          }
+        });
+        // Re-throw error so retry logic can catch it
+        throw error;
+      }
+    },
+
+    /**
+     * Get admin reserve history with filters
+     * @param {Object} filters - Filter options
+     * @param {string} filters.transactionType - Filter by transaction type
+     * @param {string} filters.userId - Filter by user ID
+     * @param {string} filters.adminId - Filter by admin ID
+     * @param {string} filters.startDate - Start date (ISO string)
+     * @param {string} filters.endDate - End date (ISO string)
+     * @param {number} filters.limit - Limit results
+     * @param {number} filters.offset - Offset for pagination
+     */
+    async getReserveHistory(filters = {}) {
+      try {
+        const {
+          transactionType = null,
+          userId = null,
+          adminId = null,
+          startDate = null,
+          endDate = null,
+          limit = 100,
+          offset = 0
+        } = filters;
+
+        let query = `
+          SELECT 
+            arh.*,
+            admin_user.name as admin_name,
+            admin_user.email as admin_email,
+            target_user.name as user_name,
+            target_user.email as user_email
+          FROM admin_reserve_history arh
+          LEFT JOIN users admin_user ON arh."adminId" = admin_user.id
+          LEFT JOIN users target_user ON arh."userId" = target_user.id
+          WHERE 1=1
+        `;
+        const params = [];
+        let paramCount = 0;
+
+        if (transactionType) {
+          paramCount++;
+          query += ` AND arh."transactionType" = $${paramCount}`;
+          params.push(transactionType);
+        }
+
+        if (userId) {
+          paramCount++;
+          query += ` AND arh."userId" = $${paramCount}`;
+          params.push(userId);
+        }
+
+        if (adminId) {
+          paramCount++;
+          query += ` AND arh."adminId" = $${paramCount}`;
+          params.push(adminId);
+        }
+
+        if (startDate) {
+          paramCount++;
+          query += ` AND arh."createdAt" >= $${paramCount}`;
+          params.push(startDate);
+        }
+
+        if (endDate) {
+          paramCount++;
+          query += ` AND arh."createdAt" <= $${paramCount}`;
+          params.push(endDate);
+        }
+
+        query += ` ORDER BY arh."createdAt" DESC`;
+
+        // Add limit and offset
+        paramCount++;
+        query += ` LIMIT $${paramCount}`;
+        params.push(limit);
+
+        paramCount++;
+        query += ` OFFSET $${paramCount}`;
+        params.push(offset);
+
+        const result = await pool.query(query, params);
+        return result.rows;
+      } catch (error) {
+        console.error('Error getting admin reserve history:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get statistics for admin reserve history
+     */
+    async getReserveHistoryStats(filters = {}) {
+      try {
+        const {
+          startDate = null,
+          endDate = null,
+          transactionType = null
+        } = filters;
+
+        let query = `
+          SELECT 
+            COUNT(*) as total_transactions,
+            SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as total_added,
+            SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as total_removed,
+            MIN("createdAt") as first_transaction,
+            MAX("createdAt") as last_transaction,
+            COUNT(DISTINCT "adminId") as unique_admins,
+            COUNT(DISTINCT "userId") as unique_users
+          FROM admin_reserve_history
+          WHERE 1=1
+        `;
+        const params = [];
+        let paramCount = 0;
+
+        if (transactionType) {
+          paramCount++;
+          query += ` AND "transactionType" = $${paramCount}`;
+          params.push(transactionType);
+        }
+
+        if (startDate) {
+          paramCount++;
+          query += ` AND "createdAt" >= $${paramCount}`;
+          params.push(startDate);
+        }
+
+        if (endDate) {
+          paramCount++;
+          query += ` AND "createdAt" <= $${paramCount}`;
+          params.push(endDate);
+        }
+
+        const result = await pool.query(query, params);
+        return result.rows[0];
+      } catch (error) {
+        console.error('Error getting reserve history stats:', error);
         throw error;
       }
     }

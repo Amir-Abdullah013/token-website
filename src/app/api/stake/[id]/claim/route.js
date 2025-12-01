@@ -149,6 +149,7 @@ export async function POST(request, { params }) {
       await client.query('BEGIN');
 
       // Pay remaining rewards from admin reserve
+      const reserveBefore = Number(tokenSupply.adminReserve);
       await client.query(`
         UPDATE token_supply 
         SET "adminReserve" = "adminReserve" - $1, "updatedAt" = NOW()
@@ -179,6 +180,60 @@ export async function POST(request, { params }) {
 
       await client.query('COMMIT');
       console.log('✅ Transaction committed successfully');
+
+      // Log admin reserve history after successful commit - with retry logic
+      if (remainingReward > 0) {
+        const reserveAfter = reserveBefore - remainingReward;
+        
+        // Retry logging up to 3 times if it fails
+        let logged = false;
+        let retries = 0;
+        const maxRetries = 3;
+        
+        while (!logged && retries < maxRetries) {
+          try {
+            const logResult = await databaseHelpers.adminReserveHistory.logReserveTransaction({
+              transactionType: 'STAKING_REWARD',
+              amount: -remainingReward, // Negative for removal
+              purpose: `Final staking reward claim for completed staking`,
+              userId: session.id,
+              adminId: 'SYSTEM', // User-initiated but system processed
+              reserveBefore: reserveBefore,
+              reserveAfter: reserveAfter,
+              referenceId: id,
+              referenceType: 'STAKING_REWARD'
+            });
+            
+            if (logResult) {
+              logged = true;
+              console.log('✅ Staking claim reward logged to reserve history:', {
+                stakingId: id,
+                userId: session.id,
+                amount: remainingReward
+              });
+            } else {
+              retries++;
+              if (retries < maxRetries) {
+                console.warn(`⚠️ Reserve history logging failed, retrying (${retries}/${maxRetries})...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+              }
+            }
+          } catch (logError) {
+            retries++;
+            console.error(`❌ Error logging reserve history (attempt ${retries}/${maxRetries}):`, logError);
+            if (retries < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+            } else {
+              console.error('❌ CRITICAL: Failed to log staking claim reward to reserve history after all retries:', {
+                stakingId: id,
+                userId: session.id,
+                amount: remainingReward,
+                error: logError.message
+              });
+            }
+          }
+        }
+      }
 
     } catch (error) {
       if (client) {

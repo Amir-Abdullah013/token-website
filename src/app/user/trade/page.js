@@ -13,6 +13,7 @@ import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import VonPriceChart from '@/components/VonPriceChart';
+import CandlestickChart from '@/components/CandlestickChart';
 import { ToastContainer, useToast } from '@/components/Toast';
 import { AlertModal } from '@/components/Modal';
 
@@ -682,8 +683,8 @@ export default function TradePage() {
             <div className="lg:col-span-2 space-y-4 lg:space-y-6">
              
               
-              {/* Von Price Chart */}
-              <VonPriceChart />
+              {/* Candlestick Chart */}
+              <CandlestickChart />
 
               {/* Premium Market Overview - Live Data */}
               <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">

@@ -113,6 +113,7 @@ export async function GET() {
           await client.query('BEGIN');
 
           // Pay daily rewards from admin reserve
+          const reserveBeforeReward = availableAdminReserve;
           if (rewardIncrement > 0) {
             await client.query(
               `
@@ -195,6 +196,61 @@ export async function GET() {
           );
 
           await client.query('COMMIT');
+          
+          // Log admin reserve history after successful commit - with retry logic
+          if (rewardIncrement > 0) {
+            const reserveAfter = reserveBeforeReward - rewardIncrement;
+            
+            // Retry logging up to 3 times if it fails
+            let logged = false;
+            let retries = 0;
+            const maxRetries = 3;
+            
+            while (!logged && retries < maxRetries) {
+              try {
+                const logResult = await databaseHelpers.adminReserveHistory.logReserveTransaction({
+                  transactionType: 'STAKING_REWARD',
+                  amount: -rewardIncrement, // Negative for removal
+                  purpose: `Staking reward payout for user - ${pendingDays} day(s) of rewards (${daysRewardedAfter}/${durationDays} days total)`,
+                  userId: staking.userId,
+                  adminId: 'SYSTEM', // Automated system process
+                  reserveBefore: reserveBeforeReward,
+                  reserveAfter: reserveAfter,
+                  referenceId: staking.id,
+                  referenceType: 'STAKING_REWARD'
+                });
+                
+                if (logResult) {
+                  logged = true;
+                  console.log('✅ Staking reward logged to reserve history:', {
+                    stakingId: staking.id,
+                    userId: staking.userId,
+                    amount: rewardIncrement
+                  });
+                } else {
+                  retries++;
+                  if (retries < maxRetries) {
+                    console.warn(`⚠️ Reserve history logging failed, retrying (${retries}/${maxRetries})...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000 * retries)); // Exponential backoff
+                  }
+                }
+              } catch (logError) {
+                retries++;
+                console.error(`❌ Error logging reserve history (attempt ${retries}/${maxRetries}):`, logError);
+                if (retries < maxRetries) {
+                  await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+                } else {
+                  // Final attempt failed - log to error tracking but don't fail the transaction
+                  console.error('❌ CRITICAL: Failed to log staking reward to reserve history after all retries:', {
+                    stakingId: staking.id,
+                    userId: staking.userId,
+                    amount: rewardIncrement,
+                    error: logError.message
+                  });
+                }
+              }
+            }
+          }
         } catch (transactionError) {
           if (client) {
             await client.query('ROLLBACK');

@@ -68,6 +68,8 @@ model User {
   mintHistory       MintHistory[]   // Admin mint history
   supplyTransfers   AdminSupplyTransfer[] @relation("AdminSupplyTransfers")
   orders            Order[]         // Trading orders
+  adminReserveHistory AdminReserveHistory[] @relation("AdminReserveHistory")
+  reserveHistoryAsUser AdminReserveHistory[] @relation("ReserveHistoryUser")
   
   // Referral relations
   referrer       User?   @relation("UserReferrals", fields: [referrerId], references: [id], onDelete: SetNull)
@@ -293,20 +295,20 @@ enum TicketStatus {
 model Staking {
   id            String        @id @default(cuid())
   userId        String
-  amountStaked  Float
+  amountStaked  Decimal       @db.Decimal(30, 8)  // changed from Float
   durationDays  Int
-  rewardPercent Float
+  rewardPercent Decimal       @db.Decimal(5, 2)   // changed from Float
   startDate     DateTime
   endDate       DateTime
   status        StakingStatus @default(ACTIVE)
   claimed       Boolean       @default(false)
-  rewardAmount  Float         @default(0) // Total reward to be distributed
-  dailyRewardAmount Float     @default(0) // Reward paid out each day
-  rewardAccrued Float         @default(0) // Reward already credited to the user
+  rewardAmount  Decimal       @default(0) @db.Decimal(30, 8)  // Total reward to be distributed
+  dailyRewardAmount Decimal    @default(0) @db.Decimal(30, 8)  // Reward paid out each day
+  rewardAccrued Decimal       @default(0) @db.Decimal(30, 8)  // Reward already credited to user
   daysRewarded  Int           @default(0) // Number of daily payouts processed
   lastRewardDate DateTime?
   nextRewardDate DateTime?
-  profit        Float?        // Actual profit earned from staking
+  profit        Decimal?      @db.Decimal(30, 8)  // Actual profit earned from staking
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -316,6 +318,7 @@ model Staking {
 
   @@map("staking")
 }
+
 
 enum StakingStatus {
   ACTIVE
@@ -498,5 +501,37 @@ model DepositAddresses {
   updatedAt DateTime @updatedAt
 
   @@map("deposit_addresses")
+}
+
+model AdminReserveHistory {
+  id            String                  @id @default(cuid())
+  transactionType AdminReserveType     // Type of transaction
+  amount        Float                   // Amount of tokens (positive for adds, negative for removes)
+  purpose       String?                 // Purpose/reason for the transaction
+  userId        String?                 // User involved (if any, e.g., staking rewards)
+  adminId       String                  // Admin who performed the action (or SYSTEM for automated)
+  reserveBefore Float                   // Admin reserve before transaction
+  reserveAfter  Float                   // Admin reserve after transaction
+  referenceId   String?                 // Reference to related record (staking ID, transfer ID, etc.)
+  referenceType String?                 // Type of reference (STAKING_REWARD, TRANSFER, MINT, etc.)
+  createdAt     DateTime                @default(now())
+
+  // Relations
+  admin         User @relation("AdminReserveHistory", fields: [adminId], references: [id], onDelete: Cascade)
+  user          User? @relation("ReserveHistoryUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([transactionType])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([adminId])
+  @@map("admin_reserve_history")
+}
+
+enum AdminReserveType {
+  ADD              // Tokens added to reserve (minting)
+  REMOVE           // Tokens removed from reserve
+  TRANSFER_OUT     // Transfer from reserve to user supply
+  STAKING_REWARD   // Tokens used for staking rewards
+  MANUAL_ADJUST    // Manual adjustment by admin
 }
 
