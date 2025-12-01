@@ -50,19 +50,31 @@ export async function GET() {
       try {
         const amountStaked = Number(staking.amountStaked);
         const rewardPercent = Number(staking.rewardPercent);
-        const durationDays = Number(staking.durationDays);
+        // CRITICAL: Ensure durationDays is always an integer (database INT column)
+        const durationDays = Math.floor(Math.abs(Number(staking.durationDays) || 0));
         const startDate = new Date(staking.startDate);
         const endDate = new Date(staking.endDate);
-        // Ensure daysRewarded is always an integer (database INT column)
-        const previousDaysRewarded = Math.floor(Number(staking.daysRewarded || 0));
+        // CRITICAL: Ensure daysRewarded is always an integer (database INT column)
+        // Parse as integer explicitly to avoid decimal precision issues
+        let previousDaysRewarded = parseInt(String(staking.daysRewarded || 0), 10);
+        if (isNaN(previousDaysRewarded) || previousDaysRewarded < 0) {
+          previousDaysRewarded = 0;
+        }
         const previousAccrued = Number(staking.rewardAccrued || 0);
 
-        if (durationDays <= 0) {
+        // Validate integer fields
+        if (durationDays <= 0 || !Number.isInteger(durationDays) || isNaN(durationDays)) {
           skipped.push({
             stakingId: staking.id,
-            reason: 'Invalid duration',
+            reason: 'Invalid duration (must be positive integer)',
           });
           continue;
+        }
+        
+        // Final validation for previousDaysRewarded
+        if (!Number.isInteger(previousDaysRewarded)) {
+          console.warn(`⚠️ Invalid previousDaysRewarded for staking ${staking.id}: ${staking.daysRewarded}, defaulting to 0`);
+          previousDaysRewarded = 0;
         }
 
         // Calculate daily reward based on 365-day year (NEW LOGIC)
@@ -84,9 +96,10 @@ export async function GET() {
         // Users get daily rewards for up to 365 days (full year)
         // But staking period determines when principal is released
         const maxRewardDays = 365;
-        const cappedElapsedDays = Math.min(maxRewardDays, elapsedDays);
-        // Ensure pendingDays is an integer
-        let pendingDays = Math.floor(Math.max(0, cappedElapsedDays - previousDaysRewarded));
+        const cappedElapsedDays = Math.min(maxRewardDays, Math.floor(elapsedDays));
+        // CRITICAL: Ensure pendingDays is always an integer
+        // Use parseInt to force integer conversion and avoid any decimal precision issues
+        let pendingDays = parseInt(String(Math.max(0, cappedElapsedDays - previousDaysRewarded)), 10) || 0;
         let rewardIncrement = pendingDays * dailyReward;
         
         // Check if staking period has ended (for principal release)
@@ -106,8 +119,38 @@ export async function GET() {
           continue;
         }
 
-        // Ensure daysRewardedAfter is always an integer (database requires INT)
-        const daysRewardedAfter = Math.floor(Math.min(maxRewardDays, previousDaysRewarded + pendingDays));
+        // CRITICAL: Ensure daysRewardedAfter is always an integer (database requires INT)
+        // Calculate as integer explicitly - use parseInt to force integer conversion
+        const daysRewardedAfterRaw = previousDaysRewarded + pendingDays;
+        let daysRewardedAfter = parseInt(String(Math.min(maxRewardDays, daysRewardedAfterRaw)), 10);
+        
+        // Handle NaN or invalid values
+        if (isNaN(daysRewardedAfter) || daysRewardedAfter < 0) {
+          daysRewardedAfter = Math.min(maxRewardDays, Math.floor(daysRewardedAfterRaw));
+          if (isNaN(daysRewardedAfter) || daysRewardedAfter < 0) {
+            console.error(`❌ Invalid daysRewardedAfter calculation for staking ${staking.id}:`, {
+              previousDaysRewarded,
+              pendingDays,
+              daysRewardedAfterRaw,
+              daysRewardedAfter,
+              stakingDaysRewarded: staking.daysRewarded,
+              stakingDurationDays: staking.durationDays
+            });
+            throw new Error(`Invalid daysRewardedAfter calculation: ${daysRewardedAfter} (must be integer >= 0)`);
+          }
+        }
+        
+        // Final validation - must be a valid integer
+        if (!Number.isInteger(daysRewardedAfter) || daysRewardedAfter < 0) {
+          console.error(`❌ Final validation failed for daysRewardedAfter (staking ${staking.id}):`, {
+            value: daysRewardedAfter,
+            type: typeof daysRewardedAfter,
+            isInteger: Number.isInteger(daysRewardedAfter),
+            previousDaysRewarded,
+            pendingDays
+          });
+          throw new Error(`Invalid daysRewardedAfter final value: ${daysRewardedAfter} (type: ${typeof daysRewardedAfter}, must be integer >= 0)`);
+        }
 
         let client;
         const principalAmount = Number(staking.amountStaked);
@@ -170,6 +213,52 @@ export async function GET() {
           // Calculate total accrued reward
           const newRewardAccrued = previousAccrued + rewardIncrement;
 
+          // CRITICAL: Ensure all integer values are properly formatted before SQL execution
+          // Convert to integer using multiple methods for safety
+          let daysRewardedInt;
+          if (typeof daysRewardedAfter === 'number') {
+            daysRewardedInt = Math.floor(Math.abs(daysRewardedAfter));
+          } else {
+            daysRewardedInt = parseInt(String(daysRewardedAfter).split('.')[0], 10); // Strip decimals if any
+          }
+          
+          // Handle edge cases
+          if (isNaN(daysRewardedInt) || !Number.isFinite(daysRewardedInt)) {
+            daysRewardedInt = 0;
+          }
+          
+          // Ensure it's within valid range
+          daysRewardedInt = Math.max(0, Math.min(maxRewardDays, daysRewardedInt));
+          
+          // Final validation before database insert
+          if (!Number.isInteger(daysRewardedInt) || daysRewardedInt < 0 || daysRewardedInt > maxRewardDays) {
+            console.error(`❌ CRITICAL: Invalid daysRewardedInt before SQL insert:`, {
+              stakingId: staking.id,
+              daysRewardedAfter,
+              daysRewardedAfterType: typeof daysRewardedAfter,
+              daysRewardedInt,
+              daysRewardedIntType: typeof daysRewardedInt,
+              previousDaysRewarded,
+              pendingDays,
+              isInteger: Number.isInteger(daysRewardedInt)
+            });
+            throw new Error(`Invalid daysRewarded value for staking ${staking.id}: ${daysRewardedInt} (from ${daysRewardedAfter}). Must be integer between 0 and ${maxRewardDays}.`);
+          }
+          
+          // Debug log for first few to verify values
+          if (processed.length < 3) {
+            console.log(`🔍 Debug: daysRewarded values for staking ${staking.id}:`, {
+              previousDaysRewarded,
+              pendingDays,
+              daysRewardedAfter,
+              daysRewardedInt,
+              types: {
+                after: typeof daysRewardedAfter,
+                int: typeof daysRewardedInt
+              }
+            });
+          }
+
           await client.query(
             `
             UPDATE staking 
@@ -177,7 +266,7 @@ export async function GET() {
               "rewardAmount" = CASE WHEN "rewardAmount" = 0 THEN $1 ELSE "rewardAmount" END,
               "dailyRewardAmount" = CASE WHEN "dailyRewardAmount" = 0 THEN $2 ELSE "dailyRewardAmount" END,
               "rewardAccrued" = $3,
-              "daysRewarded" = $4,
+              "daysRewarded" = CAST($4 AS INTEGER),
               "lastRewardDate" = CASE WHEN $5 > 0 THEN NOW() ELSE "lastRewardDate" END,
               "nextRewardDate" = $6,
               status = CASE WHEN $7 THEN 'COMPLETED' ELSE status END,
@@ -190,7 +279,7 @@ export async function GET() {
               totalRewardForPeriod,
               dailyReward,
               newRewardAccrued,
-              Math.floor(daysRewardedAfter), // Ensure integer for database INT column
+              daysRewardedInt, // Already validated as integer
               rewardIncrement,
               nextRewardDateValue,
               willCompleteAfterThisRun,
