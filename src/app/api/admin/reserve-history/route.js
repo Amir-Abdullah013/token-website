@@ -57,6 +57,13 @@ export async function GET(request) {
 
     // Get reserve history
     const history = await databaseHelpers.adminReserveHistory.getReserveHistory(filters);
+    
+    // Debug logging
+    console.log('📊 Reserve history query:', {
+      filterCount: history.length,
+      filters: filters,
+      hasData: history.length > 0
+    });
 
     // Get statistics
     const stats = await databaseHelpers.adminReserveHistory.getReserveHistoryStats({

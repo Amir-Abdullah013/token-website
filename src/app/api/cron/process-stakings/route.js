@@ -53,7 +53,8 @@ export async function GET() {
         const durationDays = Number(staking.durationDays);
         const startDate = new Date(staking.startDate);
         const endDate = new Date(staking.endDate);
-        const previousDaysRewarded = Number(staking.daysRewarded || 0);
+        // Ensure daysRewarded is always an integer (database INT column)
+        const previousDaysRewarded = Math.floor(Number(staking.daysRewarded || 0));
         const previousAccrued = Number(staking.rewardAccrued || 0);
 
         if (durationDays <= 0) {
@@ -74,6 +75,7 @@ export async function GET() {
         const totalRewardForPeriod = dailyReward * durationDays;
 
         // Calculate days since start (elapsed from startDate)
+        // Ensure integer calculation to avoid decimal days
         const elapsedDays = Math.max(
           0,
           Math.floor((now.getTime() - startDate.getTime()) / DAY_IN_MS)
@@ -83,7 +85,8 @@ export async function GET() {
         // But staking period determines when principal is released
         const maxRewardDays = 365;
         const cappedElapsedDays = Math.min(maxRewardDays, elapsedDays);
-        let pendingDays = Math.max(0, cappedElapsedDays - previousDaysRewarded);
+        // Ensure pendingDays is an integer
+        let pendingDays = Math.floor(Math.max(0, cappedElapsedDays - previousDaysRewarded));
         let rewardIncrement = pendingDays * dailyReward;
         
         // Check if staking period has ended (for principal release)
@@ -103,7 +106,8 @@ export async function GET() {
           continue;
         }
 
-        const daysRewardedAfter = Math.min(maxRewardDays, previousDaysRewarded + pendingDays);
+        // Ensure daysRewardedAfter is always an integer (database requires INT)
+        const daysRewardedAfter = Math.floor(Math.min(maxRewardDays, previousDaysRewarded + pendingDays));
 
         let client;
         const principalAmount = Number(staking.amountStaked);
@@ -186,7 +190,7 @@ export async function GET() {
               totalRewardForPeriod,
               dailyReward,
               newRewardAccrued,
-              daysRewardedAfter,
+              Math.floor(daysRewardedAfter), // Ensure integer for database INT column
               rewardIncrement,
               nextRewardDateValue,
               willCompleteAfterThisRun,
