@@ -33,6 +33,35 @@ export async function POST(request) {
       return createWalletLockedResponse();
     }
 
+    // Check withdrawal restriction based on first deposit and referral status
+    try {
+      const user = await databaseHelpers.user.getUserById(session.id);
+      if (user) {
+        const firstDeposit = user.firstDepositAmount;
+        const hasReferredOne = user.hasReferredOne || false;
+        
+        // Block withdrawal if: firstDepositAmount < 10 AND hasReferredOne = false
+        if (firstDeposit !== null && firstDeposit !== undefined && firstDeposit < 10 && !hasReferredOne) {
+          console.log('❌ Withdrawal blocked - referral required:', {
+            userId: session.id,
+            firstDepositAmount: firstDeposit,
+            hasReferredOne
+          });
+          return NextResponse.json({
+            success: false,
+            error: 'Withdrawal Restricted',
+            message: 'You must refer 1 user before withdrawing because your first deposit was below $10.',
+            restrictionType: 'REFERRAL_REQUIRED',
+            firstDepositAmount: firstDeposit,
+            hasReferredOne: false
+          }, { status: 403 });
+        }
+      }
+    } catch (restrictionError) {
+      console.error('Error checking withdrawal restriction:', restrictionError);
+      // Don't block withdrawal if check fails - log error and continue
+    }
+
     let requestData;
     try {
       requestData = await request.json();

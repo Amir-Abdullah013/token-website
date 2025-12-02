@@ -173,22 +173,38 @@ export async function GET() {
           client = await databaseHelpers.pool.connect();
           await client.query('BEGIN');
 
-          // Pay daily rewards from admin reserve
-          const reserveBeforeReward = availableAdminReserve;
+          // Pay daily rewards from admin reserve using atomic helper
           if (rewardIncrement > 0) {
-            await client.query(
-              `
-              UPDATE token_supply 
-              SET "adminReserve" = "adminReserve" - $1::DECIMAL(30,8), "updatedAt" = NOW()
-              WHERE id = $2
-            `,
-              [rewardIncrementStr, tokenSupply.id]
-            );
+            console.log('💰 Deducting reward from admin reserve:', {
+              stakingId: staking.id,
+              userId: staking.userId,
+              rewardAmount: rewardIncrement
+            });
 
+            // Use atomic helper to update reserve AND log history in one operation
+            const reserveResult = await databaseHelpers.adminReserveHistory.deductStakingReward({
+              amount: rewardIncrement,
+              userId: staking.userId,
+              stakingId: staking.id,
+              purpose: `Staking reward payout - ${pendingDays} day(s) of rewards (${daysRewardedAfter}/${durationDays} days total)`,
+              adminId: 'SYSTEM',
+              client: client // Use existing transaction
+            });
+
+            // Update availableAdminReserve for next iteration
+            availableAdminReserve = Number(reserveResult.tokenSupply.adminReserve);
+
+            // Add reward to user's wallet
             await client.query(
               `UPDATE wallets SET "VonBalance" = "VonBalance" + $1::DECIMAL(30,8), "updatedAt" = NOW() WHERE "userId" = $2`,
               [rewardIncrementStr, staking.userId]
             );
+
+            console.log('✅ Reward deducted from reserve and added to user wallet:', {
+              reserveBefore: reserveResult.historyEntry.reserveBefore,
+              reserveAfter: reserveResult.historyEntry.reserveAfter,
+              historyId: reserveResult.historyEntry.id
+            });
           }
 
           // Auto-release principal on end date by unlocking from stakingTokensAmount
@@ -301,60 +317,8 @@ export async function GET() {
 
           await client.query('COMMIT');
           
-          // Log admin reserve history after successful commit - with retry logic
-          if (rewardIncrement > 0) {
-            const reserveAfter = reserveBeforeReward - rewardIncrement;
-            
-            // Retry logging up to 3 times if it fails
-            let logged = false;
-            let retries = 0;
-            const maxRetries = 3;
-            
-            while (!logged && retries < maxRetries) {
-              try {
-                const logResult = await databaseHelpers.adminReserveHistory.logReserveTransaction({
-                  transactionType: 'STAKING_REWARD',
-                  amount: -rewardIncrement, // Negative for removal
-                  purpose: `Staking reward payout for user - ${pendingDays} day(s) of rewards (${daysRewardedAfter}/${durationDays} days total)`,
-                  userId: staking.userId,
-                  adminId: 'SYSTEM', // Automated system process
-                  reserveBefore: reserveBeforeReward,
-                  reserveAfter: reserveAfter,
-                  referenceId: staking.id,
-                  referenceType: 'STAKING_REWARD'
-                });
-                
-                if (logResult) {
-                  logged = true;
-                  console.log('✅ Staking reward logged to reserve history:', {
-                    stakingId: staking.id,
-                    userId: staking.userId,
-                    amount: rewardIncrement
-                  });
-                } else {
-                  retries++;
-                  if (retries < maxRetries) {
-                    console.warn(`⚠️ Reserve history logging failed, retrying (${retries}/${maxRetries})...`);
-                    await new Promise(resolve => setTimeout(resolve, 1000 * retries)); // Exponential backoff
-                  }
-                }
-              } catch (logError) {
-                retries++;
-                console.error(`❌ Error logging reserve history (attempt ${retries}/${maxRetries}):`, logError);
-                if (retries < maxRetries) {
-                  await new Promise(resolve => setTimeout(resolve, 1000 * retries));
-                } else {
-                  // Final attempt failed - log to error tracking but don't fail the transaction
-                  console.error('❌ CRITICAL: Failed to log staking reward to reserve history after all retries:', {
-                    stakingId: staking.id,
-                    userId: staking.userId,
-                    amount: rewardIncrement,
-                    error: logError.message
-                  });
-                }
-              }
-            }
-          }
+          // Note: Reserve history is already logged by deductStakingReward() helper above
+          // No need for separate history logging here
         } catch (transactionError) {
           if (client) {
             await client.query('ROLLBACK');

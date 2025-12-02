@@ -45,6 +45,11 @@ model User {
 
   // Referral system
   referrerId    String?  // ID of the user who referred this user
+  referralCode  String?  @unique // User's unique referral code
+  hasReferredOne Boolean @default(false) // Whether user has referred at least 1 user
+
+  // Deposit tracking for withdrawal restrictions
+  firstDepositAmount Float? // Amount of user's first approved deposit
 
   // Wallet fee system
   walletFeeDueAt        DateTime?

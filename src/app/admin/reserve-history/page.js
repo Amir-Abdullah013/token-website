@@ -333,7 +333,9 @@ export default function AdminReserveHistoryPage() {
                               {item.userName || item.userEmail || (item.userId ? `User ${item.userId.substring(0, 8)}...` : 'N/A')}
                             </td>
                             <td className="py-3 px-4 text-sm text-slate-300">
-                              {item.adminName || item.adminEmail || (item.adminId === 'SYSTEM' ? 'System' : item.adminId)}
+                              {item.adminEmail === 'system@automated.von' || item.adminId === 'SYSTEM' 
+                                ? 'System (Automated)' 
+                                : (item.adminName || item.adminEmail || item.adminId)}
                             </td>
                             <td className="py-3 px-4 text-sm text-slate-400 text-right">
                               {formatCurrency(item.reserveBefore)}

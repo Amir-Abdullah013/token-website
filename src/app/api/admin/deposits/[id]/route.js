@@ -142,6 +142,22 @@ export async function PATCH(request, { params }) {
     if (action === 'approve') {
       await databaseHelpers.wallet.updateBalance(depositRequest.userId, depositRequest.amount);
       
+      // Set firstDepositAmount if this is the user's first approved deposit
+      try {
+        const user = await databaseHelpers.user.getUserById(depositRequest.userId);
+        if (user && (user.firstDepositAmount === null || user.firstDepositAmount === undefined)) {
+          await databaseHelpers.pool.query(`
+            UPDATE users 
+            SET "firstDepositAmount" = $1, "updatedAt" = NOW()
+            WHERE id = $2
+          `, [depositRequest.amount, depositRequest.userId]);
+          console.log(`✅ Set firstDepositAmount for user ${depositRequest.userId}: $${depositRequest.amount}`);
+        }
+      } catch (firstDepositError) {
+        console.error('Error setting firstDepositAmount:', firstDepositError);
+        // Don't fail the approval if this fails
+      }
+      
       // Create notification for user
       await databaseHelpers.notification.createNotification({
         userId: depositRequest.userId,

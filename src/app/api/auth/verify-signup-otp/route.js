@@ -140,6 +140,19 @@ export async function POST(request) {
       const user = await databaseHelpers.user.createUser(userData);
       console.log('✅ User created successfully:', user.email);
 
+      // Set referralCode for the new user (use their ID as referral code)
+      try {
+        await databaseHelpers.pool.query(`
+          UPDATE users 
+          SET "referralCode" = $1, "updatedAt" = NOW()
+          WHERE id = $1 AND ("referralCode" IS NULL OR "referralCode" = '')
+        `, [user.id]);
+        console.log('✅ Referral code set for new user:', user.id);
+      } catch (refCodeError) {
+        console.error('❌ Error setting referral code:', refCodeError);
+        // Don't fail signup if referral code setting fails
+      }
+
       // Clean up the used OTP
       await databaseHelpers.passwordReset.deletePasswordReset(otpRecord.id);
       console.log('✅ OTP cleaned up after successful verification');
@@ -153,6 +166,14 @@ export async function POST(request) {
             referredId: user.id
           });
           console.log('✅ Referral record created successfully:', referralRecord.id);
+          
+          // Set hasReferredOne = true for the referrer
+          await databaseHelpers.pool.query(`
+            UPDATE users 
+            SET "hasReferredOne" = true, "updatedAt" = NOW()
+            WHERE id = $1
+          `, [referrerId]);
+          console.log('✅ Set hasReferredOne = true for referrer:', referrerId);
         } catch (referralError) {
           console.error('❌ Error creating referral record:', referralError);
           // Don't fail the signup if referral creation fails

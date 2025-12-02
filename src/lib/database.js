@@ -2503,6 +2503,49 @@ export const databaseHelpers = {
   // Admin Reserve History Helper
   adminReserveHistory: {
     /**
+     * Get or create SYSTEM user for automated transactions
+     * @returns {Promise<string>} SYSTEM user ID
+     */
+    async getOrCreateSystemUser() {
+      try {
+        // Try to find existing SYSTEM user by email
+        let systemUser = await pool.query(
+          'SELECT id FROM users WHERE email = $1',
+          ['system@automated.von']
+        );
+
+        if (systemUser.rows.length > 0) {
+          return systemUser.rows[0].id;
+        }
+
+        // SYSTEM user doesn't exist, create it
+        const { randomUUID } = await import('crypto');
+        const bcrypt = await import('bcryptjs');
+        const systemUserId = randomUUID();
+        const hashedPassword = await bcrypt.hash('SYSTEM_USER_NO_LOGIN', 12);
+
+        await pool.query(`
+          INSERT INTO users (id, email, name, password, "emailVerified", role, "isAdmin", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        `, [
+          systemUserId,
+          'system@automated.von',
+          'System (Automated)',
+          hashedPassword,
+          true,
+          'ADMIN',
+          true
+        ]);
+
+        console.log('✅ SYSTEM user created for automated transactions:', systemUserId);
+        return systemUserId;
+      } catch (error) {
+        console.error('❌ Error getting/creating SYSTEM user:', error);
+        throw error;
+      }
+    },
+
+    /**
      * Log an admin reserve transaction
      * @param {Object} historyData - History data object
      * @param {string} historyData.transactionType - Type of transaction (ADD, REMOVE, TRANSFER_OUT, STAKING_REWARD, MANUAL_ADJUST)
@@ -2530,7 +2573,7 @@ export const databaseHelpers = {
         } = historyData;
 
         // Validate required fields
-        if (!transactionType || amount === undefined || amount === null || !adminId || reserveBefore === undefined || reserveAfter === undefined) {
+        if (!transactionType || amount === undefined || amount === null || reserveBefore === undefined || reserveAfter === undefined) {
           console.error('❌ Invalid reserve history data:', {
             transactionType,
             amount,
@@ -2541,8 +2584,12 @@ export const databaseHelpers = {
           throw new Error('Missing required fields for reserve history logging');
         }
 
-        // Use 'SYSTEM' as adminId if not provided for automated transactions
-        const finalAdminId = adminId || 'SYSTEM';
+        // Handle SYSTEM adminId - get or create SYSTEM user
+        let finalAdminId = adminId;
+        if (!finalAdminId || finalAdminId === 'SYSTEM') {
+          finalAdminId = await this.getOrCreateSystemUser();
+          console.log('🔧 Using SYSTEM user for automated transaction:', finalAdminId);
+        }
 
         // Check if table exists first
         const tableCheck = await pool.query(`
@@ -2560,6 +2607,16 @@ export const databaseHelpers = {
 
         const { randomUUID } = await import('crypto');
         const historyId = randomUUID();
+
+        console.log('📝 Inserting admin reserve history:', {
+          transactionType,
+          amount,
+          userId: userId || 'N/A',
+          adminId: finalAdminId,
+          reserveBefore,
+          reserveAfter,
+          referenceId: referenceId || 'N/A'
+        });
 
         const result = await pool.query(`
           INSERT INTO admin_reserve_history (
@@ -2585,11 +2642,12 @@ export const databaseHelpers = {
           throw new Error('Failed to insert reserve history record');
         }
 
-        console.log('✅ Admin reserve history logged:', {
+        console.log('✅ Admin reserve history logged successfully:', {
           id: historyId,
           type: transactionType,
           amount,
           userId: userId || 'N/A',
+          adminId: finalAdminId,
           reserveBefore,
           reserveAfter,
           referenceId: referenceId || 'N/A'
@@ -2600,10 +2658,14 @@ export const databaseHelpers = {
         console.error('❌ Error logging admin reserve history:', {
           error: error.message,
           stack: error.stack,
+          code: error.code,
+          constraint: error.constraint,
+          detail: error.detail,
           historyData: {
             transactionType: historyData?.transactionType,
             amount: historyData?.amount,
-            userId: historyData?.userId
+            userId: historyData?.userId,
+            adminId: historyData?.adminId
           }
         });
         // Re-throw error so retry logic can catch it
@@ -2747,6 +2809,146 @@ export const databaseHelpers = {
       } catch (error) {
         console.error('Error getting reserve history stats:', error);
         throw error;
+      }
+    },
+
+    /**
+     * Deduct staking reward from admin reserve and log history (atomic operation)
+     * This is the proper way to handle staking rewards - updates reserve AND logs history
+     * @param {Object} rewardData - Reward data object
+     * @param {number} rewardData.amount - Amount to deduct (positive value)
+     * @param {string} rewardData.userId - User receiving the reward
+     * @param {string} rewardData.stakingId - Staking ID (for reference)
+     * @param {string} rewardData.purpose - Purpose description
+     * @param {string} rewardData.adminId - Admin ID (defaults to SYSTEM)
+     * @param {Object} rewardData.client - Optional: existing database client (for use within transactions)
+     * @returns {Promise<Object>} Updated token supply and history entry
+     */
+    async deductStakingReward(rewardData) {
+      const {
+        amount,
+        userId = null,
+        stakingId = null,
+        purpose = null,
+        adminId = 'SYSTEM',
+        client: providedClient = null
+      } = rewardData;
+
+      if (!amount || amount <= 0) {
+        throw new Error('Reward amount must be positive');
+      }
+
+      const useOwnTransaction = !providedClient;
+      const client = providedClient || await pool.connect();
+
+      try {
+        if (useOwnTransaction) {
+          await client.query('BEGIN');
+        }
+
+        // Get current token supply with FOR UPDATE lock
+        const tokenSupplyResult = await client.query(
+          'SELECT * FROM token_supply ORDER BY id DESC LIMIT 1 FOR UPDATE'
+        );
+
+        if (!tokenSupplyResult.rows || tokenSupplyResult.rows.length === 0) {
+          if (useOwnTransaction) {
+            await client.query('ROLLBACK');
+          }
+          throw new Error('Token supply not found');
+        }
+
+        const tokenSupply = tokenSupplyResult.rows[0];
+        const reserveBefore = Number(tokenSupply.adminReserve);
+        const reserveAfter = reserveBefore - amount;
+
+        if (reserveAfter < 0) {
+          if (useOwnTransaction) {
+            await client.query('ROLLBACK');
+          }
+          throw new Error(`Insufficient admin reserve. Available: ${reserveBefore}, Required: ${amount}`);
+        }
+
+        // Update admin reserve
+        const updateResult = await client.query(`
+          UPDATE token_supply 
+          SET "adminReserve" = "adminReserve" - $1::DECIMAL(30,8), "updatedAt" = NOW()
+          WHERE id = $2
+          RETURNING *
+        `, [String(amount), tokenSupply.id]);
+
+        if (!updateResult.rows || updateResult.rows.length === 0) {
+          if (useOwnTransaction) {
+            await client.query('ROLLBACK');
+          }
+          throw new Error('Failed to update admin reserve');
+        }
+
+        const updatedTokenSupply = updateResult.rows[0];
+
+        // Get or create SYSTEM user if needed
+        let finalAdminId = adminId;
+        if (adminId === 'SYSTEM' || !adminId) {
+          finalAdminId = await this.getOrCreateSystemUser();
+        }
+
+        // Log history entry
+        const { randomUUID } = await import('crypto');
+        const historyId = randomUUID();
+        const historyPurpose = purpose || `Staking reward payout${stakingId ? ` for staking ${stakingId}` : ''}`;
+
+        const historyResult = await client.query(`
+          INSERT INTO admin_reserve_history (
+            id, "transactionType", amount, purpose, "userId", "adminId",
+            "reserveBefore", "reserveAfter", "referenceId", "referenceType", "createdAt"
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+          RETURNING *
+        `, [
+          historyId,
+          'STAKING_REWARD',
+          -amount, // Negative for removal
+          historyPurpose,
+          userId,
+          finalAdminId,
+          reserveBefore,
+          reserveAfter,
+          stakingId,
+          'STAKING_REWARD'
+        ]);
+
+        if (useOwnTransaction) {
+          await client.query('COMMIT');
+        }
+
+        console.log('✅ Staking reward deducted from reserve:', {
+          amount,
+          userId: userId || 'N/A',
+          stakingId: stakingId || 'N/A',
+          reserveBefore,
+          reserveAfter,
+          historyId: historyResult.rows[0].id
+        });
+
+        return {
+          tokenSupply: updatedTokenSupply,
+          historyEntry: historyResult.rows[0]
+        };
+      } catch (error) {
+        if (useOwnTransaction) {
+          await client.query('ROLLBACK');
+        }
+        console.error('❌ Error deducting staking reward:', {
+          error: error.message,
+          code: error.code,
+          constraint: error.constraint,
+          detail: error.detail
+        });
+        throw error;
+      } finally {
+        if (useOwnTransaction && client) {
+          client.release();
+        }
       }
     }
   },
