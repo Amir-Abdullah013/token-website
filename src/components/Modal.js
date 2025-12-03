@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const Modal = ({ 
   isOpen,
@@ -11,9 +12,16 @@ const Modal = ({
   closeOnOverlayClick = true,
   closeOnEscape = true,
   showCloseButton = true,
-  className = ''
+  className = '',
+  dark = false
 }) => {
   const modalRef = useRef(null);
+  const contentRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   useEffect(() => {
     const handleEscape = (e) => {
@@ -25,50 +33,114 @@ const Modal = ({
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+      
+      // Scroll modal into view if needed
+      if (contentRef.current) {
+        setTimeout(() => {
+          contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
     }
     
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
     };
   }, [isOpen, closeOnEscape, onClose]);
-  
+
   const handleOverlayClick = (e) => {
     if (closeOnOverlayClick && e.target === modalRef.current) {
       onClose();
     }
   };
-  
+
   if (!isOpen) return null;
-  
+
   const sizeClasses = {
     xs: 'max-w-sm',
     sm: 'max-w-md',
     md: 'max-w-lg',
     lg: 'max-w-2xl',
     xl: 'max-w-4xl',
-    full: 'max-w-full mx-4'
+    full: 'max-w-full'
   };
   
-  return (
+  const darkClasses = dark ? {
+    bg: 'bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800',
+    border: 'border-slate-600/50',
+    title: 'text-white',
+    closeButton: 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50',
+    headerBorder: 'border-slate-600/50'
+  } : {
+    bg: 'bg-white',
+    border: 'border-secondary-200',
+    title: 'text-secondary-900',
+    closeButton: 'text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100',
+    headerBorder: 'border-secondary-200'
+  };
+
+  if (!mounted || typeof document === 'undefined' || !document.body) return null;
+
+  const modalContent = (
     <div 
       ref={modalRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 md:p-6"
       onClick={handleOverlayClick}
+      style={{ 
+        margin: 0,
+        padding: 0,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%'
+      }}
     >
-      <div className={`bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} ${className} animate-scale-in`}>
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={handleOverlayClick}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
+        }}
+      />
+      
+      {/* Modal Content - Centered */}
+      <div 
+        ref={contentRef}
+        className={`relative ${darkClasses.bg} rounded-lg shadow-2xl w-[90%] sm:w-[400px] md:w-auto ${sizeClasses[size]} ${darkClasses.border} border ${className} animate-scale-in max-h-[90vh] sm:max-h-[85vh] flex flex-col overflow-hidden`}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'relative',
+          zIndex: 10000,
+          margin: 'auto',
+          maxWidth: size === 'full' ? '90%' : undefined,
+          transform: 'none',
+          top: 'auto',
+          left: 'auto'
+        }}
+      >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 border-b border-secondary-200">
+          <div className={`flex items-center justify-between p-4 sm:p-5 md:p-6 border-b ${darkClasses.headerBorder} flex-shrink-0`}>
             {title && (
-              <h2 className="text-xl font-semibold text-secondary-900">
+              <h2 className={`text-lg sm:text-xl font-semibold ${darkClasses.title} pr-2`}>
                 {title}
               </h2>
             )}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-2 text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 rounded-lg transition-colors"
+                className={`p-2 ${darkClasses.closeButton} rounded-lg transition-colors flex-shrink-0`}
+                aria-label="Close modal"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -78,13 +150,16 @@ const Modal = ({
           </div>
         )}
         
-        {/* Content */}
-        <div className="p-6">
+        {/* Content - Scrollable */}
+        <div className="p-4 sm:p-5 md:p-6 overflow-y-auto flex-1">
           {children}
         </div>
       </div>
     </div>
   );
+
+  // Use portal to render modal at body level, outside any parent containers
+  return createPortal(modalContent, document.body);
 };
 
 // Modal sub-components for better composition

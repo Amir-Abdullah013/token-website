@@ -34,6 +34,7 @@ const MobileNavigation = ({ user }) => {
     { name: 'Transfers', href: '/admin/transfers', icon: '📤' },
     { name: 'Stakings', href: '/admin/stakings', icon: '🏦' },
     { name: 'Transactions', href: '/admin/transactions', icon: '📋' },
+    { name: 'Reserve History', href: '/admin/reserve-history', icon: '📋' },
   ];
   
   const navigation = isAdminPage ? adminNavigation : userNavigation;

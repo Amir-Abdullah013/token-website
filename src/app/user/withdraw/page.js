@@ -10,6 +10,7 @@ import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { useToast, ToastContainer } from '@/components/Toast';
+import Modal from '@/components/Modal';
 
 export default function WithdrawPage() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -26,13 +27,17 @@ export default function WithdrawPage() {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Referral required modal state
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [referralModalMessage, setReferralModalMessage] = useState('');
 
   // Withdrawal history state
   const [withdrawals, setWithdrawals] = useState([]);
   const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
 
   // Validation rules
-  const MIN_WITHDRAW_AMOUNT = 10;
+  const MIN_WITHDRAW_AMOUNT = 1;
   const MAX_WITHDRAW_AMOUNT = 10000;
 
   // Calculate fee for withdrawal (10% fee)
@@ -132,6 +137,10 @@ export default function WithdrawPage() {
       return;
     }
 
+    // Reset any previous modal state
+    setShowReferralModal(false);
+    setReferralModalMessage('');
+    
     setIsSubmitting(true);
     
     try {
@@ -147,31 +156,93 @@ export default function WithdrawPage() {
         })
       });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        console.error('Error parsing response JSON:', jsonError);
-        error('Server returned invalid response. Please try again.');
-        return;
+      // Parse response - handle both success and error responses
+      let data = {};
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error('Error parsing response JSON:', jsonError);
+          // Don't return early - let it fall through to error handling
+          data = { error: 'Server returned invalid response' };
+        }
+      } else {
+        // Non-JSON response
+        const text = await response.text();
+        data = { error: text || 'Unknown error occurred' };
       }
 
-      if (response.ok) {
+      if (response.ok && data.success !== false) {
+        // Success case
+        console.log('✅ Withdrawal request successful');
         success('Withdrawal request submitted successfully. Waiting for admin confirmation.');
         
         // Reset form
         setFormData({ amount: '', binanceAddress: '', network: '' });
         
         // Reload withdrawals to show the new request
-        loadWithdrawals();
+        await loadWithdrawals();
       } else {
-        const errorMessage = data.details ? `${data.error}: ${data.details}` : data.error;
-        error(errorMessage || 'Failed to submit withdrawal request');
+        // Error case
+        console.log('❌ Withdrawal request failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: data
+        });
+        // Error case - check for referral required
+        const errorText = (data.error || '').toLowerCase();
+        const messageText = (data.message || '').toLowerCase();
+        const detailsText = (data.details || '').toLowerCase();
+        
+        // Robust referral error detection
+        const isReferralError = 
+          data.restrictionType === 'REFERRAL_REQUIRED' ||
+          data.referralRequired === true ||
+          (response.status === 403 || response.status === 400) && (
+            errorText.includes('referral') || 
+            errorText.includes('refer') ||
+            messageText.includes('refer') ||
+            detailsText.includes('refer') ||
+            errorText.includes('withdrawal restricted') ||
+            errorText.includes('withdrawal blocked')
+          );
+
+        if (isReferralError) {
+          // Show referral required modal
+          const modalMessage = data.message || 
+            data.details ||
+            'You must refer at least one user to withdraw because your first deposit was less than $10.';
+          
+          console.log('🔒 Referral required - showing modal:', {
+            status: response.status,
+            restrictionType: data.restrictionType,
+            message: modalMessage
+          });
+          
+          setReferralModalMessage(modalMessage);
+          setShowReferralModal(true);
+        } else {
+          // Show regular error toast for other errors
+          const errorMessage = data.message || 
+            (data.details ? `${data.error}: ${data.details}` : data.error) ||
+            'Failed to submit withdrawal request';
+          error(errorMessage);
+        }
       }
     } catch (err) {
+      // Network errors or other exceptions
       console.error('Error submitting withdrawal request:', err);
-      error('Failed to submit withdrawal request. Please try again.');
+      
+      // Check if it's a network error
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        error('Network error. Please check your connection and try again.');
+      } else {
+        error('Failed to submit withdrawal request. Please try again.');
+      }
     } finally {
+      // Always clear loading state
       setIsSubmitting(false);
     }
   };
@@ -443,14 +514,14 @@ export default function WithdrawPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-gradient-to-r from-rose-500 via-red-500 to-pink-600 hover:from-rose-600 hover:via-red-600 hover:to-pink-700 text-white shadow-lg shadow-rose-500/25 border border-rose-400/30"
-                  disabled={isSubmitting || !formData.amount || !formData.binanceAddress || !formData.network || !!errors.amount || !!errors.binanceAddress || !!errors.network}
+                  className="flex-1 bg-gradient-to-r from-rose-500 via-red-500 to-pink-600 hover:from-rose-600 hover:via-red-600 hover:to-pink-700 text-white shadow-lg shadow-rose-500/25 border border-rose-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting || showReferralModal || !formData.amount || !formData.binanceAddress || !formData.network || !!errors.amount || !!errors.binanceAddress || !!errors.network}
                 >
                   {isSubmitting ? (
-                    <>
+                    <span className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Submitting...
-                    </>
+                    </span>
                   ) : (
                     'Submit Withdrawal Request'
                   )}
@@ -553,6 +624,57 @@ export default function WithdrawPage() {
         
         {/* Toast Container */}
         <ToastContainer toasts={toasts} removeToast={removeToast} />
+        
+        {/* Referral Required Modal */}
+        <Modal
+          isOpen={showReferralModal}
+          onClose={() => {
+            setShowReferralModal(false);
+            setReferralModalMessage('');
+          }}
+          title="Withdrawal Not Allowed"
+          size="md"
+          closeOnOverlayClick={true}
+          closeOnEscape={true}
+          showCloseButton={true}
+          dark={true}
+        >
+          <div className="space-y-4 sm:space-y-6">
+            {/* Icon and Message */}
+            <div className="flex items-start space-x-3 sm:space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-400/30 flex items-center justify-center">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Referral Required</h3>
+                <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+                  {referralModalMessage || 'You must refer at least one user to withdraw because your first deposit was less than $10.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-400/20 rounded-lg p-3 sm:p-4">
+              <p className="text-xs sm:text-sm text-amber-200">
+                <strong>How to refer someone:</strong> Share your referral link with friends. Once they sign up and make their first deposit, you'll be able to withdraw funds.
+              </p>
+            </div>
+
+            {/* Action Button */}
+            <div className="flex justify-end pt-3 sm:pt-4 border-t border-slate-600/50">
+              <Button
+                onClick={() => setShowReferralModal(false)}
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-4 py-2 sm:px-6 sm:py-2 text-sm sm:text-base w-full sm:w-auto"
+              >
+                Okay
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </Layout>
   );
