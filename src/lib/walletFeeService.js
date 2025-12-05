@@ -193,13 +193,18 @@ export async function processWalletFeeForUser(userId) {
 
       await client.query('COMMIT');
       
-      // Create notification
-      await databaseHelpers.notifications.createNotification({
-        userId,
-        title: 'Wallet Fee Waived! 🎉',
-        message: 'Congratulations! Your wallet fee has been waived because you referred at least 1 person within your first month.',
-        type: 'SUCCESS'
-      });
+      // Create notification (non-blocking)
+      try {
+        await databaseHelpers.notification.createNotification({
+          userId,
+          title: 'Wallet Fee Waived! 🎉',
+          message: 'Congratulations! Your wallet fee has been waived because you referred at least 1 person within your first month.',
+          type: 'SUCCESS'
+        });
+      } catch (notifError) {
+        console.warn(`⚠️ Failed to create notification for user ${userId}:`, notifError.message);
+        // Don't fail the whole process if notification fails
+      }
 
       console.log(`✅ Wallet fee waived for user ${userId} (referral exemption)`);
       return {
@@ -248,13 +253,18 @@ export async function processWalletFeeForUser(userId) {
 
       await client.query('COMMIT');
 
-      // Create notification
-      await databaseHelpers.notifications.createNotification({
-        userId,
-        title: 'Wallet Locked - Payment Required',
-        message: `Your wallet has been locked because the $${WALLET_FEE_AMOUNT} wallet fee is due but you have insufficient balance. Please deposit at least $${WALLET_FEE_AMOUNT} to unlock your wallet and resume all features.`,
-        type: 'WARNING'
-      });
+      // Create notification (non-blocking)
+      try {
+        await databaseHelpers.notification.createNotification({
+          userId,
+          title: 'Wallet Locked - Payment Required',
+          message: `Your wallet has been locked because the $${WALLET_FEE_AMOUNT} wallet fee is due but you have insufficient balance. Please deposit at least $${WALLET_FEE_AMOUNT} to unlock your wallet and resume all features.`,
+          type: 'WARNING'
+        });
+      } catch (notifError) {
+        console.warn(`⚠️ Failed to create notification for user ${userId}:`, notifError.message);
+        // Don't fail the whole process if notification fails
+      }
 
       console.log(`⚠️ Wallet locked for user ${userId} - insufficient balance (USD: $${currentBalance}, VON: ${currentVonBalance}, VON Value: $${vonValueInUsd.toFixed(2)})`);
       return {
@@ -321,14 +331,19 @@ export async function processWalletFeeForUser(userId) {
       `, [WALLET_FEE_AMOUNT, feeReceiverId]);
     }
 
-    // Record in admin_reserve_history using the new deductWalletFee pattern
-    await databaseHelpers.adminReserveHistory.deductWalletFee({
-      amount: WALLET_FEE_AMOUNT,
-      userId: userId,
-      purpose: `Wallet fee deduction for user ${userId} (first deposit < $10, no referral within 30 days)`,
-      adminId: 'SYSTEM',
-      client: client // Use existing transaction
-    });
+    // Record in admin_reserve_history using the new deductWalletFee pattern (non-blocking)
+    try {
+      await databaseHelpers.adminReserveHistory.deductWalletFee({
+        amount: WALLET_FEE_AMOUNT,
+        userId: userId,
+        purpose: `Wallet fee deduction for user ${userId} (first deposit < $10, no referral within 30 days)`,
+        adminId: 'SYSTEM',
+        client: client // Use existing transaction
+      });
+    } catch (reserveError) {
+      console.warn(`⚠️ Failed to record wallet fee in admin reserve history for user ${userId}:`, reserveError.message);
+      // Don't fail the whole process if reserve history recording fails
+    }
 
     // Create transaction record
     const { randomUUID } = await import('crypto');
@@ -365,17 +380,22 @@ export async function processWalletFeeForUser(userId) {
 
     await client.query('COMMIT');
 
-    // Create notification
+    // Create notification (non-blocking)
     const balanceMessage = deductionSource === 'VON' 
       ? `A one-time wallet fee of $${WALLET_FEE_AMOUNT} has been deducted from your VON balance. Your new USD balance is $${newBalance.toFixed(2)} and VON balance is ${newVonBalance.toFixed(2)}.`
       : `A one-time wallet fee of $${WALLET_FEE_AMOUNT} has been deducted from your wallet. Your new balance is $${newBalance.toFixed(2)}.`;
     
-    await databaseHelpers.notifications.createNotification({
-      userId,
-      title: 'Wallet Fee Charged',
-      message: balanceMessage,
-      type: 'INFO'
-    });
+    try {
+      await databaseHelpers.notification.createNotification({
+        userId,
+        title: 'Wallet Fee Charged',
+        message: balanceMessage,
+        type: 'INFO'
+      });
+    } catch (notifError) {
+      console.warn(`⚠️ Failed to create notification for user ${userId}:`, notifError.message);
+      // Don't fail the whole process if notification fails
+    }
 
     console.log(`✅ Wallet fee charged for user ${userId}: $${WALLET_FEE_AMOUNT} (deducted from ${deductionSource})`);
     return {
@@ -557,12 +577,17 @@ export async function processWalletFeeAfterDeposit(userId) {
         WHERE id = $1
       `, [userId]);
 
-      await databaseHelpers.notifications.createNotification({
-        userId,
-        title: 'Wallet Fee Waived',
-        message: 'Your wallet fee has been waived because your first deposit was greater than $10.',
-        type: 'SUCCESS'
-      });
+      try {
+        await databaseHelpers.notification.createNotification({
+          userId,
+          title: 'Wallet Fee Waived',
+          message: 'Your wallet fee has been waived because your first deposit was greater than $10.',
+          type: 'SUCCESS'
+        });
+      } catch (notifError) {
+        console.warn(`⚠️ Failed to create notification for user ${userId}:`, notifError.message);
+        // Don't fail the whole process if notification fails
+      }
 
       return {
         status: 'waived',
@@ -576,12 +601,17 @@ export async function processWalletFeeAfterDeposit(userId) {
     
     if (result.status === 'charged') {
       // Fee was successfully charged
-      await databaseHelpers.notifications.createNotification({
-        userId,
-        title: 'Wallet Unlocked',
-        message: `Your wallet has been unlocked! The $${WALLET_FEE_AMOUNT} wallet fee has been deducted from your account.`,
-        type: 'SUCCESS'
-      });
+      try {
+        await databaseHelpers.notification.createNotification({
+          userId,
+          title: 'Wallet Unlocked',
+          message: `Your wallet has been unlocked! The $${WALLET_FEE_AMOUNT} wallet fee has been deducted from your account.`,
+          type: 'SUCCESS'
+        });
+      } catch (notifError) {
+        console.warn(`⚠️ Failed to create notification for user ${userId}:`, notifError.message);
+        // Don't fail the whole process if notification fails
+      }
     }
 
     return result;
@@ -643,13 +673,18 @@ export async function handleReferralFeeWaiver(referrerId) {
           WHERE id = $1
         `, [referrerId]);
 
-        // Create notification
-        await databaseHelpers.notifications.createNotification({
-          userId: referrerId,
-          title: 'Wallet Fee Waived! 🎉',
-          message: 'Congratulations! Your wallet fee has been waived because you referred at least 1 person within your first month.',
-          type: 'SUCCESS'
-        });
+        // Create notification (non-blocking)
+        try {
+          await databaseHelpers.notification.createNotification({
+            userId: referrerId,
+            title: 'Wallet Fee Waived! 🎉',
+            message: 'Congratulations! Your wallet fee has been waived because you referred at least 1 person within your first month.',
+            type: 'SUCCESS'
+          });
+        } catch (notifError) {
+          console.warn(`⚠️ Failed to create notification for referrer ${referrerId}:`, notifError.message);
+          // Don't fail the whole process if notification fails
+        }
 
         console.log(`✅ Wallet fee waived for referrer ${referrerId} (referral exemption)`);
         return true;
