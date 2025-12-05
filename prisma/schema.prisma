@@ -57,6 +57,7 @@ model User {
   walletFeeWaived       Boolean   @default(false)
   walletFeeLocked       Boolean   @default(false)
   walletFeeProcessedAt  DateTime?
+  walletFeeApplied      Boolean   @default(false) // Whether the $2 fee has been applied
 
   // Relations
   wallet         Wallet?
@@ -537,6 +538,7 @@ enum AdminReserveType {
   REMOVE           // Tokens removed from reserve
   TRANSFER_OUT     // Transfer from reserve to user supply
   STAKING_REWARD   // Tokens used for staking rewards
+  WALLET_FEE       // Wallet fee deducted from admin reserve
   MANUAL_ADJUST    // Manual adjustment by admin
 }
 

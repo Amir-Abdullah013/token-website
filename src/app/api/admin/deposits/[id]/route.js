@@ -143,19 +143,57 @@ export async function PATCH(request, { params }) {
       await databaseHelpers.wallet.updateBalance(depositRequest.userId, depositRequest.amount);
       
       // Set firstDepositAmount if this is the user's first approved deposit
+      let isFirstDeposit = false;
+      let referrerId = null;
       try {
         const user = await databaseHelpers.user.getUserById(depositRequest.userId);
         if (user && (user.firstDepositAmount === null || user.firstDepositAmount === undefined)) {
+          isFirstDeposit = true;
+          referrerId = user.referrerId; // Get referrer ID if user was referred
+          
           await databaseHelpers.pool.query(`
             UPDATE users 
             SET "firstDepositAmount" = $1, "updatedAt" = NOW()
             WHERE id = $2
           `, [depositRequest.amount, depositRequest.userId]);
           console.log(`✅ Set firstDepositAmount for user ${depositRequest.userId}: $${depositRequest.amount}`);
+          
+          // If this is a referred user's first deposit, mark referral as completed and trigger fee waiver
+          if (referrerId) {
+            try {
+              // Set hasReferredOne = true for the referrer
+              await databaseHelpers.pool.query(`
+                UPDATE users 
+                SET "hasReferredOne" = true, "updatedAt" = NOW()
+                WHERE id = $1
+              `, [referrerId]);
+              console.log(`✅ Set hasReferredOne = true for referrer ${referrerId} (referred user made first deposit)`);
+              
+              // Trigger referral fee waiver for the referrer
+              const walletFeeService = (await import('@/lib/walletFeeService.js')).default;
+              await walletFeeService.handleReferralFeeWaiver(referrerId);
+              console.log(`✅ Triggered referral fee waiver check for referrer ${referrerId}`);
+            } catch (referralError) {
+              console.error('Error processing referral completion:', referralError);
+              // Don't fail deposit approval if referral processing fails
+            }
+          }
         }
       } catch (firstDepositError) {
         console.error('Error setting firstDepositAmount:', firstDepositError);
         // Don't fail the approval if this fails
+      }
+      
+      // Check if wallet is locked and process wallet fee if needed
+      try {
+        const walletFeeService = (await import('@/lib/walletFeeService.js')).default;
+        const feeResult = await walletFeeService.processWalletFeeAfterDeposit(depositRequest.userId);
+        if (feeResult.status === 'charged' || feeResult.status === 'waived') {
+          console.log(`✅ Processed wallet fee after deposit for user ${depositRequest.userId}: ${feeResult.status}`);
+        }
+      } catch (feeError) {
+        console.error('Error processing wallet fee after deposit:', feeError);
+        // Don't fail deposit approval if fee processing fails
       }
       
       // Create notification for user

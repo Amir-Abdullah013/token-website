@@ -203,6 +203,43 @@ export async function POST(request) {
       }
     }
 
+    // Check if this is user's first staking and trigger referral completion
+    try {
+      const user = await databaseHelpers.user.getUserById(userId);
+      
+      if (user && user.referrerId) {
+        // Check if this is the user's first staking
+        const existingStakingsResult = await databaseHelpers.pool.query(`
+          SELECT COUNT(*) as count
+          FROM staking
+          WHERE "userId" = $1 AND id != $2
+        `, [userId, staking.id]);
+        
+        const existingStakingsCount = parseInt(existingStakingsResult.rows[0]?.count || 0);
+        const isFirstStaking = existingStakingsCount === 0;
+        
+        if (isFirstStaking) {
+          console.log(`✅ First staking detected for referred user ${userId}, marking referral as completed`);
+          
+          // Set hasReferredOne = true for the referrer
+          await databaseHelpers.pool.query(`
+            UPDATE users 
+            SET "hasReferredOne" = true, "updatedAt" = NOW()
+            WHERE id = $1
+          `, [user.referrerId]);
+          console.log(`✅ Set hasReferredOne = true for referrer ${user.referrerId} (referred user created first staking)`);
+          
+          // Trigger referral fee waiver for the referrer
+          const walletFeeService = (await import('@/lib/walletFeeService.js')).default;
+          await walletFeeService.handleReferralFeeWaiver(user.referrerId);
+          console.log(`✅ Triggered referral fee waiver check for referrer ${user.referrerId}`);
+        }
+      }
+    } catch (referralError) {
+      console.error('Error processing referral completion on staking:', referralError);
+      // Don't fail staking creation if referral processing fails
+    }
+
     // Process immediate referral bonus (NEW LOGIC)
     let referralBonusInfo = null;
     try {

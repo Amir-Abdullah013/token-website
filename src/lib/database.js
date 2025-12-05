@@ -2950,6 +2950,122 @@ export const databaseHelpers = {
           client.release();
         }
       }
+    },
+
+    /**
+     * Deduct wallet fee and log in admin reserve history (atomic operation)
+     * Similar to deductStakingReward but for wallet fees
+     * Note: Wallet fees are USD, but we record them in admin_reserve_history for tracking
+     * @param {Object} feeData - Fee data object
+     * @param {number} feeData.amount - USD amount (e.g., 2 for $2)
+     * @param {string} feeData.userId - User who paid the fee
+     * @param {string} feeData.purpose - Purpose description
+     * @param {string} feeData.adminId - Admin ID (defaults to SYSTEM)
+     * @param {Object} feeData.client - Optional: existing database client (for use within transactions)
+     * @returns {Promise<Object>} History entry
+     */
+    async deductWalletFee(feeData) {
+      const {
+        amount,
+        userId = null,
+        purpose = null,
+        adminId = 'SYSTEM',
+        client: providedClient = null
+      } = feeData;
+
+      if (!amount || amount <= 0) {
+        throw new Error('Wallet fee amount must be positive');
+      }
+
+      const useOwnTransaction = !providedClient;
+      const client = providedClient || await pool.connect();
+
+      try {
+        if (useOwnTransaction) {
+          await client.query('BEGIN');
+        }
+
+        // Get current token supply with FOR UPDATE lock (for consistency with deductStakingReward pattern)
+        const tokenSupplyResult = await client.query(
+          'SELECT * FROM token_supply ORDER BY id DESC LIMIT 1 FOR UPDATE'
+        );
+
+        if (!tokenSupplyResult.rows || tokenSupplyResult.rows.length === 0) {
+          if (useOwnTransaction) {
+            await client.query('ROLLBACK');
+          }
+          throw new Error('Token supply not found');
+        }
+
+        const tokenSupply = tokenSupplyResult.rows[0];
+        const reserveBefore = Number(tokenSupply.adminReserve);
+        
+        // Note: Wallet fees are USD, not tokens, so we don't actually deduct from reserve
+        // But we record it in history for tracking purposes
+        const reserveAfter = reserveBefore; // No change to token reserve
+
+        // Get or create SYSTEM user if needed
+        let finalAdminId = adminId;
+        if (adminId === 'SYSTEM' || !adminId) {
+          finalAdminId = await this.getOrCreateSystemUser();
+        }
+
+        // Log history entry
+        const { randomUUID } = await import('crypto');
+        const historyId = randomUUID();
+        const historyPurpose = purpose || `Wallet fee payment for user ${userId || 'N/A'}`;
+
+        const historyResult = await client.query(`
+          INSERT INTO admin_reserve_history (
+            id, "transactionType", amount, purpose, "userId", "adminId",
+            "reserveBefore", "reserveAfter", "referenceId", "referenceType", "createdAt"
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+          RETURNING *
+        `, [
+          historyId,
+          'WALLET_FEE',
+          -amount, // Negative for fee (USD amount, recorded for tracking)
+          historyPurpose,
+          userId,
+          finalAdminId,
+          reserveBefore,
+          reserveAfter,
+          userId, // Reference ID is the user who paid the fee
+          'WALLET_FEE'
+        ]);
+
+        if (useOwnTransaction) {
+          await client.query('COMMIT');
+        }
+
+        console.log('✅ Wallet fee recorded in reserve history:', {
+          amount,
+          userId: userId || 'N/A',
+          reserveBefore,
+          reserveAfter,
+          historyId: historyResult.rows[0].id
+        });
+
+        return {
+          historyEntry: historyResult.rows[0]
+        };
+      } catch (error) {
+        if (useOwnTransaction) {
+          await client.query('ROLLBACK');
+        }
+        console.error('❌ Error recording wallet fee:', {
+          error: error.message,
+          code: error.code,
+          constraint: error.constraint,
+          detail: error.detail
+        });
+        throw error;
+      } finally {
+        if (useOwnTransaction && client) {
+          client.release();
+        }
+      }
     }
   },
 
@@ -3385,18 +3501,64 @@ export const databaseHelpers = {
      */
     async getWalletFeeStatus(userId) {
       try {
+        // Get user wallet fee fields and first deposit amount
         const result = await pool.query(`
-          SELECT "walletFeeDueAt", "walletFeeProcessed", "walletFeeWaived", 
-                 "walletFeeLocked", "walletFeeProcessedAt"
-          FROM users
-          WHERE id = $1
+          SELECT 
+            u."walletFeeDueAt", 
+            u."walletFeeProcessed", 
+            u."walletFeeWaived", 
+            u."walletFeeLocked", 
+            u."walletFeeProcessedAt",
+            u."walletFeeApplied",
+            u."firstDepositAmount",
+            u."createdAt"
+          FROM users u
+          WHERE u.id = $1
         `, [userId]);
 
         if (result.rows.length === 0) {
           throw new Error(`User ${userId} not found`);
         }
 
-        return result.rows[0];
+        const user = result.rows[0];
+        const accountCreatedAt = new Date(user.createdAt);
+        const thirtyDaysLater = new Date(accountCreatedAt);
+        thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
+
+        // Count valid referrals (only where referred user has deposited or staked)
+        const referralCountResult = await pool.query(`
+          SELECT COUNT(DISTINCT r.id) as referral_count
+          FROM referrals r
+          WHERE r."referrerId" = $1
+            AND r."createdAt" >= $2
+            AND r."createdAt" <= $3
+            AND (
+              -- Check if referred user has made a completed deposit
+              EXISTS (
+                SELECT 1 
+                FROM transactions t
+                WHERE t."userId" = r."referredId"
+                  AND t.type = 'DEPOSIT'
+                  AND t.status = 'COMPLETED'
+                  AND t."createdAt" <= $3
+              )
+              OR
+              -- Check if referred user has created a staking
+              EXISTS (
+                SELECT 1
+                FROM staking s
+                WHERE s."userId" = r."referredId"
+                  AND s."createdAt" <= $3
+              )
+            )
+        `, [userId, accountCreatedAt, thirtyDaysLater]);
+
+        const referralCount = parseInt(referralCountResult.rows[0]?.referral_count || 0);
+
+        return {
+          ...user,
+          referralCount
+        };
       } catch (error) {
         console.error('Error getting wallet fee status:', error);
         throw error;

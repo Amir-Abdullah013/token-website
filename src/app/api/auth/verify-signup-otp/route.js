@@ -167,13 +167,10 @@ export async function POST(request) {
           });
           console.log('✅ Referral record created successfully:', referralRecord.id);
           
-          // Set hasReferredOne = true for the referrer
-          await databaseHelpers.pool.query(`
-            UPDATE users 
-            SET "hasReferredOne" = true, "updatedAt" = NOW()
-            WHERE id = $1
-          `, [referrerId]);
-          console.log('✅ Set hasReferredOne = true for referrer:', referrerId);
+          // NOTE: hasReferredOne will be set to true only when the referred user
+          // makes their first deposit OR creates their first staking
+          // This is handled in deposit approval and staking creation hooks
+          console.log('ℹ️ Referral record created - hasReferredOne will be set when referred user deposits/stakes');
         } catch (referralError) {
           console.error('❌ Error creating referral record:', referralError);
           // Don't fail the signup if referral creation fails

@@ -50,6 +50,9 @@ export async function GET(request) {
       walletFeeWaived: feeStatus.walletFeeWaived,
       walletFeeLocked: feeStatus.walletFeeLocked,
       walletFeeProcessedAt: feeStatus.walletFeeProcessedAt,
+      walletFeeApplied: feeStatus.walletFeeApplied || false,
+      firstDepositAmount: feeStatus.firstDepositAmount,
+      referralCount: feeStatus.referralCount || 0,
       daysRemaining,
       isPending,
       feeAmount: 2 // $2 fee amount

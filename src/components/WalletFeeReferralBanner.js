@@ -37,14 +37,23 @@ export default function WalletFeeReferralBanner() {
       // Store fee status for displaying trial end date
       setFeeStatus(data);
       
-      // Show banner only if:
-      // 1. Fee is not processed yet (walletFeeProcessed = false)
-      // 2. Fee is not waived yet (walletFeeWaived = false)
-      // 3. Still in trial period (isPending = true)
-      const shouldShow = 
-        !data.walletFeeProcessed && 
-        !data.walletFeeWaived && 
-        data.isPending === true;
+      // Hide banner if:
+      // 1. First deposit > $10 (permanently exempt)
+      // 2. User has referred at least 1 person (exempt via referral)
+      // 3. Fee already applied
+      // 4. Fee already waived
+      // 5. Fee already processed
+      // 6. Not in trial period (isPending = false)
+      const shouldHide = 
+        (data.firstDepositAmount !== null && data.firstDepositAmount !== undefined && data.firstDepositAmount > 10) ||
+        (data.referralCount >= 1) ||
+        (data.walletFeeApplied === true) ||
+        (data.walletFeeWaived === true) ||
+        (data.walletFeeProcessed === true) ||
+        (data.isPending !== true);
+      
+      // Show banner only if it should NOT be hidden
+      const shouldShow = !shouldHide;
       
       setShowBanner(shouldShow);
     } catch (error) {
@@ -123,14 +132,22 @@ export default function WalletFeeReferralBanner() {
 
                   {/* Text */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 leading-relaxed">
-                      Refer a friend within your first month and your one-time{' '}
-                      <span className="font-bold text-blue-600 dark:text-blue-400">$2 wallet setup fee</span>
-                      {' '}will be waived!
-                    </p>
-                    <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      Your friend needs to stake at least $20 to qualify
-                    </p>
+                    <div className="mb-3">
+                      <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        📌 Wallet Fee & Referral Rules (Important Note)
+                      </p>
+                      <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                        <p>
+                          If your first deposit is greater than <span className="font-bold text-blue-600 dark:text-blue-400">$10</span>, you will never be charged the <span className="font-bold">$2 wallet maintenance fee</span>.
+                        </p>
+                        <p>
+                          If your first deposit is less than <span className="font-bold text-blue-600 dark:text-blue-400">$10</span>, then a <span className="font-bold">$2 wallet fee</span> will be charged after 1 month of account creation unless you refer at least 1 person within that month.
+                        </p>
+                        <p>
+                          If you refer someone before 1 month completes, you avoid the <span className="font-bold">$2 fee</span> completely, and you also earn staking rewards for referring.
+                        </p>
+                      </div>
+                    </div>
                     
                     {/* Disclaimer with trial end date */}
                     {feeStatus?.walletFeeDueAt && (

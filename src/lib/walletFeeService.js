@@ -37,43 +37,59 @@ export async function scheduleWalletFee(user) {
 
 /**
  * Check if user has met the referral exemption condition
- * User must have referred someone who staked at least $20 before the due date
+ * User must have referred at least 1 person within 30 days of account creation
+ * AND the referred user must have made a deposit OR created a staking
  * @param {string} userId - User ID
- * @param {Date} dueDate - Wallet fee due date
+ * @param {Date} accountCreatedAt - Account creation date
+ * @param {Object} client - Optional database client for transaction support
  * @returns {boolean} - True if referral condition is met
  */
-export async function checkReferralExemption(userId, dueDate) {
+export async function checkReferralExemption(userId, accountCreatedAt, client = null) {
   try {
-    // Find all users referred by this user
-    const referredUsersResult = await databaseHelpers.pool.query(`
-      SELECT r."referredId", r."createdAt" as "referralCreatedAt"
+    // Calculate 30-day window from account creation
+    const thirtyDaysLater = new Date(accountCreatedAt);
+    thirtyDaysLater.setDate(thirtyDaysLater.getDate() + FREE_TRIAL_DAYS);
+
+    // Use provided client or get new connection
+    const queryClient = client || databaseHelpers.pool;
+
+    // Check if user has referred at least 1 person within 30 days
+    // AND the referred user has made a completed deposit OR created a staking
+    const referralResult = await queryClient.query(`
+      SELECT COUNT(DISTINCT r.id) as referral_count
       FROM referrals r
       WHERE r."referrerId" = $1
-    `, [userId]);
+        AND r."createdAt" >= $2
+        AND r."createdAt" <= $3
+        AND (
+          -- Check if referred user has made a completed deposit
+          EXISTS (
+            SELECT 1 
+            FROM transactions t
+            WHERE t."userId" = r."referredId"
+              AND t.type = 'DEPOSIT'
+              AND t.status = 'COMPLETED'
+              AND t."createdAt" <= $3
+          )
+          OR
+          -- Check if referred user has created a staking
+          EXISTS (
+            SELECT 1
+            FROM staking s
+            WHERE s."userId" = r."referredId"
+              AND s."createdAt" <= $3
+          )
+        )
+    `, [userId, accountCreatedAt, thirtyDaysLater]);
 
-    if (referredUsersResult.rows.length === 0) {
-      console.log(`No referrals found for user ${userId}`);
-      return false;
+    const referralCount = parseInt(referralResult.rows[0]?.referral_count || 0);
+
+    if (referralCount >= 1) {
+      console.log(`✅ Referral exemption met for user ${userId}: referred ${referralCount} user(s) with valid deposits/stakes within 30 days`);
+      return true;
     }
 
-    // Check if any referred user has staked at least $20 before the due date
-    for (const referral of referredUsersResult.rows) {
-      const stakingsResult = await databaseHelpers.pool.query(`
-        SELECT "amountStaked", "createdAt"
-        FROM staking
-        WHERE "userId" = $1 
-          AND "amountStaked" >= $2
-          AND "createdAt" <= $3
-        LIMIT 1
-      `, [referral.referredId, MINIMUM_REFERRAL_STAKE, dueDate]);
-
-      if (stakingsResult.rows.length > 0) {
-        console.log(`✅ Referral exemption met for user ${userId}: referred user ${referral.referredId} staked $${stakingsResult.rows[0].amountStaked}`);
-        return true;
-      }
-    }
-
-    console.log(`❌ Referral exemption not met for user ${userId}`);
+    console.log(`❌ Referral exemption not met for user ${userId}: only ${referralCount} valid referral(s) within 30 days`);
     return false;
   } catch (error) {
     console.error('Error checking referral exemption:', error);
@@ -83,7 +99,7 @@ export async function checkReferralExemption(userId, dueDate) {
 
 /**
  * Process wallet fee for a specific user
- * Handles all logic: checking status, referral exemption, deduction, and locking
+ * Handles all logic: first deposit check, referral exemption, deduction, and locking
  * @param {string} userId - User ID to process
  * @returns {Object} - Result object with status and details
  */
@@ -93,12 +109,13 @@ export async function processWalletFeeForUser(userId) {
     client = await databaseHelpers.pool.connect();
     await client.query('BEGIN');
 
-    // Get user details
+    // Get user details with FOR UPDATE lock to prevent race conditions
     const userResult = await client.query(`
       SELECT id, "createdAt", "walletFeeDueAt", "walletFeeProcessed", 
-             "walletFeeWaived", "walletFeeLocked"
+             "walletFeeWaived", "walletFeeLocked", "walletFeeApplied", "firstDepositAmount"
       FROM users
       WHERE id = $1
+      FOR UPDATE
     `, [userId]);
 
     if (userResult.rows.length === 0) {
@@ -107,9 +124,10 @@ export async function processWalletFeeForUser(userId) {
 
     const user = userResult.rows[0];
     const now = new Date();
+    const accountCreatedAt = new Date(user.createdAt);
 
     // Skip if already processed
-    if (user.walletFeeProcessed) {
+    if (user.walletFeeProcessed || user.walletFeeApplied) {
       await client.query('COMMIT');
       return {
         status: user.walletFeeWaived ? 'waived' : 'charged',
@@ -118,25 +136,55 @@ export async function processWalletFeeForUser(userId) {
       };
     }
 
-    // Check if due date has passed
-    if (!user.walletFeeDueAt || new Date(user.walletFeeDueAt) > now) {
-      await client.query('COMMIT');
-      return {
-        status: 'pending',
-        message: 'Wallet fee not yet due',
-        dueDate: user.walletFeeDueAt
-      };
-    }
-
-    // Check referral exemption
-    const exemptionMet = await checkReferralExemption(userId, new Date(user.walletFeeDueAt));
-    
-    if (exemptionMet) {
-      // Waive the fee
+    // RULE A: Check if first deposit > $10 → permanently exempt
+    if (user.firstDepositAmount !== null && user.firstDepositAmount !== undefined && user.firstDepositAmount > 10) {
+      // User is permanently exempt - mark as waived
       await client.query(`
         UPDATE users 
         SET "walletFeeWaived" = true, 
             "walletFeeProcessed" = true,
+            "walletFeeApplied" = false,
+            "walletFeeLocked" = false,
+            "walletFeeProcessedAt" = NOW(),
+            "updatedAt" = NOW()
+        WHERE id = $1
+      `, [userId]);
+
+      await client.query('COMMIT');
+      
+      console.log(`✅ User ${userId} permanently exempt from wallet fee (first deposit: $${user.firstDepositAmount})`);
+      return {
+        status: 'waived',
+        message: 'Permanently exempt from wallet fee (first deposit > $10)',
+        exemptionReason: 'first_deposit_over_10'
+      };
+    }
+
+    // RULE B: First deposit < $10 - apply 30-day timer and referral check
+    // Calculate 30 days from account creation
+    const thirtyDaysLater = new Date(accountCreatedAt);
+    thirtyDaysLater.setDate(thirtyDaysLater.getDate() + FREE_TRIAL_DAYS);
+
+    // Check if 30 days have passed
+    if (now < thirtyDaysLater) {
+      await client.query('COMMIT');
+      return {
+        status: 'pending',
+        message: 'Wallet fee not yet due (30-day period not completed)',
+        dueDate: thirtyDaysLater
+      };
+    }
+
+    // 30 days have passed - check referral exemption (use same transaction)
+    const exemptionMet = await checkReferralExemption(userId, accountCreatedAt, client);
+    
+    if (exemptionMet) {
+      // Waive the fee - user referred at least 1 person within 30 days
+      await client.query(`
+        UPDATE users 
+        SET "walletFeeWaived" = true, 
+            "walletFeeProcessed" = true,
+            "walletFeeApplied" = false,
             "walletFeeLocked" = false,
             "walletFeeProcessedAt" = NOW(),
             "updatedAt" = NOW()
@@ -149,11 +197,11 @@ export async function processWalletFeeForUser(userId) {
       await databaseHelpers.notifications.createNotification({
         userId,
         title: 'Wallet Fee Waived! 🎉',
-        message: 'Congratulations! Your wallet fee has been waived because you referred a user who staked at least $20 within 30 days.',
+        message: 'Congratulations! Your wallet fee has been waived because you referred at least 1 person within your first month.',
         type: 'SUCCESS'
       });
 
-      console.log(`✅ Wallet fee waived for user ${userId}`);
+      console.log(`✅ Wallet fee waived for user ${userId} (referral exemption)`);
       return {
         status: 'waived',
         message: 'Wallet fee waived due to referral exemption',
@@ -161,9 +209,10 @@ export async function processWalletFeeForUser(userId) {
       };
     }
 
-    // Get user's wallet balance
+    // User did NOT refer anyone within 30 days - deduct $2 fee
+    // Get user's wallet balance and VON balance
     const walletResult = await client.query(`
-      SELECT balance FROM wallets WHERE "userId" = $1
+      SELECT balance, "VonBalance" FROM wallets WHERE "userId" = $1
     `, [userId]);
 
     if (walletResult.rows.length === 0) {
@@ -171,11 +220,25 @@ export async function processWalletFeeForUser(userId) {
     }
 
     const wallet = walletResult.rows[0];
-    const currentBalance = parseFloat(wallet.balance);
+    const currentBalance = parseFloat(wallet.balance || 0);
+    const currentVonBalance = parseFloat(wallet.VonBalance || 0);
 
-    // Check if user has sufficient balance
-    if (currentBalance < WALLET_FEE_AMOUNT) {
-      // Insufficient balance - lock wallet
+    // Get current VON price to convert VON to USD
+    let vonPrice = 0.0035; // Default fallback price
+    try {
+      const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
+      vonPrice = tokenValue.currentTokenValue;
+    } catch (error) {
+      console.warn('Could not get current token price, using default:', error.message);
+    }
+
+    // Calculate total available balance (USD + VON in USD)
+    const vonValueInUsd = currentVonBalance * vonPrice;
+    const totalAvailableBalance = currentBalance + vonValueInUsd;
+
+    // Check if user has sufficient balance (USD or VON)
+    if (totalAvailableBalance < WALLET_FEE_AMOUNT) {
+      // Insufficient balance in both USD and VON - lock wallet
       await client.query(`
         UPDATE users 
         SET "walletFeeLocked" = true,
@@ -189,27 +252,52 @@ export async function processWalletFeeForUser(userId) {
       await databaseHelpers.notifications.createNotification({
         userId,
         title: 'Wallet Locked - Payment Required',
-        message: `Your wallet has been locked because the $${WALLET_FEE_AMOUNT} monthly fee is due but you have insufficient balance. Please deposit at least $${WALLET_FEE_AMOUNT} to unlock your wallet.`,
+        message: `Your wallet has been locked because the $${WALLET_FEE_AMOUNT} wallet fee is due but you have insufficient balance. Please deposit at least $${WALLET_FEE_AMOUNT} to unlock your wallet and resume all features.`,
         type: 'WARNING'
       });
 
-      console.log(`⚠️ Wallet locked for user ${userId} - insufficient balance`);
+      console.log(`⚠️ Wallet locked for user ${userId} - insufficient balance (USD: $${currentBalance}, VON: ${currentVonBalance}, VON Value: $${vonValueInUsd.toFixed(2)})`);
       return {
         status: 'locked',
         message: 'Wallet locked due to insufficient balance',
         requiredAmount: WALLET_FEE_AMOUNT,
-        currentBalance
+        currentBalance,
+        currentVonBalance,
+        vonValueInUsd
       };
     }
 
-    // Deduct the fee
-    const newBalance = currentBalance - WALLET_FEE_AMOUNT;
+    // User has sufficient balance - deduct fee
+    let newBalance = currentBalance;
+    let newVonBalance = currentVonBalance;
+    let deductionSource = 'USD';
+
+    if (currentBalance >= WALLET_FEE_AMOUNT) {
+      // Deduct from USD balance
+      newBalance = currentBalance - WALLET_FEE_AMOUNT;
+    } else {
+      // Need to deduct from VON balance
+      const usdShortfall = WALLET_FEE_AMOUNT - currentBalance;
+      const vonNeeded = usdShortfall / vonPrice;
+      
+      if (currentVonBalance >= vonNeeded) {
+        // Deduct remaining from USD and rest from VON
+        newBalance = 0;
+        newVonBalance = currentVonBalance - vonNeeded;
+        deductionSource = 'VON';
+        console.log(`💰 Deducting wallet fee from VON: ${vonNeeded.toFixed(2)} VON (worth $${usdShortfall.toFixed(2)})`);
+      } else {
+        // This shouldn't happen as we checked totalAvailableBalance, but handle it anyway
+        throw new Error('Insufficient balance calculation error');
+      }
+    }
     
+    // Update wallet balances
     await client.query(`
       UPDATE wallets 
-      SET balance = $1, "lastUpdated" = NOW(), "updatedAt" = NOW()
-      WHERE "userId" = $2
-    `, [newBalance, userId]);
+      SET balance = $1, "VonBalance" = $2, "lastUpdated" = NOW(), "updatedAt" = NOW()
+      WHERE "userId" = $3
+    `, [newBalance, newVonBalance, userId]);
 
     // Get admin wallet for fee receiver
     const adminWalletResult = await client.query(`
@@ -233,6 +321,15 @@ export async function processWalletFeeForUser(userId) {
       `, [WALLET_FEE_AMOUNT, feeReceiverId]);
     }
 
+    // Record in admin_reserve_history using the new deductWalletFee pattern
+    await databaseHelpers.adminReserveHistory.deductWalletFee({
+      amount: WALLET_FEE_AMOUNT,
+      userId: userId,
+      purpose: `Wallet fee deduction for user ${userId} (first deposit < $10, no referral within 30 days)`,
+      adminId: 'SYSTEM',
+      client: client // Use existing transaction
+    });
+
     // Create transaction record
     const { randomUUID } = await import('crypto');
     const transactionId = randomUUID();
@@ -240,24 +337,26 @@ export async function processWalletFeeForUser(userId) {
     await client.query(`
       INSERT INTO transactions (
         id, "userId", type, amount, currency, status, 
-        description, "feeAmount", "feeReceiverId", "netAmount",
+        description, "feeAmount", "feeReceiverId", "netAmount", "transactionType",
         "createdAt", "updatedAt"
       )
-      VALUES ($1, $2, 'WALLET_FEE', $3, 'USD', 'COMPLETED', $4, $5, $6, $7, NOW(), NOW())
+      VALUES ($1, $2, 'WALLET_FEE', $3, 'USD', 'COMPLETED', $4, $5, $6, $7, $8, NOW(), NOW())
     `, [
       transactionId,
       userId,
       WALLET_FEE_AMOUNT,
-      'One-time wallet fee after 30-day trial period',
+      'One-time wallet fee after 30-day trial period (no referral exemption)',
       WALLET_FEE_AMOUNT,
       feeReceiverId,
-      0 // netAmount is 0 for fee transactions
+      0, // netAmount is 0 for fee transactions
+      'wallet_fee' // transactionType for admin fees page
     ]);
 
-    // Mark fee as processed
+    // Mark fee as processed and applied
     await client.query(`
       UPDATE users 
       SET "walletFeeProcessed" = true,
+          "walletFeeApplied" = true,
           "walletFeeLocked" = false,
           "walletFeeProcessedAt" = NOW(),
           "updatedAt" = NOW()
@@ -267,20 +366,27 @@ export async function processWalletFeeForUser(userId) {
     await client.query('COMMIT');
 
     // Create notification
+    const balanceMessage = deductionSource === 'VON' 
+      ? `A one-time wallet fee of $${WALLET_FEE_AMOUNT} has been deducted from your VON balance. Your new USD balance is $${newBalance.toFixed(2)} and VON balance is ${newVonBalance.toFixed(2)}.`
+      : `A one-time wallet fee of $${WALLET_FEE_AMOUNT} has been deducted from your wallet. Your new balance is $${newBalance.toFixed(2)}.`;
+    
     await databaseHelpers.notifications.createNotification({
       userId,
       title: 'Wallet Fee Charged',
-      message: `A one-time wallet fee of $${WALLET_FEE_AMOUNT} has been deducted from your wallet. Your new balance is $${newBalance.toFixed(2)}.`,
+      message: balanceMessage,
       type: 'INFO'
     });
 
-    console.log(`✅ Wallet fee charged for user ${userId}: $${WALLET_FEE_AMOUNT}`);
+    console.log(`✅ Wallet fee charged for user ${userId}: $${WALLET_FEE_AMOUNT} (deducted from ${deductionSource})`);
     return {
       status: 'charged',
       message: 'Wallet fee successfully charged',
       feeAmount: WALLET_FEE_AMOUNT,
       previousBalance: currentBalance,
-      newBalance
+      previousVonBalance: currentVonBalance,
+      newBalance,
+      newVonBalance,
+      deductionSource
     };
 
   } catch (error) {
@@ -305,22 +411,31 @@ export async function processAllDueWalletFees() {
   try {
     const now = new Date();
     
-    // Get all users whose wallet fee is due but not yet processed
+    // Get all users whose wallet fee should be processed
+    // Users who:
+    // 1. Have not been processed yet (walletFeeProcessed = false AND walletFeeApplied = false)
+    // 2. Account was created at least 30 days ago
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - FREE_TRIAL_DAYS);
+    
     const usersResult = await databaseHelpers.pool.query(`
-      SELECT id, email, "walletFeeDueAt"
+      SELECT id, email, "createdAt", "firstDepositAmount"
       FROM users
-      WHERE "walletFeeDueAt" <= $1
+      WHERE "createdAt" <= $1
         AND "walletFeeProcessed" = false
-    `, [now]);
+        AND "walletFeeApplied" = false
+    `, [thirtyDaysAgo]);
 
     const users = usersResult.rows;
-    console.log(`📋 Found ${users.length} users with due wallet fees`);
+    console.log(`📋 Found ${users.length} users eligible for wallet fee processing`);
 
     const results = {
       total: users.length,
       charged: 0,
       waived: 0,
+      exempt: 0,
       locked: 0,
+      pending: 0,
       errors: 0,
       details: []
     };
@@ -333,8 +448,12 @@ export async function processAllDueWalletFees() {
           results.charged++;
         } else if (result.status === 'waived') {
           results.waived++;
+        } else if (result.exemptionReason === 'first_deposit_over_10') {
+          results.exempt++;
         } else if (result.status === 'locked') {
           results.locked++;
+        } else if (result.status === 'pending') {
+          results.pending++;
         }
 
         results.details.push({
@@ -399,15 +518,89 @@ export async function checkWalletActionAllowed(userId) {
 }
 
 /**
+ * Process wallet fee after deposit if wallet is locked
+ * Called when a user makes a deposit and their wallet is locked due to unpaid fee
+ * @param {string} userId - User ID
+ * @returns {Object} - Result object with status
+ */
+export async function processWalletFeeAfterDeposit(userId) {
+  try {
+    // Check if wallet is locked
+    const userResult = await databaseHelpers.pool.query(`
+      SELECT "walletFeeLocked", "walletFeeProcessed", "walletFeeApplied", "firstDepositAmount"
+      FROM users
+      WHERE id = $1
+    `, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return { status: 'error', message: 'User not found' };
+    }
+
+    const user = userResult.rows[0];
+
+    // Only process if wallet is locked and fee hasn't been processed yet
+    if (!user.walletFeeLocked || user.walletFeeProcessed || user.walletFeeApplied) {
+      return { status: 'skipped', message: 'Wallet fee not applicable' };
+    }
+
+    // Check if first deposit > $10 (permanently exempt)
+    if (user.firstDepositAmount !== null && user.firstDepositAmount !== undefined && user.firstDepositAmount > 10) {
+      // User is permanently exempt - mark as waived
+      await databaseHelpers.pool.query(`
+        UPDATE users 
+        SET "walletFeeWaived" = true, 
+            "walletFeeProcessed" = true,
+            "walletFeeApplied" = false,
+            "walletFeeLocked" = false,
+            "walletFeeProcessedAt" = NOW(),
+            "updatedAt" = NOW()
+        WHERE id = $1
+      `, [userId]);
+
+      await databaseHelpers.notifications.createNotification({
+        userId,
+        title: 'Wallet Fee Waived',
+        message: 'Your wallet fee has been waived because your first deposit was greater than $10.',
+        type: 'SUCCESS'
+      });
+
+      return {
+        status: 'waived',
+        message: 'Permanently exempt from wallet fee (first deposit > $10)',
+        exemptionReason: 'first_deposit_over_10'
+      };
+    }
+
+    // Process the wallet fee (will try to deduct from balance/VON)
+    const result = await processWalletFeeForUser(userId);
+    
+    if (result.status === 'charged') {
+      // Fee was successfully charged
+      await databaseHelpers.notifications.createNotification({
+        userId,
+        title: 'Wallet Unlocked',
+        message: `Your wallet has been unlocked! The $${WALLET_FEE_AMOUNT} wallet fee has been deducted from your account.`,
+        type: 'SUCCESS'
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error processing wallet fee after deposit:', error);
+    return { status: 'error', message: error.message };
+  }
+}
+
+/**
  * Handle wallet fee waiver when referral condition is met
- * Called when a referred user stakes >= $20
+ * Called when a user refers someone (within 30 days of account creation)
  * @param {string} referrerId - ID of the user who made the referral
- * @returns {boolean} - True if fee was waived, false if already processed
+ * @returns {boolean} - True if fee was waived, false if already processed or not eligible
  */
 export async function handleReferralFeeWaiver(referrerId) {
   try {
     const userResult = await databaseHelpers.pool.query(`
-      SELECT "walletFeeProcessed", "walletFeeDueAt"
+      SELECT "walletFeeProcessed", "walletFeeApplied", "createdAt", "firstDepositAmount"
       FROM users
       WHERE id = $1
     `, [referrerId]);
@@ -419,29 +612,48 @@ export async function handleReferralFeeWaiver(referrerId) {
 
     const user = userResult.rows[0];
     const now = new Date();
+    const accountCreatedAt = new Date(user.createdAt);
+    const thirtyDaysLater = new Date(accountCreatedAt);
+    thirtyDaysLater.setDate(thirtyDaysLater.getDate() + FREE_TRIAL_DAYS);
 
-    // Only waive if not already processed and still within the trial period
-    if (!user.walletFeeProcessed && user.walletFeeDueAt && new Date(user.walletFeeDueAt) > now) {
-      await databaseHelpers.pool.query(`
-        UPDATE users 
-        SET "walletFeeWaived" = true,
-            "walletFeeProcessed" = true,
-            "walletFeeLocked" = false,
-            "walletFeeProcessedAt" = NOW(),
-            "updatedAt" = NOW()
-        WHERE id = $1
-      `, [referrerId]);
+    // Skip if already processed or applied
+    if (user.walletFeeProcessed || user.walletFeeApplied) {
+      return false;
+    }
 
-      // Create notification
-      await databaseHelpers.notifications.createNotification({
-        userId: referrerId,
-        title: 'Wallet Fee Waived! 🎉',
-        message: 'Congratulations! Your wallet fee has been waived because your referral staked at least $20.',
-        type: 'SUCCESS'
-      });
+    // Skip if first deposit > $10 (permanently exempt, will be handled by cron)
+    if (user.firstDepositAmount !== null && user.firstDepositAmount !== undefined && user.firstDepositAmount > 10) {
+      return false;
+    }
 
-      console.log(`✅ Wallet fee waived for referrer ${referrerId}`);
-      return true;
+    // Only waive if still within the 30-day period
+    if (now <= thirtyDaysLater) {
+      // Check if user now has at least 1 referral
+      const exemptionMet = await checkReferralExemption(referrerId, accountCreatedAt);
+      
+      if (exemptionMet) {
+        await databaseHelpers.pool.query(`
+          UPDATE users 
+          SET "walletFeeWaived" = true,
+              "walletFeeProcessed" = true,
+              "walletFeeApplied" = false,
+              "walletFeeLocked" = false,
+              "walletFeeProcessedAt" = NOW(),
+              "updatedAt" = NOW()
+          WHERE id = $1
+        `, [referrerId]);
+
+        // Create notification
+        await databaseHelpers.notifications.createNotification({
+          userId: referrerId,
+          title: 'Wallet Fee Waived! 🎉',
+          message: 'Congratulations! Your wallet fee has been waived because you referred at least 1 person within your first month.',
+          type: 'SUCCESS'
+        });
+
+        console.log(`✅ Wallet fee waived for referrer ${referrerId} (referral exemption)`);
+        return true;
+      }
     }
 
     return false;
@@ -458,6 +670,7 @@ export default {
   processAllDueWalletFees,
   checkWalletActionAllowed,
   handleReferralFeeWaiver,
+  processWalletFeeAfterDeposit,
   WALLET_FEE_AMOUNT,
   FREE_TRIAL_DAYS,
   MINIMUM_REFERRAL_STAKE
