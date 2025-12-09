@@ -17,7 +17,7 @@ Then:
 npx prisma db push
 ```
 
-### Option 2: Run SQL Directly
+### Option 2: Run SQL Directly i
 
 If the script doesn't work, run this SQL directly in your database:
 
