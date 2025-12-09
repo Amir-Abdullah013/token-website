@@ -70,33 +70,48 @@ export default function WalletFeeStatus() {
     return null;
   }
 
-  // Wallet Locked Status
+  // Wallet Locked Status - BIG PROMINENT BANNER
   if (walletFeeLocked) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg p-6 mb-6"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 dark:from-red-900 dark:via-red-800 dark:to-red-900 border-4 border-red-700 dark:border-red-600 rounded-xl p-6 sm:p-8 mb-6 shadow-2xl"
       >
-        <div className="flex items-start">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex-shrink-0">
-            <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+              <svg className="h-10 w-10 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
           </div>
-          <div className="ml-4 flex-1">
-            <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
-              ⚠️ Wallet Locked - Payment Required
-            </h3>
-            <p className="mt-2 text-sm text-red-700 dark:text-red-300">
-              Your wallet features are currently locked. Please deposit at least <span className="font-bold">$2.00</span> to unlock your wallet and resume all wallet-related activities (send, buy, sell, deposit, withdraw, stake).
+          <div className="flex-1">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+              🚫 ACCOUNT FROZEN - PAYMENT REQUIRED
+            </h2>
+            <p className="text-lg sm:text-xl text-white/95 mb-1 font-semibold">
+              Your wallet has been locked due to an unpaid $2.00 wallet fee.
             </p>
-            <div className="mt-4">
+            <p className="text-base sm:text-lg text-white/90 mb-4">
+              All wallet features are currently disabled except deposits. Please deposit at least <span className="font-bold text-yellow-300 text-xl">$2.00</span> to unlock your account and resume all activities (send, buy, sell, withdraw, stake).
+            </p>
+            <div className="flex flex-wrap gap-3 mt-4">
+              <a
+                href="/user/dashboard?tab=deposit"
+                className="inline-flex items-center px-6 py-3 bg-white text-red-600 text-lg font-bold rounded-lg hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Deposit $2.00 Now
+              </a>
               <a
                 href="/user/dashboard"
-                className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+                className="inline-flex items-center px-6 py-3 bg-white/20 text-white text-lg font-semibold rounded-lg hover:bg-white/30 transition-all border-2 border-white/50"
               >
-                Deposit Now
+                Go to Dashboard
               </a>
             </div>
           </div>

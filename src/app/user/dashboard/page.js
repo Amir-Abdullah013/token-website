@@ -14,6 +14,7 @@ import UserIdDisplay from '@/components/UserIdDisplay';
 import { ToastContainer, useToast } from '@/components/Toast';
 import { AlertModal } from '@/components/Modal';
 import WalletFeeReferralBanner from '@/components/WalletFeeReferralBanner';
+import WalletFeeStatus from '@/components/WalletFeeStatus';
 import Link from 'next/link';
 
 export default function UserDashboard() {
@@ -372,6 +373,9 @@ export default function UserDashboard() {
           </div>
         </div>
 
+        {/* Wallet Fee Status - Shows locked account banner prominently */}
+        <WalletFeeStatus />
+        
         {/* Wallet Fee Referral Banner */}
         <WalletFeeReferralBanner />
 
