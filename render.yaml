@@ -1,0 +1,94 @@
+services:
+  # Main Web Service
+  - type: web
+    name: token-website
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false  # Set this in Render dashboard
+      - key: CRON_SECRET
+        sync: false  # Set this in Render dashboard - IMPORTANT for cron security
+      - key: NEXT_PUBLIC_BASE_URL
+        sync: false  # Set this to your Render service URL
+      # Add other environment variables as needed
+
+  # Cron Job: Auto Match Orders (Every minute)
+  - type: cron
+    name: auto-match-orders-cron
+    schedule: "* * * * *"  # Every minute
+    env: shell
+    startCommand: |
+      curl -X GET "${NEXT_PUBLIC_BASE_URL}/api/cron/auto-match-orders" \
+        -H "Authorization: Bearer ${CRON_SECRET}" \
+        -H "Content-Type: application/json" \
+        --fail --silent --show-error || exit 1
+    envVars:
+      - key: NEXT_PUBLIC_BASE_URL
+        fromService:
+          type: web
+          name: token-website
+          property: url
+      - key: CRON_SECRET
+        sync: false  # Must match the CRON_SECRET in web service
+
+  # Cron Job: Process Wallet Fees (Daily at midnight)
+  - type: cron
+    name: process-wallet-fees-cron
+    schedule: "0 0 * * *"  # Daily at midnight UTC
+    env: shell
+    startCommand: |
+      curl -X GET "${NEXT_PUBLIC_BASE_URL}/api/cron/process-wallet-fees" \
+        -H "Authorization: Bearer ${CRON_SECRET}" \
+        -H "Content-Type: application/json" \
+        --fail --silent --show-error || exit 1
+    envVars:
+      - key: NEXT_PUBLIC_BASE_URL
+        fromService:
+          type: web
+          name: token-website
+          property: url
+      - key: CRON_SECRET
+        sync: false  # Must match the CRON_SECRET in web service
+
+  # Cron Job: Process Stakings (Every 6 hours)
+  - type: cron
+    name: process-stakings-cron
+    schedule: "0 */6 * * *"  # Every 6 hours
+    env: shell
+    startCommand: |
+      curl -X GET "${NEXT_PUBLIC_BASE_URL}/api/cron/process-stakings" \
+        -H "Authorization: Bearer ${CRON_SECRET}" \
+        -H "Content-Type: application/json" \
+        --fail --silent --show-error || exit 1
+    envVars:
+      - key: NEXT_PUBLIC_BASE_URL
+        fromService:
+          type: web
+          name: token-website
+          property: url
+      - key: CRON_SECRET
+        sync: false  # Must match the CRON_SECRET in web service
+
+  # Cron Job: Cleanup Reset Tokens (Every hour)
+  - type: cron
+    name: cleanup-reset-tokens-cron
+    schedule: "0 * * * *"  # Every hour
+    env: shell
+    startCommand: |
+      curl -X GET "${NEXT_PUBLIC_BASE_URL}/api/cron/cleanup-reset-tokens" \
+        -H "Authorization: Bearer ${CRON_SECRET}" \
+        -H "Content-Type: application/json" \
+        --fail --silent --show-error || exit 1
+    envVars:
+      - key: NEXT_PUBLIC_BASE_URL
+        fromService:
+          type: web
+          name: token-website
+          property: url
+      - key: CRON_SECRET
+        sync: false  # Must match the CRON_SECRET in web service
+

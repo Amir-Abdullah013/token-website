@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 
 /**
  * Cron Authentication Helper
- * Verifies requests from Vercel Cron or manual cron triggers
+ * Verifies requests from Vercel Cron, Render Cron, or manual cron triggers
  * 
- * Vercel Cron automatically sends requests with special headers.
- * This helper supports both Vercel Cron and manual triggers with CRON_SECRET.
+ * Supports:
+ * - Vercel Cron: Automatically sends x-vercel-signature header
+ * - Render Cron: Uses CRON_SECRET in Authorization header
+ * - Manual triggers: Uses CRON_SECRET in Authorization header
  */
 
 /**
@@ -21,11 +23,20 @@ export function verifyCronRequest(request) {
     return true;
   }
 
-  // Check for CRON_SECRET in authorization header (for manual testing or other cron services)
+  // Check for Render Cron or other services using CRON_SECRET
+  // Render cron jobs will send Authorization header with CRON_SECRET
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET || 'default-cron-secret-change-in-production';
   
   if (authHeader === `Bearer ${cronSecret}`) {
+    return true;
+  }
+
+  // Check for Render-specific headers (if Render adds any in the future)
+  const renderCronId = request.headers.get('x-render-cron-id');
+  if (renderCronId && process.env.RENDER) {
+    // If running on Render and has Render cron header, allow it
+    // You can add additional validation here if needed
     return true;
   }
 
