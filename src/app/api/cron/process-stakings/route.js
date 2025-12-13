@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
 import { databaseHelpers } from '@/lib/database';
+import { requireCronAuth } from '@/lib/cron-auth.js';
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const EPSILON = 0.000001;
 
-export async function GET() {
+export async function GET(request) {
   try {
+    // Verify cron authentication (Vercel Cron or CRON_SECRET)
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
+    }
+
     console.log('🔄 Processing daily staking rewards...');
 
     const activeStakingsResult = await databaseHelpers.pool.query(`

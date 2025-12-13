@@ -1,5 +1,21 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json"
-  
-  
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/auto-match-orders",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/process-wallet-fees",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/process-stakings",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-reset-tokens",
+      "schedule": "0 * * * *"
+    }
+  ]
 }

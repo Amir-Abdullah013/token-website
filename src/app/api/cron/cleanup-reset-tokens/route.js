@@ -1,39 +1,19 @@
 import { NextResponse } from 'next/server';
 import { databaseHelpers } from '@/lib/database';
+import { requireCronAuth } from '@/lib/cron-auth.js';
 
 /**
  * Cron job to cleanup expired password reset tokens
- * Should be run every hour via cron service (e.g., Vercel Cron, node-cron, etc.)
+ * Should be run every hour via Vercel Cron
  * 
- * Setup:
- * 1. Add to vercel.json:
- *    {
- *      "crons": [{
- *        "path": "/api/cron/cleanup-reset-tokens",
- *        "schedule": "0 * * * *"
- *      }]
- *    }
- * 
- * 2. Or use node-cron in a background process:
- *    const cron = require('node-cron');
- *    cron.schedule('0 * * * *', async () => {
- *      await fetch('http://localhost:3000/api/cron/cleanup-reset-tokens');
- *    });
- * 
- * Security: This endpoint should be protected with a cron secret
+ * Security: Protected by Vercel Cron authentication or CRON_SECRET
  */
 export async function GET(request) {
   try {
-    // Verify cron secret to prevent unauthorized access
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET || 'your-secure-cron-secret';
-    
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      console.warn('⚠️  Unauthorized cron job access attempt');
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // Verify cron authentication (Vercel Cron or CRON_SECRET)
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     console.log('🧹 Starting password reset token cleanup...');

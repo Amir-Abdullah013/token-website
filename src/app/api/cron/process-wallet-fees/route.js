@@ -1,23 +1,18 @@
 import { NextResponse } from 'next/server';
 import walletFeeService from '@/lib/walletFeeService.js';
+import { requireCronAuth } from '@/lib/cron-auth.js';
 
 /**
  * Cron endpoint to process all due wallet fees
- * Secured by cron secret key
+ * Secured by Vercel Cron or cron secret key
  * Should run daily via Vercel Cron
  */
 export async function GET(request) {
   try {
-    // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET || 'default-cron-secret-change-in-production';
-    
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      console.error('Unauthorized cron job attempt');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // Verify cron authentication (Vercel Cron or CRON_SECRET)
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     console.log('🔄 Starting wallet fee batch processing...');

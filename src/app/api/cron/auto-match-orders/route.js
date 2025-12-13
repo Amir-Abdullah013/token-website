@@ -1,16 +1,24 @@
 import { NextResponse } from 'next/server';
 import { databaseHelpers } from '@/lib/database';
+import { requireCronAuth } from '@/lib/cron-auth.js';
 
 /**
  * PRODUCTION-READY Automatic Order Matching System
  * This endpoint runs automatically via Vercel CRON to execute limit orders
  * Runs every minute in production
+ * Protected by Vercel Cron authentication or CRON_SECRET
  */
 
 export async function GET(request) {
   const startTime = Date.now();
   
   try {
+    // Verify cron authentication (Vercel Cron or CRON_SECRET)
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
+    }
+
     // Production logging
     console.log(`[${new Date().toISOString()}] 🤖 PRODUCTION Auto Order Matching Started`);
     
