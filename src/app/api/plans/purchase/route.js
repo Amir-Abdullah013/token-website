@@ -37,14 +37,6 @@ export async function POST(request) {
 
     const plan = PLANS.find(p => p.id === planId);
     const planAmount = plan.amount;
-    
-    console.log('📦 Plan Purchase Request:', {
-      userId,
-      planId,
-      planName: plan.name,
-      planAmount,
-      sessionId: session.id
-    });
 
     // Resolve a real DB user ID
     let userId = session.id;
@@ -72,6 +64,14 @@ export async function POST(request) {
         { status: 500 }
       );
     }
+
+    console.log('📦 Plan Purchase Request:', {
+      userId,
+      planId,
+      planName: plan.name,
+      planAmount,
+      sessionId: session.id
+    });
 
     // Check if wallet is locked
     const { checkWalletLock, createWalletLockedResponse } = await import('../../../../lib/walletLockCheck.js');

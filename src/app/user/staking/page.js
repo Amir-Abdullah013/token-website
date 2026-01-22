@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useVon } from '@/lib/Von-context';
@@ -53,14 +53,24 @@ export default function StakingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [lockedTokens, setLockedTokens] = useState(0);
   const [hasReferrer, setHasReferrer] = useState(false);
+  const userIdRef = useRef(null);
+
+  // Update ref whenever user.id changes
+  useEffect(() => {
+    userIdRef.current = user?.id || null;
+  }, [user?.id]);
 
   useEffect(() => {
     setMounted(true);
     if (isAuthenticated && user?.id) {
       fetchPlanPurchases();
       fetchLockedTokens();
-      // Refresh locked tokens periodically
-      const interval = setInterval(fetchLockedTokens, 5000);
+      // Refresh locked tokens periodically - ref always has latest user.id
+      const interval = setInterval(() => {
+        if (userIdRef.current) {
+          fetchLockedTokens();
+        }
+      }, 5000);
       return () => clearInterval(interval);
     }
   }, [isAuthenticated, user?.id]);
@@ -107,9 +117,12 @@ export default function StakingPage() {
   };
 
   const fetchLockedTokens = async () => {
-    if (!user?.id) return;
+    // Get current user.id from ref to avoid stale closure issues
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) return;
+    
     try {
-      const response = await fetch(`/api/wallet/overview?userId=${user.id}`);
+      const response = await fetch(`/api/wallet/overview?userId=${currentUserId}`);
       if (response.ok) {
         const data = await response.json();
         // Get locked tokens from wallet - handle Decimal type
@@ -121,7 +134,10 @@ export default function StakingPage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching locked tokens:', error);
+      // Only log error if it's not a connection refused (server might be restarting)
+      if (error.message && !error.message.includes('Failed to fetch') && !error.message.includes('ERR_CONNECTION_REFUSED')) {
+        console.error('Error fetching locked tokens:', error);
+      }
     }
   };
 
