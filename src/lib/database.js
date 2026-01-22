@@ -88,12 +88,13 @@ pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
 });
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('Closing database pool...');
-  await pool.end();
-  process.exit(0);
-});
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
+  process.on('SIGINT', async () => {
+    console.log('Closing database pool...');
+    await pool.end();
+    process.exit(0);
+  });
+}
 
 export const databaseHelpers = {
   // Export pool for direct queries

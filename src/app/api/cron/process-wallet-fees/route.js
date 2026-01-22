@@ -1,43 +1,38 @@
-import { NextResponse } from 'next/server';
-import walletFeeService from '@/lib/walletFeeService.js';
-import { requireCronAuth } from '@/lib/cron-auth.js';
-
-/**
- * Cron endpoint to process all due wallet fees
- * Secured by Vercel Cron or cron secret key
- * Should run daily via Vercel Cron
- */
 export async function GET(request) {
+  const startTime = Date.now();
+  const TIMEOUT_MS = 50_000;
+
   try {
-    // Verify cron authentication (Vercel Cron or CRON_SECRET)
     const authError = requireCronAuth(request);
-    if (authError) {
-      return authError;
-    }
+    if (authError) return authError;
 
-    console.log('🔄 Starting wallet fee batch processing...');
-    
-    // Process all due wallet fees
-    const results = await walletFeeService.processAllDueWalletFees();
+    console.log('🔄 Wallet fee cron started');
 
-    console.log('✅ Wallet fee batch processing complete');
-    
+    const result = await Promise.race([
+      walletFeeService.processAllDueWalletFees(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Wallet fee cron timeout')), TIMEOUT_MS)
+      ),
+    ]);
+
     return NextResponse.json({
       success: true,
       message: 'Wallet fee processing completed',
-      results,
-      timestamp: new Date().toISOString()
+      result,
+      executionTime: Date.now() - startTime,
+      timestamp: new Date().toISOString(),
     });
 
   } catch (error) {
-    console.error('Error in wallet fee cron job:', error);
+    console.error('❌ Wallet fee cron failed:', error);
+
     return NextResponse.json(
-      { 
-        error: 'Failed to process wallet fees',
-        details: error.message 
+      {
+        success: false,
+        error: error.message,
+        executionTime: Date.now() - startTime,
       },
       { status: 500 }
     );
   }
 }
-

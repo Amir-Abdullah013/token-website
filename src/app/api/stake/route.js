@@ -2,7 +2,18 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/session';
 import { databaseHelpers } from '@/lib/database';
 
+// OLD STAKING LOGIC - COMMENTED OUT
+// New plan-based system is now in use at /api/plans/purchase
 export async function POST(request) {
+  return NextResponse.json(
+    { 
+      success: false, 
+      error: 'Old staking system is deprecated. Please use the new plan purchase system at /api/plans/purchase' 
+    },
+    { status: 410 } // 410 Gone - resource is no longer available
+  );
+  
+  /* COMMENTED OUT - OLD STAKING LOGIC
   try {
     const session = await getServerSession();
     if (!session?.id) {
@@ -429,6 +440,7 @@ export async function POST(request) {
       { status: 500 }
     );
   }
+  */ // END OF COMMENTED OUT OLD STAKING LOGIC
 }
 
 export async function GET(request) {

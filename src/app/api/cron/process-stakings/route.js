@@ -1,11 +1,19 @@
-import { NextResponse } from 'next/server';
-import { databaseHelpers } from '@/lib/database';
-import { requireCronAuth } from '@/lib/cron-auth.js';
+// OLD STAKING CRON - COMMENTED OUT
+// New plan-based system is now in use
+// Use /api/cron/unlock-plan-tokens for unlocking plan purchase tokens
 
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-const EPSILON = 0.000001;
+import { NextResponse } from 'next/server';
 
 export async function GET(request) {
+  // Return message that old staking is deprecated
+  return NextResponse.json({
+    success: false,
+    message: 'Old staking cron is deprecated. New plan-based system is in use.',
+    note: 'Use /api/cron/unlock-plan-tokens for unlocking plan purchase tokens'
+  }, { status: 410 }); // 410 Gone
+}
+
+/* COMMENTED OUT - OLD STAKING LOGIC
   try {
     // Verify cron authentication (Vercel Cron or CRON_SECRET)
     const authError = requireCronAuth(request);
@@ -204,7 +212,7 @@ export async function GET(request) {
             // Add reward to user's wallet
             await client.query(
               `UPDATE wallets SET "VonBalance" = "VonBalance" + $1::DECIMAL(30,8), "updatedAt" = NOW() WHERE "userId" = $2`,
-              [rewardIncrementStr, staking.userId]
+              [rewardIncrementStr, stakving.userId]
             );
 
             console.log('✅ Reward deducted from reserve and added to user wallet:', {
@@ -415,4 +423,4 @@ export async function GET(request) {
       { status: 500 }
     );
   }
-}
+  */

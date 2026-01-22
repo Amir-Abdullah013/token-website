@@ -63,6 +63,10 @@ const TypeBadge = ({ type }) => {
         return 'bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 border border-violet-400/30';
       case 'transfer':
         return 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-400/30';
+      case 'referral_reward':
+        return 'bg-gradient-to-r from-pink-500/20 to-rose-500/20 text-pink-300 border border-pink-400/30';
+      case 'plan_purchase':
+        return 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300 border border-indigo-400/30';
       default:
         return 'bg-gradient-to-r from-slate-500/20 to-gray-500/20 text-slate-300 border border-slate-400/30';
     }
@@ -82,17 +86,28 @@ const TypeBadge = ({ type }) => {
         return '📉';
       case 'transfer':
         return '🔄';
+      case 'referral_reward':
+        return '🎁';
+      case 'plan_purchase':
+        return '💎';
       default:
         return '❓';
     }
   };
 
-  const displayType = normalizedType === 'withdrawal' ? 'withdraw' : normalizedType;
+  let displayType = normalizedType === 'withdrawal' ? 'withdraw' : normalizedType;
+  if (normalizedType === 'referral_reward') {
+    displayType = 'Referral Reward';
+  } else if (normalizedType === 'plan_purchase') {
+    displayType = 'Plan Purchase';
+  } else {
+    displayType = displayType.charAt(0).toUpperCase() + displayType.slice(1);
+  }
 
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getTypeStyles()}`}>
       <span className="mr-1">{getTypeIcon()}</span>
-      {displayType.charAt(0).toUpperCase() + displayType.slice(1)}
+      {displayType}
     </span>
   );
 };
@@ -133,7 +148,7 @@ const TransactionRow = ({ transaction }) => {
         <StatusBadge status={transaction.status} />
       </td>
       <td className="px-4 py-3 text-sm text-slate-300">
-        {transaction.gateway || 'N/A'}
+        {transaction.description || transaction.gateway || 'N/A'}
       </td>
     </tr>
   );
@@ -384,7 +399,7 @@ export default function TransactionsPage() {
                         Status
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                        Gateway
+                        Description
                       </th>
                     </tr>
                   </thead>

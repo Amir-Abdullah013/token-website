@@ -58,6 +58,9 @@ export default function UserDashboard() {
     transactionCount: 0
   });
 
+  // Locked tokens state
+  const [lockedTokens, setLockedTokens] = useState(0);
+
   // Quick stats state
   const [quickStats, setQuickStats] = useState({
     totalTrades: 0,
@@ -88,6 +91,14 @@ export default function UserDashboard() {
           totalWithdrawals: data.statistics?.totalWithdrawals || 0,
           transactionCount: data.statistics?.transactionCount || 0
         });
+        // Update locked tokens - handle Decimal type
+        if (data.wallet?.lockedPlanTokensAmount !== undefined && data.wallet?.lockedPlanTokensAmount !== null) {
+          const locked = data.wallet.lockedPlanTokensAmount;
+          const lockedValue = typeof locked === 'string' ? parseFloat(locked) : parseFloat(locked || 0);
+          setLockedTokens(isNaN(lockedValue) ? 0 : lockedValue);
+        } else {
+          setLockedTokens(0);
+        }
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
@@ -428,17 +439,17 @@ export default function UserDashboard() {
             </CardContent>
           </Card>
 
-          {/* Von Price */}
+          {/* Locked Tokens */}
           <Card className="bg-gradient-to-br from-rose-500/20 via-pink-500/20 to-purple-500/20 border border-rose-400/30 hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/20">
             <CardContent className="p-3 sm:p-4">
-              <div className="text-xs text-rose-200 mb-1">Von Price</div>
+              <div className="text-xs text-rose-200 mb-1">Locked Tokens</div>
               <div className="text-lg sm:text-xl font-bold text-white mb-1 break-words overflow-hidden">
-                <span className="block truncate" title={formatCurrency(VonPrice, 'USD')}>
-                  {formatCurrency(VonPrice, 'USD')}
+                <span className="block truncate" id="locked-tokens-display" title={formatVon(lockedTokens)}>
+                  {formatVon(lockedTokens)}
                 </span>
               </div>
-              <div className="text-emerald-400 text-xs font-medium break-words">
-                <span className="block truncate">+2.5% today</span>
+              <div className="text-rose-300 text-xs break-words">
+                <span className="block truncate">Unlock in 6 months</span>
               </div>
             </CardContent>
           </Card>

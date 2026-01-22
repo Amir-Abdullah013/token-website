@@ -41,6 +41,7 @@ export async function GET(request) {
         success: true,
         usdBalance: newWallet.balance || 0,
         VonBalance: newWallet.VonBalance || 0,
+        lockedPlanTokensAmount: newWallet.lockedPlanTokensAmount || 0,
         VonPrice: VonPrice
       });
     }
@@ -60,10 +61,18 @@ export async function GET(request) {
       // Use default price if calculation fails
     }
 
+    // Parse lockedPlanTokensAmount (handle Decimal type)
+    const lockedTokens = wallet.lockedPlanTokensAmount 
+      ? (typeof wallet.lockedPlanTokensAmount === 'string' 
+          ? parseFloat(wallet.lockedPlanTokensAmount) 
+          : parseFloat(wallet.lockedPlanTokensAmount))
+      : 0;
+
     return NextResponse.json({
       success: true,
       usdBalance: wallet.balance || 0,
       VonBalance: wallet.VonBalance || 0,
+      lockedPlanTokensAmount: lockedTokens,
       VonPrice: VonPrice
     });
 

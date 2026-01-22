@@ -214,6 +214,7 @@ export default function AdminFeesPage() {
                       <option value="withdraw" className="bg-slate-800 text-white py-2">💸 Withdrawal Fees (10%)</option>
                       <option value="buy" className="bg-slate-800 text-white py-2">📈 Buy Fees (1%)</option>
                       <option value="sell" className="bg-slate-800 text-white py-2">📉 Sell Fees (1%)</option>
+                      <option value="plan_fee" className="bg-slate-800 text-white py-2">🎯 Plan Fees (40%)</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -435,8 +436,10 @@ export default function AdminFeesPage() {
                                 {item.transactionType === 'sell' && '📉 '}
                                 {item.transactionType === 'withdraw' && '💸 '}
                                 {item.transactionType === 'wallet_fee' && '💳 '}
+                                {item.transactionType === 'plan_fee' && '🎯 '}
                                 {item.transactionType === 'withdraw' ? 'Withdrawal' : 
                                  item.transactionType === 'wallet_fee' ? 'Wallet Fee' : 
+                                 item.transactionType === 'plan_fee' ? 'Plan Fee' :
                                  item.transactionType}
                               </td>
                               <td className="py-3 px-4 text-sm text-slate-300">{item.fee_percentage}</td>

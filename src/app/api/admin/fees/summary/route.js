@@ -57,31 +57,55 @@ export async function GET(request) {
 
     if (transactionType) {
       paramCount++;
-      dateFilter += ` AND "transactionType" = $${paramCount}`;
-      params.push(transactionType);
+      // Map plan_fee filter to admin_fee with PLAN_PURCHASE type
+      if (transactionType === 'plan_fee') {
+        dateFilter += ` AND "transactionType" = $${paramCount} AND type = $${paramCount + 1}`;
+        params.push('admin_fee', 'PLAN_PURCHASE');
+        paramCount++; // Increment for the second parameter
+      } else {
+        dateFilter += ` AND "transactionType" = $${paramCount}`;
+        params.push(transactionType);
+      }
     }
 
-    // Get total fees collected
+    // Get total fees collected (including plan fees which use amount field)
     const totalFeesQuery = `
       SELECT 
-        COALESCE(SUM("feeAmount"), 0) as total_fees,
+        COALESCE(SUM(
+          CASE 
+            WHEN "transactionType" = 'admin_fee' AND type = 'PLAN_PURCHASE' THEN amount
+            ELSE "feeAmount"
+          END
+        ), 0) as total_fees,
         COUNT(*) as total_transactions
       FROM transactions 
-      WHERE "feeAmount" > 0 ${dateFilter}
+      WHERE ("feeAmount" > 0 OR ("transactionType" = 'admin_fee' AND type = 'PLAN_PURCHASE' AND amount > 0))
+        ${dateFilter}
     `;
 
     const totalFeesResult = await databaseHelpers.pool.query(totalFeesQuery, params);
     const totalFees = totalFeesResult.rows[0];
 
-    // Get fees breakdown by transaction type
+    // Get fees breakdown by transaction type (including plan fees)
     const breakdownQuery = `
       SELECT 
         "transactionType",
-        COALESCE(SUM("feeAmount"), 0) as total_fees,
+        COALESCE(SUM(
+          CASE 
+            WHEN "transactionType" = 'admin_fee' AND type = 'PLAN_PURCHASE' THEN amount
+            ELSE "feeAmount"
+          END
+        ), 0) as total_fees,
         COUNT(*) as transaction_count,
-        COALESCE(AVG("feeAmount"), 0) as avg_fee
+        COALESCE(AVG(
+          CASE 
+            WHEN "transactionType" = 'admin_fee' AND type = 'PLAN_PURCHASE' THEN amount
+            ELSE "feeAmount"
+          END
+        ), 0) as avg_fee
       FROM transactions 
-      WHERE "feeAmount" > 0 ${dateFilter}
+      WHERE ("feeAmount" > 0 OR ("transactionType" = 'admin_fee' AND type = 'PLAN_PURCHASE' AND amount > 0))
+        ${dateFilter}
       GROUP BY "transactionType"
       ORDER BY total_fees DESC
     `;
@@ -151,6 +175,31 @@ export async function GET(request) {
                      item.transactionType === 'sell' ? '1%' : '$2 fixed'
     }));
 
+    // Get Plan Fees (admin_fee from plan purchases - uses amount field, not feeAmount)
+    const planFeesQuery = `
+      SELECT 
+        COALESCE(SUM(amount), 0) as total_fees,
+        COUNT(*) as transaction_count,
+        COALESCE(AVG(amount), 0) as avg_fee
+      FROM transactions 
+      WHERE "transactionType" = 'admin_fee' 
+        AND type = 'PLAN_PURCHASE'
+        AND amount > 0 
+        ${dateFilter}
+    `;
+
+    const planFeesResult = await databaseHelpers.pool.query(planFeesQuery, params);
+    if (planFeesResult.rows[0] && parseFloat(planFeesResult.rows[0].total_fees) > 0) {
+      const planFeeData = planFeesResult.rows[0];
+      dollarFeesBreakdown.push({
+        transactionType: 'plan_fee',
+        total_fees: parseFloat(planFeeData.total_fees),
+        transaction_count: parseInt(planFeeData.transaction_count),
+        avg_fee: parseFloat(planFeeData.avg_fee),
+        fee_percentage: '40% of plan'
+      });
+    }
+
     // Also capture WALLET_FEE transactions by type field
     const walletFeeQuery = `
       SELECT 
@@ -179,14 +228,19 @@ export async function GET(request) {
     const totalDollarFees = dollarFeesBreakdown.reduce((sum, item) => sum + item.total_fees, 0);
     const totalDollarTransactions = dollarFeesBreakdown.reduce((sum, item) => sum + item.transaction_count, 0);
 
-    // Get daily fee collection for the last 30 days
+    // Get daily fee collection for the last 30 days (including plan fees)
     const dailyQuery = `
       SELECT 
         DATE("createdAt") as date,
-        COALESCE(SUM("feeAmount"), 0) as daily_fees,
+        COALESCE(SUM(
+          CASE 
+            WHEN "transactionType" = 'admin_fee' AND type = 'PLAN_PURCHASE' THEN amount
+            ELSE "feeAmount"
+          END
+        ), 0) as daily_fees,
         COUNT(*) as daily_transactions
       FROM transactions 
-      WHERE "feeAmount" > 0 
+      WHERE ("feeAmount" > 0 OR ("transactionType" = 'admin_fee' AND type = 'PLAN_PURCHASE' AND amount > 0))
         AND "createdAt" >= NOW() - INTERVAL '30 days'
       GROUP BY DATE("createdAt")
       ORDER BY date DESC
@@ -195,7 +249,7 @@ export async function GET(request) {
     const dailyResult = await databaseHelpers.pool.query(dailyQuery);
     const dailyFees = dailyResult.rows;
 
-    // Get top fee-generating transactions
+    // Get top fee-generating transactions (including plan fees)
     const topTransactionsQuery = `
       SELECT 
         id,
@@ -205,10 +259,15 @@ export async function GET(request) {
         amount,
         "feeAmount",
         "netAmount",
-        "createdAt"
+        "createdAt",
+        CASE 
+          WHEN "transactionType" = 'admin_fee' AND type = 'PLAN_PURCHASE' THEN amount
+          ELSE "feeAmount"
+        END as effective_fee
       FROM transactions 
-      WHERE "feeAmount" > 0 ${dateFilter}
-      ORDER BY "feeAmount" DESC
+      WHERE ("feeAmount" > 0 OR ("transactionType" = 'admin_fee' AND type = 'PLAN_PURCHASE' AND amount > 0))
+        ${dateFilter}
+      ORDER BY effective_fee DESC
       LIMIT 10
     `;
 
@@ -222,6 +281,7 @@ export async function GET(request) {
       buy: 0.01,       // 1%
       sell: 0.01,      // 1%
       wallet_fee: 2,   // $2 fixed
+      plan_fee: 0.40,  // 40% of plan purchase
     };
 
     // Add fee rate information to breakdown (for backward compatibility)

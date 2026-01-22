@@ -57,6 +57,7 @@ export async function GET(request) {
             userId: userId,
             balance: newWallet.balance || 0,
             VonBalance: newWallet.VonBalance || 0,
+            lockedPlanTokensAmount: newWallet.lockedPlanTokensAmount || 0,
             currency: newWallet.currency || 'USD',
             lastUpdated: newWallet.lastUpdated || new Date().toISOString()
           },
@@ -77,6 +78,7 @@ export async function GET(request) {
             userId: userId,
             balance: 0,
             VonBalance: 0,
+            lockedPlanTokensAmount: 0,
             currency: 'USD',
             lastUpdated: new Date().toISOString()
           },
@@ -114,6 +116,14 @@ export async function GET(request) {
       // Continue with default stats
     }
 
+    // Parse lockedPlanTokensAmount (handle Decimal/NULL types)
+    let lockedTokens = 0;
+    if (wallet?.lockedPlanTokensAmount !== undefined && wallet?.lockedPlanTokensAmount !== null) {
+      lockedTokens = typeof wallet.lockedPlanTokensAmount === 'string' 
+        ? parseFloat(wallet.lockedPlanTokensAmount) 
+        : parseFloat(wallet.lockedPlanTokensAmount || 0);
+    }
+
     // Always return wallet data, even if some operations failed
     const walletData = {
       wallet: {
@@ -121,6 +131,7 @@ export async function GET(request) {
         userId: userId,
         balance: wallet?.balance || 0,
         VonBalance: wallet?.VonBalance || 0,
+        lockedPlanTokensAmount: lockedTokens,
         currency: wallet?.currency || 'USD',
         lastUpdated: wallet?.lastUpdated || wallet?.updatedAt || new Date().toISOString()
       },
@@ -152,6 +163,7 @@ export async function GET(request) {
         userId: userId,
         balance: 0,
         VonBalance: 0,
+        lockedPlanTokensAmount: 0,
         currency: 'PKR',
         lastUpdated: new Date().toISOString()
       },

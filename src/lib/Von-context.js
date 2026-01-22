@@ -19,6 +19,7 @@ export const VonProvider = ({ children }) => {
   // Initial state values
   const [usdBalance, setUsdBalance] = useState(0);
   const [VonBalance, setVonBalance] = useState(0);
+  const [lockedPlanTokensAmount, setLockedPlanTokensAmount] = useState(0);
   const [VonPrice, setVonPrice] = useState(0.0035);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,11 +42,13 @@ export const VonProvider = ({ children }) => {
           data = await response.json();
           setUsdBalance(data.usdBalance || 0);
           setVonBalance(data.VonBalance || 0);
+          setLockedPlanTokensAmount(data.lockedPlanTokensAmount || 0);
           setVonPrice(data.VonPrice || 0.0035);
         } else {
           // Set default values if API fails
           setUsdBalance(0);
           setVonBalance(0);
+          setLockedPlanTokensAmount(0);
           setVonPrice(0.0035);
         }
         
@@ -53,6 +56,7 @@ export const VonProvider = ({ children }) => {
           userId: user.id,
           usdBalance: data?.usdBalance || 0,
           VonBalance: data?.VonBalance || 0,
+          lockedPlanTokensAmount: data?.lockedPlanTokensAmount || 0,
           VonPrice: data?.VonPrice || 0.0035
         });
         
@@ -61,6 +65,7 @@ export const VonProvider = ({ children }) => {
         // Set default values on error
         setUsdBalance(0);
         setVonBalance(0);
+        setLockedPlanTokensAmount(0);
         setVonPrice(0.0035);
       } finally {
         setIsLoading(false);
@@ -405,16 +410,40 @@ export const VonProvider = ({ children }) => {
     return fallbackPrice;
   };
 
+  // Listen for wallet update events
+  useEffect(() => {
+    const handleWalletUpdate = () => {
+      if (isAuthenticated && user?.id) {
+        fetch(`/api/wallet/balance?userId=${user.id}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              setUsdBalance(data.usdBalance || 0);
+              setVonBalance(data.VonBalance || 0);
+              setLockedPlanTokensAmount(data.lockedPlanTokensAmount || 0);
+              if (data.VonPrice) setVonPrice(data.VonPrice);
+            }
+          })
+          .catch(err => console.error('Error refreshing wallet:', err));
+      }
+    };
+
+    window.addEventListener('wallet-updated', handleWalletUpdate);
+    return () => window.removeEventListener('wallet-updated', handleWalletUpdate);
+  }, [isAuthenticated, user?.id]);
+
   const value = {
     // State values
     usdBalance,
     VonBalance,
+    lockedPlanTokensAmount,
     VonPrice,
     isLoading,
     
     // State setters
     setUsdBalance,
     setVonBalance,
+    setLockedPlanTokensAmount,
     setVonPrice,
     
     // Trading functions

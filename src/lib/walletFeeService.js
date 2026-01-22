@@ -253,14 +253,31 @@ export async function processWalletFeeForUser(userId) {
 
       await client.query('COMMIT');
 
-      // Create notification (non-blocking)
+      // Create notification only if one doesn't already exist (non-blocking)
       try {
-        await databaseHelpers.notification.createNotification({
-          userId,
-          title: 'Wallet Locked - Payment Required',
-          message: `Your wallet has been locked because the $${WALLET_FEE_AMOUNT} wallet fee is due but you have insufficient balance. Please deposit at least $${WALLET_FEE_AMOUNT} to unlock your wallet and resume all features.`,
-          type: 'WARNING'
-        });
+        // Check if a notification with this title already exists for this user
+        const existingNotification = await databaseHelpers.pool.query(`
+          SELECT id FROM notifications 
+          WHERE "userId" = $1 
+            AND title = $2 
+            AND type = 'WARNING'
+            AND "createdAt" >= NOW() - INTERVAL '1 day'
+          ORDER BY "createdAt" DESC
+          LIMIT 1
+        `, [userId, 'Wallet Locked - Payment Required']);
+
+        // Only create notification if one doesn't exist in the last 24 hours
+        if (existingNotification.rows.length === 0) {
+          await databaseHelpers.notification.createNotification({
+            userId,
+            title: 'Wallet Locked - Payment Required',
+            message: `Your wallet has been locked because the $${WALLET_FEE_AMOUNT} wallet fee is due but you have insufficient balance. Please deposit at least $${WALLET_FEE_AMOUNT} to unlock your wallet and resume all features.`,
+            type: 'WARNING'
+          });
+          console.log(`📧 Wallet locked notification sent to user ${userId}`);
+        } else {
+          console.log(`ℹ️ Wallet locked notification already exists for user ${userId}, skipping duplicate`);
+        }
       } catch (notifError) {
         console.warn(`⚠️ Failed to create notification for user ${userId}:`, notifError.message);
         // Don't fail the whole process if notification fails
