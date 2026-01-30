@@ -45,7 +45,7 @@ export default function StakingPage() {
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
 
-  // Data state
+  // Data stat
   const [plans, setPlans] = useState(PLANS);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
