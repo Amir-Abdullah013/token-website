@@ -23,6 +23,7 @@ const AdminSidebar = ({ user, isOpen, onClose }) => {
     { name: 'Fee Settings', href: '/admin/settings/fees', icon: '⚙️', description: 'Manage fee rates', category: 'settings' },
     { name: 'Fees', href: '/admin/fees', icon: '💳', description: 'Fee analytics', category: 'reports' },
     { name: 'Transactions', href: '/admin/transactions', icon: '📋', description: 'All transactions', category: 'reports' },
+    { name: 'Plan Purchases', href: '/admin/plans', icon: '🛍️', description: 'Plan history & fees', category: 'reports' },
     { name: 'Reserve History', href: '/admin/reserve-history', icon: '📋', description: 'Reserve history', category: 'reports' },
   ];
   

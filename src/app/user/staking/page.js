@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useVon } from '@/lib/Von-context';
 import Layout from '@/components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import { useToast, ToastContainer } from '@/components/Toast';
 import { 
   TrendingUp, 
@@ -20,23 +21,8 @@ import {
   Calendar,
   Shield,
   Zap,
-  Star,
-  Gift,
-  Users,
-  Crown
+  Star
 } from 'lucide-react';
-
-// Define 8 plans
-const PLANS = [
-  { id: 1, amount: 10, name: 'Starter Plan', icon: '🌟', color: 'from-blue-500/20 to-cyan-500/20', borderColor: 'border-blue-400/50' },
-  { id: 2, amount: 25, name: 'Basic Plan', icon: '💎', color: 'from-purple-500/20 to-pink-500/20', borderColor: 'border-purple-400/50' },
-  { id: 3, amount: 50, name: 'Standard Plan', icon: '⭐', color: 'from-emerald-500/20 to-teal-500/20', borderColor: 'border-emerald-400/50' },
-  { id: 4, amount: 100, name: 'Premium Plan', icon: '👑', color: 'from-amber-500/20 to-orange-500/20', borderColor: 'border-amber-400/50' },
-  { id: 5, amount: 250, name: 'Gold Plan', icon: '🏆', color: 'from-yellow-500/20 to-amber-500/20', borderColor: 'border-yellow-400/50' },
-  { id: 6, amount: 500, name: 'Platinum Plan', icon: '💠', color: 'from-indigo-500/20 to-violet-500/20', borderColor: 'border-indigo-400/50' },
-  { id: 7, amount: 1000, name: 'Diamond Plan', icon: '💍', color: 'from-cyan-500/20 to-blue-500/20', borderColor: 'border-cyan-400/50' },
-  { id: 8, amount: 2500, name: 'Elite Plan', icon: '👸', color: 'from-rose-500/20 to-pink-500/20', borderColor: 'border-rose-400/50' }
-];
 
 export default function StakingPage() {
   const { user, loading, isAuthenticated } = useAuth();
@@ -45,151 +31,212 @@ export default function StakingPage() {
   const { success, error, toasts, removeToast } = useToast();
   const [mounted, setMounted] = useState(false);
 
+  // Form state
+  const [formData, setFormData] = useState({
+    amount: '',
+    duration: '15'
+  });
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   // Data state
-  const [plans, setPlans] = useState(PLANS);
-  const [isPurchasing, setIsPurchasing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [planPurchases, setPlanPurchases] = useState([]);
+  const [stakings, setStakings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [lockedTokens, setLockedTokens] = useState(0);
-  const [hasReferrer, setHasReferrer] = useState(false);
-  const userIdRef = useRef(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [expandedStakingId, setExpandedStakingId] = useState(null);
 
-  // Update ref whenever user.id changes
-  useEffect(() => {
-    userIdRef.current = user?.id || null;
-  }, [user?.id]);
+  // Validation rules
+  const MIN_AMOUNT = 100;
+  const MAX_AMOUNT = 100000;
+
+  // Staking duration options (synchronized with backend)
+  const STAKING_OPTIONS = [
+    { days: 15, rewardPercent: 10, label: '15 Days', description: '10% Annual - Short Term' },
+    { days: 30, rewardPercent: 15, label: '1 Month', description: '15% Annual - Monthly' },
+    { days: 60, rewardPercent: 25, label: '2 Months', description: '25% Annual - Quarterly' },
+    { days: 120, rewardPercent: 30, label: '4 Months', description: '30% Annual - Medium Term' },
+    { days: 180, rewardPercent: 50, label: '6 Months', description: '50% Annual - Long Term' },
+    { days: 365, rewardPercent: 75, label: '1 Year', description: '75% Annual - Maximum Returns' }
+  ];
 
   useEffect(() => {
     setMounted(true);
-    if (isAuthenticated && user?.id) {
-      fetchPlanPurchases();
-      fetchLockedTokens();
-      // Refresh locked tokens periodically - ref always has latest user.id
-      const interval = setInterval(() => {
-        if (userIdRef.current) {
-          fetchLockedTokens();
-        }
-      }, 5000);
-      return () => clearInterval(interval);
+    if (isAuthenticated) {
+      fetchStakings();
     }
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated]);
 
-  // Check if user was referred (has referrerId) - plans are only visible to referred users
-  useEffect(() => {
-    if (user?.id) {
-      // Check if user has referrerId
-      const checkReferrer = async () => {
-        try {
-          const response = await fetch(`/api/user/referrer-status?userId=${user.id}`);
-          if (response.ok) {
-            const data = await response.json();
-            setHasReferrer(data.hasReferrer || false);
-          } else {
-            // Fallback: check user object directly
-            setHasReferrer(!!user.referrerId);
-          }
-        } catch (error) {
-          // Fallback: check user object directly
-          setHasReferrer(!!user.referrerId);
-        }
-      };
-      checkReferrer();
-    }
-  }, [user?.id, user?.referrerId]);
-
-  const fetchPlanPurchases = async () => {
+  const fetchStakings = async () => {
     try {
       setIsLoading(true);
-      // Fetch user's plan purchases (we'll create this endpoint if needed)
-      // For now, we'll fetch from wallet
-      const response = await fetch('/api/wallet/overview');
+      const response = await fetch('/api/stake');
       if (response.ok) {
-        const data = await response.json();
-        // Plan purchases will be tracked separately, for now just set empty
-        setPlanPurchases([]);
+      const data = await response.json();
+        setStakings(data.stakings || []);
+      } else {
+        console.error('Failed to fetch stakings');
       }
     } catch (error) {
-      console.error('Error fetching plan purchases:', error);
+      console.error('Error fetching stakings:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchLockedTokens = async () => {
-    // Get current user.id from ref to avoid stale closure issues
-    const currentUserId = userIdRef.current;
-    if (!currentUserId) return;
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     
-    try {
-      const response = await fetch(`/api/wallet/overview?userId=${currentUserId}`);
-      if (response.ok) {
-        const data = await response.json();
-        // Get locked tokens from wallet - handle Decimal type
-        if (data.wallet) {
-          const locked = data.wallet.lockedPlanTokensAmount;
-          // Handle both string (Decimal) and number types
-          const lockedValue = typeof locked === 'string' ? parseFloat(locked) : (locked || 0);
-          setLockedTokens(lockedValue);
-        }
-      }
-    } catch (error) {
-      // Only log error if it's not a connection refused (server might be restarting)
-      if (error.message && !error.message.includes('Failed to fetch') && !error.message.includes('ERR_CONNECTION_REFUSED')) {
-        console.error('Error fetching locked tokens:', error);
-      }
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
   };
 
-  const handlePlanPurchase = async (plan) => {
-    if (isPurchasing) return;
-
-    // Check if user has sufficient balance
-    if (usdBalance < plan.amount) {
-      error(`Insufficient balance. You need $${plan.amount} but have ${formatCurrency(usdBalance, 'USD')}`);
-      return;
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.amount || parseFloat(formData.amount) < MIN_AMOUNT) {
+      newErrors.amount = `Minimum staking amount is ${formatVon(MIN_AMOUNT)} Von`;
     }
+    
+    if (parseFloat(formData.amount) > parseFloat(VonBalance)) {
+      newErrors.amount = 'Insufficient Von balance';
+    }
+    
+    if (parseFloat(formData.amount) > MAX_AMOUNT) {
+      newErrors.amount = `Maximum staking amount is ${formatVon(MAX_AMOUNT)} Von`;
+    }
+    
+    if (!formData.duration) {
+      newErrors.duration = 'Please select a staking duration';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    setIsPurchasing(true);
-    setSelectedPlan(plan);
+  const handleStake = async () => {
+    if (!validateForm()) return;
 
+    setIsSubmitting(true);
     try {
-      const response = await fetch('/api/plans/purchase', {
+      const response = await fetch('/api/stake', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          planId: plan.id
+          amount: parseFloat(formData.amount),
+          durationDays: parseInt(formData.duration)
         }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        success(`Successfully purchased ${plan.name}! ${result.plan.tokensPurchased.toFixed(2)} tokens locked for 6 months.`);
-        // Refresh data immediately
-        await fetchPlanPurchases();
-        await fetchLockedTokens();
-        // Trigger wallet refresh in Von context
-        if (window.dispatchEvent) {
-          window.dispatchEvent(new Event('wallet-updated'));
-        }
+        success(`Successfully staked ${formatVon(parseFloat(formData.amount))} Von for ${formData.duration} days!`);
+        setFormData({ amount: '', duration: '7' });
+        fetchStakings();
       } else {
-        error(result.error || 'Failed to purchase plan');
+        error(result.error || 'Failed to stake tokens');
       }
     } catch (error) {
-      console.error('Plan purchase error:', error);
-      error('Failed to purchase plan. Please try again.');
+      console.error('Staking error:', error);
+      error('Failed to stake tokens. Please try again.');
     } finally {
-      setIsPurchasing(false);
-      setSelectedPlan(null);
+      setIsSubmitting(false);
     }
   };
 
-  const calculateTokenAmount = (planAmount) => {
-    const tokenPurchaseAmount = planAmount * 0.30; // 30% for tokens
-    return tokenPurchaseAmount / VonPrice;
+  const handleClaim = async (stakingId) => {
+    try {
+      const response = await fetch(`/api/stake/${stakingId}/claim`, {
+        method: 'POST',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        success('Successfully claimed staking rewards!');
+        fetchStakings();
+      } else {
+        error(result.error || 'Failed to claim rewards');
+      }
+    } catch (error) {
+      console.error('Claim error:', error);
+      error('Failed to claim rewards. Please try again.');
+    }
+  };
+
+  const getSelectedOption = () => {
+    return STAKING_OPTIONS.find(option => option.days.toString() === formData.duration) || STAKING_OPTIONS[0];
+  };
+
+  const getStakingRewardDetails = (staking) => {
+    if (!staking) {
+      return {
+        annualReward: 0,
+        dailyReward: 0,
+        totalRewardForPeriod: 0,
+        rewardAccrued: 0,
+        daysRewarded: 0,
+        maxRewardDays: 365,
+        progressPercent: 0
+      };
+    }
+    
+    // Calculate based on new 365-day system
+    const amountStaked = Number(staking.amountStaked || 0);
+    const rewardPercent = Number(staking.rewardPercent || 0);
+    const durationDays = Number(staking.durationDays || 0);
+    
+    // Annual reward
+    const annualReward = (amountStaked * rewardPercent) / 100;
+    // Daily reward based on 365-day year (NEW LOGIC)
+    const dailyReward = annualReward / 365;
+    // Total reward for the staking period
+    const totalRewardForPeriod = dailyReward * durationDays;
+    
+    const rewardAccrued = Number(staking.rewardAccrued || 0);
+    const daysRewarded = Number(staking.daysRewarded || 0);
+    
+    // Progress is based on how many days of rewards have been paid (max 365 days)
+    const maxRewardDays = 365;
+    const progressPercent = maxRewardDays > 0 ? Math.min(100, (daysRewarded / maxRewardDays) * 100) : 0;
+    
+    return {
+      annualReward,
+      dailyReward,
+      totalRewardForPeriod,
+      rewardAccrued,
+      daysRewarded,
+      maxRewardDays,
+      progressPercent
+    };
+  };
+
+  const calculateReward = () => {
+    const amount = parseFloat(formData.amount) || 0;
+    const selectedOption = getSelectedOption();
+    // Calculate annual reward (NEW LOGIC)
+    const annualReward = (amount * selectedOption.rewardPercent) / 100;
+    return annualReward;
+  };
+
+  const calculateDailyReward = () => {
+    const amount = parseFloat(formData.amount) || 0;
+    const selectedOption = getSelectedOption();
+    // Calculate daily reward based on 365-day year (NEW LOGIC)
+    const annualReward = (amount * selectedOption.rewardPercent) / 100;
+    const dailyReward = annualReward / 365;
+    return dailyReward;
   };
 
   const formatDate = (dateString) => {
@@ -198,6 +245,65 @@ export default function StakingPage() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const formatDateWithTime = (dateString) => {
+    if (!dateString) return '—';
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'ACTIVE':
+        return 'bg-gradient-to-r from-cyan-500/40 to-blue-500/40 text-white border border-cyan-400/60';
+      case 'COMPLETED':
+        return 'bg-gradient-to-r from-emerald-500/40 to-green-500/40 text-white border border-emerald-400/60';
+      case 'CLAIMED':
+        return 'bg-gradient-to-r from-violet-500/40 to-purple-500/40 text-white border border-violet-400/60';
+      default:
+        return 'bg-gradient-to-r from-slate-500/40 to-gray-500/40 text-white border border-slate-400/60';
+    }
+  };
+
+  const buildRewardSchedule = (staking) => {
+    if (!staking) return [];
+    
+    // Calculate daily reward based on 365-day year (NEW LOGIC)
+    const amountStaked = Number(staking.amountStaked || 0);
+    const rewardPercent = Number(staking.rewardPercent || 0);
+    const annualReward = (amountStaked * rewardPercent) / 100;
+    const dailyReward = annualReward / 365;
+    
+    // Show schedule for up to 365 days (full year of rewards)
+    const maxRewardDays = 365;
+    const schedule = [];
+    const baseDate = new Date(staking.startDate);
+    const daysRewarded = Number(staking.daysRewarded || 0);
+    
+    for (let day = 1; day <= maxRewardDays; day++) {
+      const payoutDate = new Date(baseDate.getTime());
+      payoutDate.setDate(baseDate.getDate() + day);
+      schedule.push({
+        day,
+        date: payoutDate,
+        paid: day <= daysRewarded,
+        reward: dailyReward
+      });
+    }
+    return schedule;
+  };
+
+  const getDaysRemaining = (endDate) => {
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
   };
 
   if (!mounted) {
@@ -214,7 +320,7 @@ export default function StakingPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
+          <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
           <p className="text-slate-300">Loading...</p>
         </div>
@@ -232,7 +338,7 @@ export default function StakingPage() {
               Authentication Required
             </h1>
             <p className="text-slate-300 mb-6">
-              Please sign in to access the plan purchase features.
+              Please sign in to access the staking features.
             </p>
             <Button
               onClick={() => router.push('/auth/signin')}
@@ -254,209 +360,416 @@ export default function StakingPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center">
               <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                Token Purchase Plans
+                Von Staking
               </h1>
               <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-                Purchase tokens with our flexible plans. 30% buys tokens (locked for 6 months), 30% goes to your referrer, and 40% is a platform fee.
+                Earn rewards by staking your Von tokens. Choose your preferred duration and start earning today.
               </p>
             </div>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Balance Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-gradient-to-br from-cyan-500/30 via-blue-500/30 to-indigo-500/30 border border-cyan-400/50 hover:shadow-xl hover:shadow-cyan-500/30 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center">
-                  <DollarSign className="h-5 w-5 mr-2" />
-                  USD Balance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-white mb-2">
-                  {formatCurrency(usdBalance, 'USD')}
-                </div>
-                <p className="text-slate-300 text-sm">
-                  Available for plan purchases
-                </p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Current Balance Card */}
+            <div className="lg:col-span-1">
+              <Card className="bg-gradient-to-br from-cyan-500/30 via-blue-500/30 to-indigo-500/30 border border-cyan-400/50 hover:shadow-xl hover:shadow-cyan-500/30 backdrop-blur-sm">
+          <CardHeader>
+                  <CardTitle className="text-lg text-white flex items-center">
+                    <Coins className="h-5 w-5 mr-2" />
+                    Your Von Balance
+                  </CardTitle>
+          </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-white mb-2">
+                    {formatVon(VonBalance)}
+                  </div>
+                  <p className="text-slate-300 text-sm">
+                    Available for staking
+                  </p>
+          </CardContent>
+        </Card>
+            </div>
 
-            <Card className="bg-gradient-to-br from-emerald-500/30 via-teal-500/30 to-cyan-500/30 border border-emerald-400/50 hover:shadow-xl hover:shadow-emerald-500/30 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center">
-                  <Coins className="h-5 w-5 mr-2" />
-                  Locked Tokens
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-white mb-2">
-                  {formatVon(lockedTokens)}
-                </div>
-                <p className="text-slate-300 text-sm">
-                  Unlock in 6 months
-                </p>
-              </CardContent>
-            </Card>
+        {/* Staking Form */}
+            <div className="lg:col-span-2">
+              <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
+          <CardHeader>
+                  <CardTitle className="text-lg bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                    Stake Von Tokens
+                  </CardTitle>
+                  <p className="text-slate-300 text-sm">
+                    Choose your staking amount and duration to start earning rewards
+                  </p>
+          </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Amount Input */}
+              <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Staking Amount (Von)
+                </label>
+                <Input
+                  type="number"
+                      name="amount"
+                      value={formData.amount}
+                      onChange={handleInputChange}
+                      placeholder={`Minimum ${formatVon(MIN_AMOUNT)} Von`}
+                      className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 text-white placeholder-slate-300 placeholder-opacity-80 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 rounded-lg"
+                    />
+                    {errors.amount && (
+                      <p className="text-red-400 text-sm mt-1">{errors.amount}</p>
+                    )}
+              </div>
 
-            <Card className="bg-gradient-to-br from-violet-500/30 via-purple-500/30 to-indigo-500/30 border border-violet-400/50 hover:shadow-xl hover:shadow-violet-500/30 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center">
-                  <TrendingUp className="h-5 w-5 mr-2" />
-                  Current Price
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-white mb-2">
-                  {formatCurrency(VonPrice, 'USD')}
-                </div>
-                <p className="text-slate-300 text-sm">
-                  Per token
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Plans Grid - Only show if user has referrer */}
-          {!hasReferrer && (
-            <Card className="mb-8 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-400/50">
-              <CardContent className="p-6 text-center">
-                <AlertCircle className="h-12 w-12 text-amber-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">Plans Available for Referred Users</h3>
-                <p className="text-slate-300 mb-4">
-                  Plan purchases are available only to users who were referred by another user.
-                </p>
-                <p className="text-slate-400 text-sm">
-                  If you have a referral code, please sign up using it to access plan purchases.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {hasReferrer && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose Your Plan</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {plans.map((plan) => {
-                const tokensAmount = calculateTokenAmount(plan.amount);
-                const tokenPurchaseAmount = plan.amount * 0.30;
-                const referrerAmount = plan.amount * 0.30; // Changed from 40% to 30%
-                const adminFeeAmount = plan.amount * 0.40; // Changed from 30% to 40%
-                const isSelected = selectedPlan?.id === plan.id;
-                const canPurchase = usdBalance >= plan.amount;
-
-                return (
-                  <Card
-                    key={plan.id}
-                    className={`bg-gradient-to-br ${plan.color} border-2 ${plan.borderColor} hover:scale-105 transition-all duration-300 hover:shadow-xl backdrop-blur-sm ${
-                      !canPurchase ? 'opacity-60' : ''
-                    }`}
-                  >
-                    <CardHeader>
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">{plan.icon}</div>
-                        <CardTitle className="text-xl text-white font-bold mb-1">
-                          {plan.name}
-                        </CardTitle>
-                        <div className="text-3xl font-bold text-white mb-2">
-                          {formatCurrency(plan.amount, 'USD')}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Breakdown */}
-                      <div className="bg-slate-800/40 rounded-lg p-3 space-y-2 text-sm">
-                        <div className="flex justify-between text-slate-300">
-                          <span>Tokens (30%):</span>
-                          <span className="text-white font-semibold">{formatVon(tokensAmount)}</span>
-                        </div>
-                        <div className="flex justify-between text-slate-300">
-                          <span>Referrer (30%):</span>
-                          <span className="text-white font-semibold">{formatCurrency(referrerAmount, 'USD')}</span>
-                        </div>
-                        <div className="flex justify-between text-slate-300">
-                          <span>Admin Fee (40%):</span>
-                          <span className="text-white font-semibold">{formatCurrency(adminFeeAmount, 'USD')}</span>
-                        </div>
-                      </div>
-
-                      {/* Lock Period */}
-                      <div className="flex items-center justify-center text-slate-300 text-sm">
-                        <Lock className="h-4 w-4 mr-2" />
-                        <span>Locked for 6 months</span>
-                      </div>
-
-                      {/* Purchase Button */}
-                      <Button
-                        onClick={() => handlePlanPurchase(plan)}
-                        disabled={isPurchasing || !canPurchase}
-                        className={`w-full ${
-                          canPurchase
-                            ? 'bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-cyan-500/40 border border-cyan-400/60'
-                            : 'bg-slate-600/50 text-slate-400 cursor-not-allowed'
-                        }`}
-                      >
-                        {isPurchasing && isSelected ? (
-                          <div className="flex items-center">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Processing...
+                  {/* Duration Selection */}
+              <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-3">
+                  Staking Duration
+                </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {STAKING_OPTIONS.map((option) => (
+                        <button
+                          key={option.days}
+                          onClick={() => setFormData(prev => ({ ...prev, duration: option.days.toString() }))}
+                          className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                            formData.duration === option.days.toString()
+                              ? 'border-cyan-400 bg-gradient-to-r from-cyan-500/20 to-blue-500/20'
+                              : 'border-slate-500/30 bg-gradient-to-r from-slate-700/30 to-slate-800/30 hover:border-slate-400/50'
+                          }`}
+                        >
+                          <div className="text-center">
+                            <div className="text-white font-semibold">{option.label}</div>
+                            <div className="text-cyan-400 font-bold text-lg">{option.rewardPercent}% APY</div>
+                            <div className="text-slate-300 text-xs">{option.description}</div>
                           </div>
-                        ) : !canPurchase ? (
-                          'Insufficient Balance'
-                        ) : (
-                          'Purchase Plan'
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                        </button>
+                      ))}
+                    </div>
+                    {errors.duration && (
+                      <p className="text-red-400 text-sm mt-1">{errors.duration}</p>
+                    )}
+              </div>
+
+                  {/* Reward Preview */}
+                  {formData.amount && parseFloat(formData.amount) > 0 && (
+                    <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 p-4 rounded-lg border border-emerald-400/30 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-emerald-200 text-sm font-medium">Annual Reward</div>
+                          <div className="text-white text-xl font-bold">
+                            {formatVon(calculateReward())} Von
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-emerald-200 text-sm font-medium">APY</div>
+                          <div className="text-white text-xl font-bold">
+                            {getSelectedOption().rewardPercent}%
+                          </div>
+                        </div>
+                      </div>
+                      <div className="pt-3 border-t border-emerald-400/30">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-emerald-200 text-sm font-medium">Daily Reward</div>
+                            <div className="text-white text-lg font-semibold">
+                              {formatVon(calculateDailyReward())} Von
+                              <span className="text-sm text-emerald-300 ml-1">/ day</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-emerald-200 text-xs">For up to 365 days</div>
+                            <div className="text-emerald-300 text-xs">(full year)</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-emerald-300/80 pt-2">
+                        💡 Daily rewards continue for up to 365 days regardless of staking period
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stake Button */}
+              <Button
+                    onClick={handleStake}
+                    disabled={isSubmitting || !formData.amount || !formData.duration}
+                    className="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-cyan-500/40 border border-cyan-400/60"
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Staking...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <Lock className="h-4 w-4 mr-2" />
+                        Stake Von Tokens
+                      </div>
+                    )}
+              </Button>
+          </CardContent>
+        </Card>
             </div>
           </div>
-          )}
+
+          {/* My Stakings Section */}
+          <div className="mt-8">
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
+          <CardHeader>
+                <CardTitle className="text-lg bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+                  My Stakings
+                </CardTitle>
+                <p className="text-slate-300 text-sm">
+                  Track your active staking positions and rewards
+                </p>
+          </CardHeader>
+          <CardContent>
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-4 bg-gradient-to-r from-slate-700/30 to-slate-800/30 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : stakings.length === 0 ? (
+                  <div className="text-center py-12">
+                    <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">No Active Stakings</h3>
+                    <p className="text-slate-300 mb-6">
+                      Start staking your Von tokens to earn rewards
+                    </p>
+                    <Button
+                      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                      className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-600 text-white shadow-lg shadow-cyan-500/40 border border-cyan-400/60"
+                    >
+                      Start Staking
+                </Button>
+              </div>
+            ) : (
+                  <div className="space-y-4">
+                    {stakings.map((staking) => {
+                      const daysRemaining = getDaysRemaining(staking.endDate);
+                      const rewardDetails = getStakingRewardDetails(staking);
+                      const nextPayoutDisplay = staking.nextRewardDate ? formatDateWithTime(staking.nextRewardDate) : '—';
+                      const isExpanded = expandedStakingId === staking.id;
+                      const schedule = isExpanded ? buildRewardSchedule(staking) : [];
+                      return (
+                        <div
+                          key={staking.id}
+                          className="bg-gradient-to-r from-slate-700/30 to-slate-800/30 p-6 rounded-lg border border-slate-600/20 hover:border-slate-500/40 transition-all duration-200"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                            {/* Amount */}
+                            <div>
+                              <div className="text-sm text-slate-300">Amount</div>
+                              <div className="text-white font-semibold">
+                                {formatVon(staking.amountStaked)} Von
+                              </div>
+                            </div>
+
+                            {/* Duration */}
+                            <div>
+                              <div className="text-sm text-slate-300">Duration</div>
+                              <div className="text-white font-semibold">
+                                {staking.durationDays} days
+                              </div>
+                            </div>
+
+                            {/* Reward */}
+                            <div>
+                              <div className="text-sm text-slate-300">Reward Rate</div>
+                              <div className="text-white font-semibold">
+                                {staking.rewardPercent}% APY
+                              </div>
+                            </div>
+
+                            {/* Status */}
+                            <div>
+                              <div className="text-sm text-slate-300">Status</div>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(staking.status)}`}>
+                                {staking.status}
+                              </span>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="text-right">
+                              {staking.status === 'COMPLETED' ? (
+                                <Button
+                                  onClick={() => handleClaim(staking.id)}
+                                  className="bg-gradient-to-r from-emerald-500/80 to-green-500/80 hover:from-emerald-600/90 hover:to-green-600/90 text-white shadow-lg shadow-emerald-500/40 border border-emerald-400/60"
+                                >
+                                  Claim Reward
+                                </Button>
+                              ) : staking.status === 'ACTIVE' ? (
+                                <div className="text-sm">
+                                  <div className="text-slate-300">Time Remaining</div>
+                                  <div className="text-white font-semibold">
+                                    {daysRemaining} days
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-sm text-slate-400">
+                                  {staking.status === 'CLAIMED' ? 'Claimed' : '—'}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Additional Info */}
+                          <div className="mt-4 pt-4 border-t border-slate-600/20 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-slate-300">Start Date: </span>
+                              <span className="text-white">{formatDate(staking.startDate)}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-300">End Date: </span>
+                              <span className="text-white">{formatDate(staking.endDate)}</span>
+                            </div>
+                          </div>
+
+                          {/* Daily Reward Overview */}
+                          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 p-4 rounded-lg border border-cyan-400/30">
+                              <div className="text-sm text-slate-300 mb-1">Daily Reward</div>
+                              <div className="text-2xl font-semibold text-white mb-2">
+                                {formatVon(rewardDetails.dailyReward)} Von
+                                <span className="text-sm text-slate-300 ml-1">/ day</span>
+                              </div>
+                              <p className="text-slate-300 text-sm">
+                                Earned {formatVon(rewardDetails.rewardAccrued)} Von
+                              </p>
+                              <p className="text-slate-400 text-xs mt-1">
+                                Daily rewards for up to {rewardDetails.maxRewardDays} days (full year)
+                              </p>
+                              <div className="mt-3">
+                                <div className="flex items-center justify-between text-xs text-slate-400">
+                                  <span>{rewardDetails.daysRewarded} / {rewardDetails.maxRewardDays} days paid</span>
+                                  <span>{rewardDetails.progressPercent.toFixed(1)}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-700/40 rounded-full mt-1">
+                                  <div
+                                    className="h-2 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-300"
+                                    style={{ width: `${rewardDetails.progressPercent}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 p-4 rounded-lg border border-violet-400/30 flex flex-col gap-3">
+                              <div>
+                                <div className="text-sm text-slate-300">Next Payout</div>
+                                <div className="text-white font-semibold">{nextPayoutDisplay}</div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <div className="text-slate-300">Annual Reward</div>
+                                  <div className="text-white font-semibold">{formatVon(rewardDetails.annualReward)} Von</div>
+                                </div>
+                                <div>
+                                  <div className="text-slate-300">Status</div>
+                                  <div className="text-white font-semibold">
+                                    {rewardDetails.progressPercent >= 100 ? 'Completed' : 'In progress'}
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => setExpandedStakingId(isExpanded ? null : staking.id)}
+                                className="w-full bg-gradient-to-r from-violet-500/80 to-purple-500/80 border border-violet-400/40 text-white"
+                              >
+                                {isExpanded ? 'Hide Daily Schedule' : 'View Daily Schedule'}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Daily Reward Schedule */}
+                          {isExpanded && (
+                            <div className="mt-4 bg-slate-800/40 border border-slate-600/30 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div>
+                                  <div className="text-sm text-slate-300">Daily Reward Schedule</div>
+                                  <div className="text-xs text-slate-400">Scroll to explore each payout</div>
+                                </div>
+                                <div className="text-xs text-slate-400">
+                                  Showing {schedule.length} days
+                                </div>
+                              </div>
+                              <div className="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                {schedule.map((entry) => (
+                                  <div
+                                    key={`${staking.id}-${entry.day}`}
+                                    className={`flex items-center justify-between text-sm rounded-md px-3 py-2 border ${
+                                      entry.paid
+                                        ? 'border-emerald-400/40 bg-emerald-500/10 text-white'
+                                        : 'border-slate-600/30 bg-slate-700/20 text-slate-200'
+                                    }`}
+                                  >
+                                    <div>
+                                      <div className="text-xs text-slate-300">Day {entry.day}</div>
+                                      <div className="font-semibold">{entry.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-xs text-slate-300">Reward</div>
+                                      <div className="font-semibold">{formatVon(entry.reward)} Von</div>
+                                      <div className={`text-xs ${entry.paid ? 'text-emerald-300' : 'text-slate-400'}`}>
+                                        {entry.paid ? 'Paid' : 'Pending'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
           {/* Information Section */}
-          <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-lg bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-                How It Works
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-r from-emerald-500/30 via-green-500/30 to-teal-500/30 p-4 rounded-lg border border-emerald-400/50">
-                  <div className="flex items-center mb-3">
-                    <Coins className="h-5 w-5 text-emerald-400 mr-2" />
-                    <h3 className="text-sm font-medium text-white">30% - Token Purchase</h3>
+          <div className="mt-8">
+            <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-lg bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+                  Staking Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-gradient-to-r from-emerald-500/30 via-green-500/30 to-teal-500/30 p-4 rounded-lg border border-emerald-400/50">
+                    <div className="flex items-center mb-3">
+                      <Shield className="h-5 w-5 text-emerald-400 mr-2" />
+                      <h3 className="text-sm font-medium text-white">How Staking Works</h3>
+                    </div>
+                    <p className="text-sm text-slate-300">
+                      Lock your Von tokens for a specified period to earn rewards. The longer you stake, the higher your returns.
+                    </p>
                   </div>
-                  <p className="text-sm text-slate-300">
-                    {formatCurrency(30, 'USD')} of every {formatCurrency(100, 'USD')} plan purchase is used to automatically buy tokens at the current market price. These tokens are locked in your account for 6 months and will be automatically unlocked after the lock period.
-                  </p>
-                </div>
 
-                <div className="bg-gradient-to-r from-amber-500/30 via-orange-500/30 to-yellow-500/30 p-4 rounded-lg border border-amber-400/50">
-                  <div className="flex items-center mb-3">
-                    <Users className="h-5 w-5 text-amber-400 mr-2" />
-                    <h3 className="text-sm font-medium text-white">30% - Referrer Reward</h3>
+                  <div className="bg-gradient-to-r from-amber-500/30 via-orange-500/30 to-yellow-500/30 p-4 rounded-lg border border-amber-400/50">
+                    <div className="flex items-center mb-3">
+                      <TrendingUp className="h-5 w-5 text-amber-400 mr-2" />
+                      <h3 className="text-sm font-medium text-white">Reward Structure</h3>
+                    </div>
+                    <p className="text-sm text-slate-300">
+                      Earn 10-75% annual returns based on your staking duration. Rewards are calculated daily over a 365-day year, regardless of your staking period. You'll receive daily rewards for up to 365 days while your principal stays locked until the staking period ends.
+                    </p>
                   </div>
-                  <p className="text-sm text-slate-300">
-                    {formatCurrency(30, 'USD')} of every {formatCurrency(100, 'USD')} plan purchase goes directly to the user who referred you. They'll receive a notification and can see this reward in their transactions.
-                  </p>
-                </div>
 
-                <div className="bg-gradient-to-r from-violet-500/30 to-purple-500/30 p-4 rounded-lg border border-violet-400/50">
-                  <div className="flex items-center mb-3">
-                    <Crown className="h-5 w-5 text-violet-400 mr-2" />
-                    <h3 className="text-sm font-medium text-white">40% - Platform Fee</h3>
+                  <div className="bg-gradient-to-r from-violet-500/30 to-purple-500/30 p-4 rounded-lg border border-violet-400/50">
+                    <div className="flex items-center mb-3">
+                      <Info className="h-5 w-5 text-violet-400 mr-2" />
+                      <h3 className="text-sm font-medium text-white">Important Notes</h3>
+                    </div>
+                    <p className="text-sm text-slate-300">
+                      Staked tokens are locked until the end of the staking period. Early withdrawal is not possible, but rewards continue to arrive daily and you can track every payout from your dashboard.
+                    </p>
                   </div>
-                  <p className="text-sm text-slate-300">
-                    {formatCurrency(40, 'USD')} of every {formatCurrency(100, 'USD')} plan purchase is a platform fee that goes to the admin account. This helps maintain and improve the platform.
-                  </p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 

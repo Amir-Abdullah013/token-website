@@ -61,11 +61,13 @@ export async function GET(request) {
       // Use default price if calculation fails
     }
 
-    // Parse lockedPlanTokensAmount (handle Decimal type)
-    const lockedTokens = wallet.lockedPlanTokensAmount 
-      ? (typeof wallet.lockedPlanTokensAmount === 'string' 
-          ? parseFloat(wallet.lockedPlanTokensAmount) 
-          : parseFloat(wallet.lockedPlanTokensAmount))
+    // Parse lockedPlanTokensAmount from stakingTokensAmount
+    const rawLockedAmount = wallet.stakingTokensAmount ?? wallet.lockedPlanTokensAmount;
+    
+    const lockedTokens = rawLockedAmount
+      ? (typeof rawLockedAmount === 'string' 
+          ? parseFloat(rawLockedAmount) 
+          : parseFloat(rawLockedAmount))
       : 0;
 
     return NextResponse.json({

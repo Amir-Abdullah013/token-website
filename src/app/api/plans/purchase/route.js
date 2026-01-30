@@ -1,19 +1,7 @@
+// src/app/api/plans/purchase/route.js
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/session';
 import { databaseHelpers } from '@/lib/database';
-import { creditFeeToAdmin } from '@/lib/fees';
-
-// Define 8 plans
-const PLANS = [
-  { id: 1, amount: 10, name: 'Starter Plan' },
-  { id: 2, amount: 25, name: 'Basic Plan' },
-  { id: 3, amount: 50, name: 'Standard Plan' },
-  { id: 4, amount: 100, name: 'Premium Plan' },
-  { id: 5, amount: 250, name: 'Gold Plan' },
-  { id: 6, amount: 500, name: 'Platinum Plan' },
-  { id: 7, amount: 1000, name: 'Diamond Plan' },
-  { id: 8, amount: 2500, name: 'Elite Plan' }
-];
 
 export async function POST(request) {
   try {
@@ -25,382 +13,244 @@ export async function POST(request) {
       );
     }
 
-    const { planId } = await request.json();
+    const { planAmount } = await request.json();
 
-    // Validate input
-    if (!planId || !PLANS.find(p => p.id === planId)) {
+    // Validate plan amount
+    if (!planAmount || planAmount <= 0) {
       return NextResponse.json(
-        { success: false, error: 'Invalid plan selected' },
+        { success: false, error: 'Invalid plan amount' },
         { status: 400 }
       );
     }
 
-    const plan = PLANS.find(p => p.id === planId);
-    const planAmount = plan.amount;
-
-    // Resolve a real DB user ID
-    let userId = session.id;
-    try {
-      let dbUser = await databaseHelpers.user.getUserById(session.id);
-      if (!dbUser && session.email) {
-        dbUser = await databaseHelpers.user.getUserByEmail(session.email);
-      }
-      if (!dbUser) {
-        const name = session.name || (session.email ? session.email.split('@')[0] : 'User');
-        const password = `oauth_${Date.now()}`;
-        dbUser = await databaseHelpers.user.createUser({
-          email: session.email || `user_${Date.now()}@example.com`,
-          password,
-          name,
-          emailVerified: true,
-          role: 'USER'
-        });
-      }
-      userId = dbUser.id;
-    } catch (resolveErr) {
-      console.error('❌ Error ensuring DB user exists for plan purchase:', resolveErr);
-      return NextResponse.json(
-        { success: false, error: 'Failed to resolve user for plan purchase' },
-        { status: 500 }
-      );
-    }
-
-    console.log('📦 Plan Purchase Request:', {
-      userId,
-      planId,
-      planName: plan.name,
-      planAmount,
-      sessionId: session.id
-    });
-
-    // Check if wallet is locked
-    const { checkWalletLock, createWalletLockedResponse } = await import('../../../../lib/walletLockCheck.js');
-    const lockCheck = await checkWalletLock(userId);
-    if (!lockCheck.allowed) {
-      console.log('❌ Wallet is locked for user:', userId);
-      return createWalletLockedResponse();
-    }
-
-    // Check user's USD balance
-    let userWallet = await databaseHelpers.wallet.getWalletByUserId(userId);
-    if (!userWallet) {
-      userWallet = await databaseHelpers.wallet.createWallet(userId);
-    }
-
-    console.log('💰 Balance Check:', {
-      userId,
-      currentBalance: userWallet.balance,
-      planAmount,
-      sufficient: userWallet.balance >= planAmount
-    });
-
-    if (userWallet.balance < planAmount) {
-      return NextResponse.json(
-        { success: false, error: 'Insufficient USD balance' },
-        { status: 400 }
-      );
-    }
-
-    // Calculate splits: 30% tokens, 30% referrer, 40% admin
-    const tokenPurchaseAmount = planAmount * 0.30; // 30%
-    const referrerAmount = planAmount * 0.30; // 30% (changed from 40%)
-    const adminFeeAmount = planAmount * 0.40; // 40% (changed from 30%)
-
-    // Get current token price
-    let currentPrice;
+    // Get current token price using supply-based economy
+    let currentPrice = 0.0035;
     try {
       const tokenValue = await databaseHelpers.tokenValue.getCurrentTokenValue();
       currentPrice = tokenValue.currentTokenValue;
-    } catch (dbError) {
-      console.warn('Database not available, using fallback value:', dbError.message);
-      currentPrice = 0.0035; // Base value
+      if (!currentPrice || currentPrice <= 0) currentPrice = 0.0035;
+    } catch (err) {
+      console.error('Error fetching token value:', err);
     }
 
-    // Calculate tokens to buy with 30% of plan amount
-    const tokensPurchased = tokenPurchaseAmount / currentPrice;
+    // Get user and wallet
+    const user = await databaseHelpers.user.getUserById(session.id);
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+    }
 
-    // Calculate unlock date (6 months from now)
-    const unlockDate = new Date();
-    unlockDate.setMonth(unlockDate.getMonth() + 6);
+    const wallet = await databaseHelpers.wallet.getWalletByUserId(session.id);
+    if (!wallet) {
+      return NextResponse.json({ success: false, error: 'Wallet not found' }, { status: 404 });
+    }
 
-    let client;
+    // Ensure numeric comparison
+    const currentBalance = parseFloat(wallet.balance || 0);
+    const amountToDeduct = parseFloat(planAmount);
+
+    console.log(`Plan Purchase Debug: User ${session.id}, Balance ${currentBalance}, Plan Cost ${amountToDeduct}`);
+
+    if (currentBalance < amountToDeduct) {
+      // Allow proceeding if it's close enough (floating point tolerance) or strict? Strict for money.
+      return NextResponse.json({ success: false, error: `Insufficient USD balance. Have $${currentBalance}, Need $${amountToDeduct}` }, { status: 400 });
+    }
+
+    // Determine distribution based on referrer
+    const hasReferrer = !!user.referrerId;
+    
+    let adminFeePercent = 30;
+    let referrerRewardPercent = 0;
+    let tokenPurchasePercent = 0;
+
+    if (hasReferrer) {
+      // Scenario 2: Referrer exists
+      referrerRewardPercent = 40;
+      tokenPurchasePercent = 30;
+    } else {
+      // Scenario 1: No referrer
+      referrerRewardPercent = 0;
+      tokenPurchasePercent = 70;
+    }
+
+    // Calculate amounts
+    const adminFeeAmount = (amountToDeduct * adminFeePercent) / 100;
+    const referrerRewardAmount = (amountToDeduct * referrerRewardPercent) / 100;
+    const tokenPurchaseAmount = (amountToDeduct * tokenPurchasePercent) / 100;
+
+    // Calculate tokens to be bought
+    const tokensBought = tokenPurchaseAmount / currentPrice;
+
+    // Execute Transaction
+    const client = await databaseHelpers.pool.connect();
+    
     try {
-      client = await databaseHelpers.pool.connect();
       await client.query('BEGIN');
 
-      // 1. Deduct EXACT plan amount from user's USD balance (NO FEES on plan purchases)
-      const balanceCheck = await client.query(
-        'SELECT balance FROM wallets WHERE "userId" = $1',
-        [userId]
+      console.log('Transaction started for User:', session.id);
+
+      // 1. Deduct USD from User
+      const deductResult = await client.query(
+        'UPDATE wallets SET balance = (balance::numeric - $1), "updatedAt" = NOW() WHERE "userId" = $2 RETURNING balance',
+        [amountToDeduct, session.id]
       );
       
-      if (balanceCheck.rows.length === 0) {
-        throw new Error('Wallet not found');
+      if (deductResult.rowCount === 0) {
+        throw new Error('Failed to deduct balance: Wallet not found or update failed');
       }
-      
-      const currentBalance = parseFloat(balanceCheck.rows[0].balance || 0);
-      if (currentBalance < planAmount) {
-        throw new Error('Insufficient balance');
-      }
-      
-      // Deduct exactly the plan amount (no fees on plan purchases)
-      const updateResult = await client.query(
-        `UPDATE wallets SET balance = balance - $1, "updatedAt" = NOW() WHERE "userId" = $2 RETURNING balance`,
-        [planAmount, userId]
+      console.log('New Balance after deduction:', deductResult.rows[0].balance);
+
+      // 2. Add Tokens to User (Locked in Staking aka stakingTokensAmount)
+      const tokenAddResult = await client.query(
+        'UPDATE wallets SET "stakingTokensAmount" = (COALESCE("stakingTokensAmount"::numeric, 0) + $1), "updatedAt" = NOW() WHERE "userId" = $2',
+        [tokensBought, session.id]
       );
       
-      if (updateResult.rows.length === 0) {
-        throw new Error('Failed to update wallet balance');
-      }
-      
-      const newBalance = parseFloat(updateResult.rows[0].balance);
-      const actualDeducted = currentBalance - newBalance;
-      
-      console.log('✅ Plan amount deducted:', {
-        userId,
-        planAmount,
-        balanceBefore: currentBalance,
-        balanceAfter: newBalance,
-        actualDeducted,
-        matches: Math.abs(actualDeducted - planAmount) < 0.01
-      });
-      
-      // Verify exact amount was deducted (allow small floating point differences)
-      if (Math.abs(actualDeducted - planAmount) > 0.01) {
-        console.error('❌ Amount mismatch!', {
-          expected: planAmount,
-          actual: actualDeducted,
-          difference: actualDeducted - planAmount
-        });
-        throw new Error(`Incorrect amount deducted. Expected $${planAmount}, but $${actualDeducted} was deducted.`);
+      if (tokenAddResult.rowCount === 0) {
+        throw new Error('Failed to add locked tokens: Wallet not found');
       }
 
-      // 2. Buy tokens with 30% and lock them for 6 months
-      // Add tokens to lockedPlanTokensAmount (handle NULL values)
-      await client.query(
-        `UPDATE wallets 
-         SET "lockedPlanTokensAmount" = COALESCE("lockedPlanTokensAmount", 0) + $1::DECIMAL(30,8), 
-             "updatedAt" = NOW() 
-         WHERE "userId" = $2`,
-        [tokensPurchased.toString(), userId]
-      );
+      // 3. Create Staking Record (Lock)
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + 180); // 6 months lock
 
-      // Verify the update worked
-      const walletCheck = await client.query(
-        'SELECT "lockedPlanTokensAmount" FROM wallets WHERE "userId" = $1',
-        [userId]
-      );
-      
-      if (walletCheck.rows.length === 0) {
-        throw new Error('Wallet not found after update');
-      }
-      
-      const updatedLockedAmount = walletCheck.rows[0].lockedPlanTokensAmount;
-      console.log('✅ Locked tokens updated:', {
-        userId,
-        tokensPurchased: tokensPurchased.toString(),
-        lockedAmountBefore: 'N/A',
-        lockedAmountAfter: updatedLockedAmount,
-        tokensPurchasedValue: tokensPurchased
-      });
-      
-      // Double-check the value was actually updated
-      if (!updatedLockedAmount || parseFloat(updatedLockedAmount) < parseFloat(tokensPurchased)) {
-        console.warn('⚠️ Warning: Locked tokens may not have updated correctly', {
-          expected: tokensPurchased,
-          actual: updatedLockedAmount
-        });
-      }
+      const stakingId = require('crypto').randomUUID();
+      await client.query(`
+        INSERT INTO staking (
+          id, "userId", "amountStaked", "durationDays", "rewardPercent", 
+          "startDate", "endDate", status, claimed, "rewardAmount", 
+          "dailyRewardAmount", "rewardAccrued", "daysRewarded", "createdAt", "updatedAt"
+        ) VALUES (
+          $1, $2, $3, $4, $5, 
+          $6, $7, $8, $9, $10,
+          $11, $12, $13, NOW(), NOW()
+        )
+      `, [
+        stakingId,
+        session.id,
+        tokensBought,
+        180, // Duration
+        0,   // Reward Percent
+        startDate,
+        endDate,
+        'ACTIVE',
+        false,
+        0, // Total Reward
+        0, // Daily Reward
+        0, // Accrued
+        0  // Days Rewarded
+      ]);
 
-      // Deduct tokens from user supply (similar to buy logic)
-      const tokenSupply = await databaseHelpers.tokenSupply.getTokenSupply();
-      if (!tokenSupply) {
-        throw new Error('Token supply not initialized');
-      }
-
-      // Update token supply (deduct from user supply)
-      const newUserSupply = tokenSupply.userSupplyRemaining - tokensPurchased;
-      if (newUserSupply < 0) {
-        throw new Error('Insufficient token supply');
-      }
-
-      await client.query(
-        `UPDATE token_supply 
-         SET "userSupplyRemaining" = $1, "updatedAt" = NOW() 
-         WHERE id = $2`,
-        [newUserSupply, tokenSupply.id]
-      );
-
-      // 3. Transfer 40% to referrer if exists
-      let referrerId = null;
-      const user = await databaseHelpers.user.getUserById(userId);
-      if (user && user.referrerId) {
-        referrerId = user.referrerId;
+      // 4. Distribute Referrer Reward (if applicable)
+      if (hasReferrer && referrerRewardAmount > 0) {
+        // Find Referrer Wallet
+         await client.query(
+          'UPDATE wallets SET balance = balance + $1, "updatedAt" = NOW() WHERE "userId" = $2',
+          [referrerRewardAmount, user.referrerId]
+        );
         
-        // Get or create referrer wallet
-        let referrerWallet = await databaseHelpers.wallet.getWalletByUserId(referrerId);
-        if (!referrerWallet) {
-          // Create wallet for referrer
-          const referrerUser = await databaseHelpers.user.getUserById(referrerId);
-          if (referrerUser) {
-            referrerWallet = await databaseHelpers.wallet.createWallet(referrerId);
-          }
-        }
-
-        if (referrerWallet) {
-          // Credit referrer with 30% of plan amount
-          await client.query(
-            `UPDATE wallets SET balance = balance + $1, "updatedAt" = NOW() WHERE "userId" = $2`,
-            [referrerAmount, referrerId]
-          );
-
-          // Create transaction for referrer
-          await databaseHelpers.transaction.createTransaction({
-            userId: referrerId,
-            type: 'REFERRAL_REWARD',
-            amount: referrerAmount,
-            currency: 'USD',
-            status: 'COMPLETED',
-            gateway: 'Plan Purchase',
-            description: `Referral reward from ${user.name || user.email}'s ${plan.name} purchase ($${planAmount})`,
-            feeAmount: 0,
-            netAmount: referrerAmount,
-            transactionType: 'referral_reward'
-          });
-
-          // Create notification for referrer
-          await databaseHelpers.notification.createNotification({
-            userId: referrerId,
-            title: 'Referral Reward Received! 🎉',
-            message: `You received $${referrerAmount.toFixed(2)} as a referral reward from ${user.name || user.email}'s ${plan.name} purchase.`,
-            type: 'SUCCESS'
-          });
+        // Log Referral Earning
+        const referralIdResult = await client.query('SELECT id FROM referrals WHERE "referrerId" = $1 AND "referredId" = $2', [user.referrerId, session.id]);
+        if (referralIdResult.rows.length > 0) {
+           await client.query(`
+            INSERT INTO referral_earnings (id, "referralId", "stakingId", amount, "createdAt")
+            VALUES ($1, $2, $3, $4, NOW())
+          `, [require('crypto').randomUUID(), referralIdResult.rows[0].id, stakingId, referrerRewardAmount]);
         }
       }
 
-      // 4. Transfer 40% to admin as fee
-      await creditFeeToAdmin(databaseHelpers.pool, adminFeeAmount);
+      // 5. Construct a detailed description for Admin & User
+      let description = `Plan Purchase ($${planAmount})`;
+      if (hasReferrer) {
+        description += `: ${tokensBought.toFixed(2)} tokens locked (30%), $${referrerRewardAmount} ref reward (40%), $${adminFeeAmount} admin fee (30%).`;
+      } else {
+        description += `: ${tokensBought.toFixed(2)} tokens locked (70%), $${adminFeeAmount} admin fee (30%).`;
+      }
 
-      // 5. Create plan purchase record
-      const planPurchaseId = require('crypto').randomUUID();
-      await client.query(
-        `INSERT INTO plan_purchases 
-         (id, "userId", "planAmount", "tokenPurchaseAmount", "tokensPurchased", "referrerAmount", "adminFeeAmount", "referrerId", "unlockDate", status, "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())`,
-        [
-          planPurchaseId,
-          userId,
-          planAmount,
-          tokenPurchaseAmount,
-          tokensPurchased.toString(),
-          referrerAmount,
-          adminFeeAmount,
-          referrerId,
-          unlockDate,
-          'ACTIVE'
-        ]
-      );
+      // Record the User's Purchase in transactions
+      const txId = require('crypto').randomUUID();
+      await client.query(`
+        INSERT INTO transactions (
+          id, "userId", type, amount, currency, status, gateway, 
+          description, "feeAmount", "netAmount", "createdAt", "updatedAt"
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, 
+          $8, $9, $10, NOW(), NOW()
+        )
+      `, [
+        txId,
+        session.id,
+        'BUY', // Buying a plan
+        planAmount,
+        'USD',
+        'COMPLETED',
+        'PLAN_PURCHASE',
+        description,
+        adminFeeAmount,
+        planAmount - adminFeeAmount, // Net amount after admin fee
+      ]);
 
-      // 6. Create transaction record for user
-      await databaseHelpers.transaction.createTransaction({
-        userId: userId,
-        type: 'PLAN_PURCHASE',
-        amount: planAmount,
-        currency: 'USD',
-        status: 'COMPLETED',
-        gateway: 'Plan Purchase',
-        description: `Purchased ${plan.name} - ${tokensPurchased.toFixed(2)} tokens locked for 6 months`,
-        feeAmount: adminFeeAmount,
-        netAmount: planAmount - adminFeeAmount,
-        transactionType: 'plan_purchase'
-      });
-
-      // 7. Create transaction record for admin fee
-      const adminUser = await databaseHelpers.user.getAdminUser();
-      if (adminUser) {
-        await databaseHelpers.transaction.createTransaction({
-          userId: adminUser.id,
-          type: 'PLAN_PURCHASE',
-          amount: adminFeeAmount,
-          currency: 'USD',
-          status: 'COMPLETED',
-          gateway: 'Plan Purchase Fee',
-          description: `Admin fee from ${user.name || user.email}'s ${plan.name} purchase`,
-          feeAmount: 0,
-          netAmount: adminFeeAmount,
-          transactionType: 'admin_fee'
-        });
+      // Store Reference Transaction for Admin Fee
+      if (adminFeeAmount > 0) {
+        // We'll try to insert into admin wallet logs or just a transaction record with ADMIN_WALLET
+        // Note: 'ADMIN_WALLET' might not exist in users table, so we handle foreign key error
+         await client.query(`
+            INSERT INTO transactions (
+              id, "userId", type, amount, currency, status, gateway, 
+              description, "createdAt", "updatedAt"
+            ) VALUES (
+              $1, $2, $3, $4, $5, $6, $7, 
+              $8, NOW(), NOW()
+            )
+          `, [
+            require('crypto').randomUUID(),
+            'ADMIN_WALLET', // Special ID
+            'WALLET_FEE', 
+            adminFeeAmount,
+            'USD',
+            'COMPLETED',
+            'PLAN_FEE',
+            `Platform Fee from User ${session.id} Plan Purchase ($${planAmount})`
+          ]).catch(err => console.log('Admin fee log skipped (ADMIN_WALLET user likely missing):', err.message)); 
       }
 
       await client.query('COMMIT');
+      console.log('✅ COMMIT Successful for Plan Purchase');
 
-      // Create notification for user
-      await databaseHelpers.notification.createNotification({
-        userId: userId,
-        title: 'Plan Purchased Successfully! 🎉',
-        message: `You purchased ${plan.name} for $${planAmount}. ${tokensPurchased.toFixed(2)} tokens have been locked and will unlock on ${unlockDate.toLocaleDateString()}.`,
-        type: 'SUCCESS'
-      });
+      // Verify persistence immediately
+      try {
+        const verifyTx = await databaseHelpers.pool.query('SELECT * FROM transactions WHERE id = $1', [txId]);
+        console.log('🔍 Verification: Transaction found post-commit?', verifyTx.rows.length > 0 ? 'YES' : 'NO');
+        
+        const verifyWallet = await databaseHelpers.pool.query('SELECT balance, "stakingTokensAmount" FROM wallets WHERE "userId" = $1', [session.id]);
+        console.log('🔍 Verification: Wallet State:', verifyWallet.rows[0]);
+      } catch (verifyErr) {
+        console.error('Verify check failed:', verifyErr);
+      }
 
       return NextResponse.json({
         success: true,
         message: 'Plan purchased successfully',
-        plan: {
-          id: plan.id,
-          name: plan.name,
-          amount: planAmount,
-          tokensPurchased: tokensPurchased,
-          unlockDate: unlockDate,
-          referrerReward: referrerId ? referrerAmount : 0,
-          adminFee: adminFeeAmount
+        data: {
+          planAmount,
+          tokensBought,
+          lockDate: endDate,
+          txId
         }
       });
 
-    } catch (error) {
-      if (client) {
-        await client.query('ROLLBACK');
-      }
-      console.error('Error purchasing plan:', error);
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to purchase plan',
-          details: error.message
-        },
-        { status: 500 }
-      );
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
     } finally {
-      if (client) {
-        client.release();
-      }
+      client.release();
     }
 
   } catch (error) {
-    console.error('Error in plan purchase:', error);
+    console.error('Plan purchase error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to process plan purchase',
-        details: error.message
-      },
+      { success: false, error: 'Failed to purchase plan', details: error.message },
       { status: 500 }
     );
   }
 }
-
-// GET endpoint to fetch available plans
-export async function GET(request) {
-  try {
-    return NextResponse.json({
-      success: true,
-      plans: PLANS
-    });
-  } catch (error) {
-    console.error('Error fetching plans:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch plans' },
-      { status: 500 }
-    );
-  }
-}
-

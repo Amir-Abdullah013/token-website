@@ -21,6 +21,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
     { name: 'Deposit', href: '/user/deposit', icon: '💰', category: 'wallet' },
     { name: 'Withdraw', href: '/user/withdraw', icon: '💸', category: 'wallet' },
     { name: 'Send Tokens', href: '/user/send', icon: '📤', category: 'wallet' },
+    { name: 'Investment Plans', href: '/user/plans', icon: '💎', category: 'earn' },
     { name: 'Staking', href: '/user/staking', icon: '🏦', category: 'earn' },
     { name: 'Referrals', href: '/user/referrals', icon: '👥', category: 'earn' },
     { name: 'Transactions', href: '/user/transactions', icon: '📋', category: 'history' },
@@ -34,6 +35,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
     { name: 'Deposits', href: '/admin/deposits', icon: '💰' },
     { name: 'Withdrawals', href: '/admin/withdrawals', icon: '💸' },
     { name: 'Transfers', href: '/admin/transfers', icon: '📤' },
+    { name: 'Plan Purchases', href: '/admin/plans', icon: '💎' },
     { name: 'Stakings', href: '/admin/stakings', icon: '🏦' },
     { name: 'Transactions', href: '/admin/transactions', icon: '📋' },
   ];

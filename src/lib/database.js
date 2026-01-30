@@ -31,7 +31,7 @@ const createPool = () => {
     throw new Error('DATABASE_URL environment variable is required');
   }
 
-  console.log('🔗 DATABASE_URL found:', process.env.DATABASE_URL.substring(0, 50) + '...');
+  console.log('🔗 DATABASE_URL found (Host):', new URL(process.env.DATABASE_URL).hostname);
   
   const dbConfig = parseDatabaseUrl(process.env.DATABASE_URL);
   
@@ -40,14 +40,9 @@ const createPool = () => {
     throw new Error('Invalid DATABASE_URL configuration');
   }
 
-  console.log('✅ Database configuration parsed successfully');
-  console.log('   Host:', dbConfig.host);
-  console.log('   Port:', dbConfig.port);
-  console.log('   Database:', dbConfig.database);
-  console.log('   User:', dbConfig.user);
-
   return new Pool({
     ...dbConfig,
+    ssl: { rejectUnauthorized: false }, // Explicitly Enforce SSL
     max: 5, // Reduced max connections for better stability
     idleTimeoutMillis: 30000, // 30 seconds
     connectionTimeoutMillis: 10000, // 10 seconds

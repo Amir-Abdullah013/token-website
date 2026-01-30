@@ -5,12 +5,19 @@
 import { NextResponse } from 'next/server';
 
 export async function GET(request) {
-  // Return message that old staking is deprecated
+  // CRON DISABLED BY USER REQUEST due to memory spikes
+  // The new Plan logic does not require daily reward processing (0% APY on plans for now)
+  // If APY is re-introduced, this logic needs to be optimized (e.g. batch processing or cursor-based pagination)
+  
   return NextResponse.json({
-    success: false,
-    message: 'Old staking cron is deprecated. New plan-based system is in use.',
-    note: 'Use /api/cron/unlock-plan-tokens for unlocking plan purchase tokens'
-  }, { status: 410 }); // 410 Gone
+    success: true,
+    message: 'Cron processing disabled by configuration',
+    processed: [],
+    completed: [],
+    skipped: [],
+    errors: [],
+    totalActive: 0
+  });
 }
 
 /* COMMENTED OUT - OLD STAKING LOGIC

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { databaseHelpers } from '@/lib/database';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -25,6 +28,11 @@ export async function GET(request) {
     try {
       wallet = await databaseHelpers.wallet.getUserWallet(userId);
       console.log('Wallet query result:', wallet ? 'Found' : 'Not found');
+      if (wallet) {
+         console.log('Raw wallet data (keys):', Object.keys(wallet));
+         console.log('Raw wallet staking tokens:', wallet.stakingTokensAmount);
+         console.log('Raw wallet locked plan tokens:', wallet.lockedPlanTokensAmount);
+      }
     } catch (walletError) {
       console.error('Error getting wallet:', walletError);
       // Continue with wallet creation
@@ -116,12 +124,15 @@ export async function GET(request) {
       // Continue with default stats
     }
 
-    // Parse lockedPlanTokensAmount (handle Decimal/NULL types)
+    // Parse lockedPlanTokensAmount (handle Decimal/NULL types) from stakingTokensAmount
     let lockedTokens = 0;
-    if (wallet?.lockedPlanTokensAmount !== undefined && wallet?.lockedPlanTokensAmount !== null) {
-      lockedTokens = typeof wallet.lockedPlanTokensAmount === 'string' 
-        ? parseFloat(wallet.lockedPlanTokensAmount) 
-        : parseFloat(wallet.lockedPlanTokensAmount || 0);
+    // Check stakingTokensAmount first as that's the DB column name
+    const rawLockedAmount = wallet?.stakingTokensAmount ?? wallet?.lockedPlanTokensAmount;
+    
+    if (rawLockedAmount !== undefined && rawLockedAmount !== null) {
+      lockedTokens = typeof rawLockedAmount === 'string' 
+        ? parseFloat(rawLockedAmount) 
+        : parseFloat(rawLockedAmount || 0);
     }
 
     // Always return wallet data, even if some operations failed
@@ -129,8 +140,8 @@ export async function GET(request) {
       wallet: {
         id: wallet?.id || `wallet-${userId}`,
         userId: userId,
-        balance: wallet?.balance || 0,
-        VonBalance: wallet?.VonBalance || 0,
+        balance: parseFloat(wallet?.balance || 0),
+        VonBalance: parseFloat(wallet?.VonBalance || 0),
         lockedPlanTokensAmount: lockedTokens,
         currency: wallet?.currency || 'USD',
         lastUpdated: wallet?.lastUpdated || wallet?.updatedAt || new Date().toISOString()
