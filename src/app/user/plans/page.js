@@ -26,16 +26,19 @@ import {
   Crown
 } from 'lucide-react';
 
-// Define 8 plans
+// Define 11 plans
 const PLANS = [
-  { id: 1, amount: 10, name: 'Starter Plan', icon: '🌟', color: 'from-blue-500/20 to-cyan-500/20', borderColor: 'border-blue-400/50' },
-  { id: 2, amount: 25, name: 'Basic Plan', icon: '💎', color: 'from-purple-500/20 to-pink-500/20', borderColor: 'border-purple-400/50' },
-  { id: 3, amount: 50, name: 'Standard Plan', icon: '⭐', color: 'from-emerald-500/20 to-teal-500/20', borderColor: 'border-emerald-400/50' },
-  { id: 4, amount: 100, name: 'Premium Plan', icon: '👑', color: 'from-amber-500/20 to-orange-500/20', borderColor: 'border-amber-400/50' },
-  { id: 5, amount: 125, name: 'Gold Plan', icon: '🏆', color: 'from-yellow-500/20 to-amber-500/20', borderColor: 'border-yellow-400/50' },
-  { id: 6, amount: 150, name: 'Platinum Plan', icon: '💠', color: 'from-indigo-500/20 to-violet-500/20', borderColor: 'border-indigo-400/50' },
-  { id: 7, amount: 200, name: 'Diamond Plan', icon: '💍', color: 'from-cyan-500/20 to-blue-500/20', borderColor: 'border-cyan-400/50' },
-  { id: 8, amount: 300, name: 'Elite Plan', icon: '👸', color: 'from-rose-500/20 to-pink-500/20', borderColor: 'border-rose-400/50' }
+  { id: 1, amount: 2, name: 'Trial Plan', icon: '', color: 'from-slate-500/20 to-gray-500/20', borderColor: 'border-slate-400/50' },
+  { id: 2, amount: 3, name: 'Beginner Plan', icon: '', color: 'from-blue-500/20 to-cyan-500/20', borderColor: 'border-blue-400/50' },
+  { id: 3, amount: 5, name: 'Starter Plan', icon: '', color: 'from-sky-500/20 to-blue-500/20', borderColor: 'border-sky-400/50' },
+  { id: 4, amount: 10, name: 'Basic Plan', icon: '', color: 'from-indigo-500/20 to-purple-500/20', borderColor: 'border-indigo-400/50' },
+  { id: 5, amount: 20, name: 'Standard Plan', icon: '', color: 'from-teal-500/20 to-emerald-500/20', borderColor: 'border-teal-400/50' },
+  { id: 6, amount: 30, name: 'Pro Plan', icon: '', color: 'from-amber-500/20 to-orange-500/20', borderColor: 'border-amber-400/50' },
+  { id: 7, amount: 50, name: 'Premium Plan', icon: '', color: 'from-rose-500/20 to-pink-500/20', borderColor: 'border-rose-400/50' },
+  { id: 8, amount: 100, name: 'Gold Plan', icon: '', color: 'from-yellow-500/20 to-amber-500/20', borderColor: 'border-yellow-400/50' },
+  { id: 9, amount: 200, name: 'Platinum Plan', icon: '', color: 'from-violet-500/20 to-fuchsia-500/20', borderColor: 'border-violet-400/50' },
+  { id: 10, amount: 300, name: 'Diamond Plan', icon: '', color: 'from-cyan-400/20 to-blue-400/20', borderColor: 'border-cyan-400/50' },
+  { id: 11, amount: 500, name: 'Elite Plan', icon: '', color: 'from-fuchsia-600/20 to-pink-600/20', borderColor: 'border-fuchsia-500/50' }
 ];
 
 export default function StakingPage() {
