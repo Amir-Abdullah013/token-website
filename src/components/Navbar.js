@@ -240,6 +240,12 @@ const Navbar = ({ user, onSignOut, showSidebar = false, onToggleSidebar }) => {
           
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-2">
+            {/* Mobile Notification Bell */}
+             {user && (
+               <div className="mr-1 relative top-0.5">
+                 <NotificationBell />
+               </div>
+             )}
             {/* Sidebar toggle button (only when showSidebar is true) */}
             {showSidebar && user && onToggleSidebar && (
               <button

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from '@/lib/auth-context';
 import Layout from '@/components/Layout';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/Card';
 import Button from '@/components/Button';
@@ -195,31 +195,42 @@ export default function TransactionsPage() {
   
   // Filters
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const ITEMS_PER_PAGE = 20;
 
+  // Effect to handle mounting state
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Effect to fetch transactions when filters change or user is ready
   useEffect(() => {
-    if (mounted && !loading) {
-      if (!isAuthenticated) {
-        router.push('/auth/signin');
-      }
+    if (user?.id) {
+        // Reset and fetch
+        fetchTransactions(1, selectedFilter, true);
+    } else if (!loading && !user) {
+        // Not logged in, stop loading
+        setIsLoading(false);
     }
-  }, [mounted, loading, isAuthenticated, router]);
+  }, [user?.id, loading, selectedFilter]);
 
-  // Fetch transactions
+  // Fetch transactions (keeps same logic)
   const fetchTransactions = async (page = 1, filter = 'all', reset = false) => {
-    if (!user?.$id) return;
+    // FIX: Use standard 'id' property. If usage of $id was legacy, this was blocking execution.
+    if (!user?.id) {
+        setIsLoading(false); // Ensure we don't get stuck in loading if user invalid
+        return;
+    }
     
     try {
       setIsLoading(true);
       setFetchError(null);
 
       // Fetch transactions from API
+      // Note: We fetch by Type from server, but Date filtering is currently client-side 
+      // ensuring we have data to filter.
       const response = await fetch(`/api/transactions?userId=${user.id}&filter=${filter}&page=${page}&limit=${ITEMS_PER_PAGE}`);
       
       if (!response.ok) {
@@ -228,8 +239,8 @@ export default function TransactionsPage() {
       
       const responseData = await response.json();
       
-      // Handle the new API response structure
       const transactionsData = responseData.transactions || responseData;
+      // ... same handling
       const total = responseData.total || transactionsData.length;
       const hasMore = responseData.hasMore || false;
 
@@ -249,47 +260,55 @@ export default function TransactionsPage() {
     }
   };
 
-  // Initial load
-  useEffect(() => {
-    if (user?.$id) {
-      fetchTransactions(1, selectedFilter, true);
-    }
-  }, [user?.$id, selectedFilter]);
+  // ... (useEffects)
 
   // Handle filter change
   const handleFilterChange = (filter) => {
     setSelectedFilter(filter);
     setCurrentPage(1);
     setHasMore(true);
+    // Logic: State update triggers the useEffect above
   };
 
-  // Handle load more
-  const handleLoadMore = () => {
-    if (!isLoading && hasMore) {
-      fetchTransactions(currentPage + 1, selectedFilter, false);
-    }
-  };
-
-  // Handle refresh
   const handleRefresh = () => {
-    setCurrentPage(1);
-    setHasMore(true);
     fetchTransactions(1, selectedFilter, true);
   };
 
-  // Filter transactions by search term
+  const handleLoadMore = () => {
+    const nextPage = currentPage + 1;
+    fetchTransactions(nextPage, selectedFilter, false);
+  };
+
+  // Filter transactions
   const filteredTransactions = (transactions || []).filter(transaction => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      transaction.type.toLowerCase().includes(searchLower) ||
-      transaction.status.toLowerCase().includes(searchLower) ||
-      transaction.gateway?.toLowerCase().includes(searchLower) ||
-      transaction.amount.toString().includes(searchTerm)
-    );
+    // 1. Time Filter
+    if (timeFilter !== 'all') {
+        const txDate = new Date(transaction.createdAt);
+        const now = new Date();
+        const diffDays = (now - txDate) / (1000 * 60 * 60 * 24);
+        
+        if (timeFilter === '1d' && diffDays > 1) return false;
+        if (timeFilter === '7d' && diffDays > 7) return false;
+        if (timeFilter === '14d' && diffDays > 14) return false;
+        if (timeFilter === '30d' && diffDays > 30) return false;
+    }
+
+    // 2. Search Filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        transaction.type.toLowerCase().includes(searchLower) ||
+        transaction.status.toLowerCase().includes(searchLower) ||
+        transaction.gateway?.toLowerCase().includes(searchLower) ||
+        transaction.amount.toString().includes(searchTerm)
+      );
+    }
+    return true;
   });
 
-  if (!mounted || loading) {
+
+
+  if (!mounted || (loading && !user)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -329,7 +348,25 @@ export default function TransactionsPage() {
         {/* Premium Filters and Search */}
         <Card className="mb-6 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
           <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Time Range Filter */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Time Range
+                </label>
+                <select
+                  value={timeFilter}
+                  onChange={(e) => setTimeFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-gradient-to-r from-slate-700/50 to-slate-800/50 border border-slate-500/30 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
+                >
+                  <option value="all" className="bg-slate-800 text-white">All Time</option>
+                  <option value="1d" className="bg-slate-800 text-white">Last 24 Hours</option>
+                  <option value="7d" className="bg-slate-800 text-white">Last 7 Days</option>
+                  <option value="14d" className="bg-slate-800 text-white">Last 14 Days</option>
+                  <option value="30d" className="bg-slate-800 text-white">Last 30 Days</option>
+                </select>
+              </div>
+
               {/* Type Filter */}
               <div className="flex-1">
                 <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -345,6 +382,9 @@ export default function TransactionsPage() {
                   <option value="withdraw" className="bg-slate-800 text-white">Withdrawals</option>
                   <option value="buy" className="bg-slate-800 text-white">Buy Orders</option>
                   <option value="sell" className="bg-slate-800 text-white">Sell Orders</option>
+                  <option value="transfer" className="bg-slate-800 text-white">Transfers</option>
+                  <option value="referral_reward" className="bg-slate-800 text-white">Referral Rewards</option>
+                  <option value="plan_purchase" className="bg-slate-800 text-white">Plan Purchases</option>
                 </select>
               </div>
 

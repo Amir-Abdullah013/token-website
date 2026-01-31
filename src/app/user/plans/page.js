@@ -52,6 +52,7 @@ export default function StakingPage() {
   const [planPurchases, setPlanPurchases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lockedTokens, setLockedTokens] = useState(0);
+  const [unlockDate, setUnlockDate] = useState(null); // Add unlockDate state
   const [hasReferrer, setHasReferrer] = useState(false);
   const userIdRef = useRef(null);
 
@@ -109,8 +110,23 @@ export default function StakingPage() {
       const response = await fetch(`/api/wallet/overview?userId=${currentUserId}&_t=${Date.now()}`);
       if (response.ok) {
         const data = await response.json();
-        // Plan purchases will be tracked separately, for now just set empty
-        setPlanPurchases([]);
+        
+        // Filter recent transactions for plan purchases
+        const purchases = (data.recentTransactions || []).filter(tx => tx.gateway === 'PLAN_PURCHASE');
+        setPlanPurchases(purchases);
+        
+        // Infer unlock date from most recent purchase
+        if (purchases.length > 0) {
+            // Assuming sorted by createdAt DESC
+            const lastPurchase = purchases[0]; 
+            const purchaseDate = new Date(lastPurchase.createdAt);
+            const calculatedUnlock = new Date(purchaseDate.getTime() + 180 * 24 * 60 * 60 * 1000);
+            setUnlockDate(calculatedUnlock.toISOString());
+        } else if (data.wallet && data.wallet.lockedPlanTokensAmount > 0) {
+            // Fallback if tx not found but tokens exist (e.g. older txs)
+            // Default to 6 months from now or keep null to show default text
+             setUnlockDate(new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString());
+        }
       }
     } catch (error) {
       console.error('Error fetching plan purchases:', error);
@@ -299,9 +315,79 @@ export default function StakingPage() {
                 <div className="text-3xl font-bold text-white mb-2">
                   {formatVon(lockedTokens)}
                 </div>
-                <p className="text-slate-300 text-sm">
-                  Unlock in 6 months
-                </p>
+                
+                {lockedTokens > 0 && (
+                  <div className="mt-4">
+                    {(() => {
+                        // Mock unlock date calculation (fetched from DB in real implementation)
+                        // For now we use the one from state or default to 6 months
+                        const targetDate = unlockDate ? new Date(unlockDate) : new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+                        const now = new Date();
+                        const isClaimable = now >= targetDate;
+                        const daysRemaining = Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
+
+                        return (
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between text-sm text-slate-300 bg-slate-800/50 p-2 rounded">
+                                    <div className="flex items-center">
+                                         <Clock className="h-4 w-4 mr-2 text-cyan-400" />
+                                         <span>Unlocks: <span className="text-white font-medium">{formatDate(targetDate)}</span></span>
+                                    </div>
+                                    {!isClaimable && <span className="text-xs text-amber-400">({daysRemaining} days left)</span>}
+                                </div>
+                                
+                                <Button 
+                                    onClick={async () => {
+                                        if (!isClaimable) {
+                                            // User requested specific behavior: show message if time remaining
+                                            error(`Cannot claim yet! Tokens are locked until ${formatDate(targetDate)}.`);
+                                            return;
+                                        }
+                                            try {
+                                                const response = await fetch('/api/plans/claim', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ userId: user.id })
+                                                });
+                                                
+                                                const result = await response.json();
+                                                
+                                                if (result.success) {
+                                                    success(result.message);
+                                                    // Refresh data
+                                                    await fetchLockedTokens();
+                                                    // Force global wallet update
+                                                    if (typeof window !== 'undefined') {
+                                                        window.dispatchEvent(new Event('wallet-updated'));
+                                                    }
+                                                } else {
+                                                    error(result.error || "Failed to claim tokens.");
+                                                }
+                                            } catch (err) {
+                                                console.error("Claim error:", err);
+                                                error("An error occurred while claiming.");
+                                            }
+                                    }}
+                                    className={`w-full font-bold shadow-lg transition-all transform hover:scale-[1.02] ${
+                                        isClaimable 
+                                        ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-emerald-500/30 animate-pulse" 
+                                        : "bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 text-slate-200 shadow-slate-900/40 opacity-90"
+                                    }`}
+                                >
+                                    <Gift className={`h-4 w-4 mr-2 ${isClaimable ? "animate-bounce" : ""}`} />
+                                    {isClaimable ? "Claim Tokens Now" : "Claim Locked Tokens"}
+                                </Button>
+                            </div>
+                        );
+                    })()}
+                  </div>
+                )}
+                
+                {lockedTokens === 0 && (
+                    <p className="text-slate-300 text-sm">
+                      Unlock in 6 months
+                    </p>
+                )}
               </CardContent>
             </Card>
 

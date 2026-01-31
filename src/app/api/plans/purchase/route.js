@@ -140,6 +140,18 @@ export async function POST(request) {
         0
       ]);
 
+      // 4. Update Token Supply (Price Impact / Inflation)
+      // This mimics the 'deductSupply' logic to ensure the price increases due to usage
+      await client.query(`
+        UPDATE token_supply 
+        SET 
+          "remainingSupply" = "remainingSupply" - $1,
+          "userSupplyRemaining" = "userSupplyRemaining" - $1,
+          "updatedAt" = NOW()
+        WHERE id = (SELECT id FROM token_supply ORDER BY id DESC LIMIT 1)
+      `, [Math.floor(tokensBought)]);
+      console.log(`📉 Token Supply Deducted by ${Math.floor(tokensBought)} to trigger Price Inflation`);
+
       // 4. Distribute Referrer Reward (if applicable)
       if (hasReferrer && referrerRewardAmount > 0) {
         // Find Referrer Wallet

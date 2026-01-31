@@ -40,13 +40,21 @@ export async function GET(request) {
       
       // Add filter condition if specified
       if (filter !== 'all') {
-        // Handle both type and status filtering
-        if (['deposit', 'withdraw', 'buy', 'sell'].includes(filter.toLowerCase())) {
+        const lowerFilter = filter.toLowerCase();
+        
+        // Handle special gateway-based types
+        if (['plan_purchase', 'referral_reward'].includes(lowerFilter)) {
+             query += ` AND LOWER(gateway) = $2`; 
+             params.push(lowerFilter);
+        }
+        // Handle standard types
+        else if (['deposit', 'withdraw', 'buy', 'sell', 'transfer'].includes(lowerFilter)) {
           query += ` AND LOWER(type) = $2`;
-          params.push(filter.toLowerCase());
+          params.push(lowerFilter);
         } else {
+          // Handle status
           query += ` AND LOWER(status) = $2`;
-          params.push(filter.toLowerCase());
+          params.push(lowerFilter);
         }
       }
       
@@ -65,18 +73,26 @@ export async function GET(request) {
       
       // Execute query
       const result = await databaseHelpers.pool.query(query, params);
-      transactions = result.rows.map(tx => ({
-        id: tx.id,
-        $id: tx.id,
-        userId: tx.userId,
-        type: tx.type.toLowerCase(),
-        amount: parseFloat(tx.amount),
-        currency: 'USD', // All amounts are in USD
-        status: tx.status.toLowerCase(),
-        gateway: tx.gateway || 'N/A',
-        description: tx.description || '',
-        createdAt: tx.createdAt
-      }));
+      transactions = result.rows.map(tx => {
+        // Determine effective type for UI
+        let effectiveType = tx.type.toLowerCase();
+        if (tx.gateway && (tx.gateway === 'PLAN_PURCHASE' || tx.gateway === 'REFERRAL_REWARD')) {
+            effectiveType = tx.gateway.toLowerCase();
+        }
+
+        return {
+            id: tx.id,
+            $id: tx.id,
+            userId: tx.userId,
+            type: effectiveType,
+            amount: parseFloat(tx.amount),
+            currency: 'USD', // All amounts are in USD
+            status: tx.status.toLowerCase(),
+            gateway: tx.gateway || 'N/A',
+            description: tx.description || '',
+            createdAt: tx.createdAt
+        };
+      });
       
     } catch (dbError) {
       console.error('Database error fetching transactions:', dbError);
