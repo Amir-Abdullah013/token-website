@@ -85,7 +85,6 @@ export async function POST(request) {
     
     try {
       await client.query('BEGIN');
-
       console.log('Transaction started for User:', session.id);
 
       // 1. Deduct USD from User
@@ -110,11 +109,11 @@ export async function POST(request) {
       }
 
       // 3. Create Staking Record (Lock)
+      const stakingId = require('crypto').randomUUID();
       const startDate = new Date();
       const endDate = new Date();
       endDate.setDate(startDate.getDate() + 180); // 6 months lock
 
-      const stakingId = require('crypto').randomUUID();
       await client.query(`
         INSERT INTO staking (
           id, "userId", "amountStaked", "durationDays", "rewardPercent", 
@@ -129,33 +128,55 @@ export async function POST(request) {
         stakingId,
         session.id,
         tokensBought,
-        180, // Duration
-        0,   // Reward Percent
+        180,
+        0,
         startDate,
         endDate,
         'ACTIVE',
         false,
-        0, // Total Reward
-        0, // Daily Reward
-        0, // Accrued
-        0  // Days Rewarded
+        0,
+        0,
+        0,
+        0
       ]);
 
       // 4. Distribute Referrer Reward (if applicable)
       if (hasReferrer && referrerRewardAmount > 0) {
         // Find Referrer Wallet
-         await client.query(
-          'UPDATE wallets SET balance = balance + $1, "updatedAt" = NOW() WHERE "userId" = $2',
+        const referrerUpdate = await client.query(
+          'UPDATE wallets SET balance = balance + $1, "updatedAt" = NOW() WHERE "userId" = $2 returning balance',
           [referrerRewardAmount, user.referrerId]
         );
-        
-        // Log Referral Earning
-        const referralIdResult = await client.query('SELECT id FROM referrals WHERE "referrerId" = $1 AND "referredId" = $2', [user.referrerId, session.id]);
-        if (referralIdResult.rows.length > 0) {
-           await client.query(`
-            INSERT INTO referral_earnings (id, "referralId", "stakingId", amount, "createdAt")
-            VALUES ($1, $2, $3, $4, NOW())
-          `, [require('crypto').randomUUID(), referralIdResult.rows[0].id, stakingId, referrerRewardAmount]);
+
+        if (referrerUpdate.rowCount > 0) {
+            // Log Transaction for Referrer to show in their history/notifications
+            await client.query(`
+              INSERT INTO transactions (
+                id, "userId", type, amount, currency, status, gateway, 
+                description, "createdAt", "updatedAt"
+              ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, 
+                $8, NOW(), NOW()
+              )
+            `, [
+              require('crypto').randomUUID(),
+              user.referrerId,
+              'DEPOSIT', 
+              referrerRewardAmount,
+              'USD',
+              'COMPLETED',
+              'REFERRAL_REWARD',
+              `Referral Reward from ${user.email || 'User'} Plan Purchase`
+            ]);
+
+            // Log Referral Earning in specialized table
+            const referralIdResult = await client.query('SELECT id FROM referrals WHERE "referrerId" = $1 AND "referredId" = $2', [user.referrerId, session.id]);
+            if (referralIdResult.rows.length > 0) {
+               await client.query(`
+                INSERT INTO referral_earnings (id, "referralId", "stakingId", amount, "createdAt")
+                VALUES ($1, $2, $3, $4, NOW())
+              `, [require('crypto').randomUUID(), referralIdResult.rows[0].id, stakingId, referrerRewardAmount]);
+            }
         }
       }
 
@@ -184,35 +205,48 @@ export async function POST(request) {
         planAmount,
         'USD',
         'COMPLETED',
-        'PLAN_PURCHASE',
+        'PLAN_PURCHASE', // Explicitly PLAN_PURCHASE
         description,
         adminFeeAmount,
         planAmount - adminFeeAmount, // Net amount after admin fee
       ]);
 
       // Store Reference Transaction for Admin Fee
+      /* 
+      // DISABLED: Admin Fee Logic
       if (adminFeeAmount > 0) {
-        // We'll try to insert into admin wallet logs or just a transaction record with ADMIN_WALLET
-        // Note: 'ADMIN_WALLET' might not exist in users table, so we handle foreign key error
-         await client.query(`
-            INSERT INTO transactions (
-              id, "userId", type, amount, currency, status, gateway, 
-              description, "createdAt", "updatedAt"
-            ) VALUES (
-              $1, $2, $3, $4, $5, $6, $7, 
-              $8, NOW(), NOW()
-            )
-          `, [
-            require('crypto').randomUUID(),
-            'ADMIN_WALLET', // Special ID
-            'WALLET_FEE', 
-            adminFeeAmount,
-            'USD',
-            'COMPLETED',
-            'PLAN_FEE',
-            `Platform Fee from User ${session.id} Plan Purchase ($${planAmount})`
-          ]).catch(err => console.log('Admin fee log skipped (ADMIN_WALLET user likely missing):', err.message)); 
+        // We use a SAVEPOINT so if this specific insert fails (e.g. admin user missing),
+        // it doesn't abort the entire main transaction.
+        try {
+            await client.query('SAVEPOINT admin_fee_point');
+
+             await client.query(`
+                INSERT INTO transactions (
+                  id, "userId", type, amount, currency, status, gateway, 
+                  description, "createdAt", "updatedAt"
+                ) VALUES (
+                  $1, $2, $3, $4, $5, $6, $7, 
+                  $8, NOW(), NOW()
+                )
+              `, [
+                require('crypto').randomUUID(),
+                'ADMIN_WALLET', // Special ID
+                'WALLET_FEE', 
+                adminFeeAmount,
+                'USD',
+                'COMPLETED',
+                'PLAN_FEE',
+                `Platform Fee from User ${session.id} Plan Purchase ($${planAmount})`
+              ]);
+              
+            await client.query('RELEASE SAVEPOINT admin_fee_point');
+        } catch (adminErr) {
+            // CRITICAL: Must rollback to savepoint to restore transaction validity
+            await client.query('ROLLBACK TO SAVEPOINT admin_fee_point');
+            console.log('Admin fee log skipped (non-fatal):', adminErr.message);
+        }
       }
+      */
 
       await client.query('COMMIT');
       console.log('✅ COMMIT Successful for Plan Purchase');
@@ -241,11 +275,11 @@ export async function POST(request) {
 
     } catch (e) {
       await client.query('ROLLBACK');
+      console.error('Transaction Rollback:', e);
       throw e;
     } finally {
       client.release();
     }
-
   } catch (error) {
     console.error('Plan purchase error:', error);
     return NextResponse.json(

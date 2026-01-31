@@ -385,10 +385,10 @@ export default function UserDashboard() {
         </div>
 
         {/* Wallet Fee Status - Shows locked account banner prominently */}
-        <WalletFeeStatus />
+        {/* <WalletFeeStatus /> */}
         
         {/* Wallet Fee Referral Banner */}
-        <WalletFeeReferralBanner />
+        {/* <WalletFeeReferralBanner /> */}
 
         {/* Portfolio Overview Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
