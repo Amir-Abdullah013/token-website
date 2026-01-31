@@ -425,9 +425,9 @@ export default function StakingPage() {
                   adminPercent = 0.30;
                 } else {
                   // Scenario 1: No Referrer -> 70% Tokens, 0% Referrer, 30% Admin
-                  tokenPercent = 0.70;
+                  tokenPercent = 0.30;
                   referrerPercent = 0.00;
-                  adminPercent = 0.30;
+                  adminPercent = 0.70;
                 }
 
                 const tokenPurchaseAmount = plan.amount * tokenPercent;
@@ -529,7 +529,7 @@ export default function StakingPage() {
                   <p className="text-sm text-slate-300">
                     {hasReferrer 
                       ? "30% of your plan amount buys tokens at market price." 
-                      : "70% of your plan amount receives tokens at market price, maximizing your investment."} 
+                      : "30% of your plan amount receives tokens at market price, maximizing your investment."} 
                     These tokens are locked for 6 months.
                   </p>
                 </div>
@@ -551,7 +551,7 @@ export default function StakingPage() {
                       <h3 className="text-sm font-medium text-white">No Referrer Fee</h3>
                     </div>
                     <p className="text-sm text-slate-300">
-                      Since you were not referred, the amount usually allocated to referrers (40%) is added to your token purchase, giving you 70% total in tokens!
+                      Since you were not referred, the amount usually allocated to referrers (40%) is added to your token purchase, giving you 30% total in tokens!
                     </p>
                   </div>
                 )}

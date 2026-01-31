@@ -197,7 +197,7 @@ export async function POST(request) {
       if (hasReferrer) {
         description += `: ${tokensBought.toFixed(2)} tokens locked (30%), $${referrerRewardAmount} ref reward (40%), $${adminFeeAmount} admin fee (30%).`;
       } else {
-        description += `: ${tokensBought.toFixed(2)} tokens locked (70%), $${adminFeeAmount} admin fee (30%).`;
+        description += `: ${tokensBought.toFixed(2)} tokens locked (30%), $${adminFeeAmount} admin fee (70%).`;
       }
 
       // Record the User's Purchase in transactions
