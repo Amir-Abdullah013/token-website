@@ -17,7 +17,7 @@ In your Render dashboard, go to your **Web Service** settings and add these envi
 1. **CRON_SECRET** (REQUIRED)
    - Generate a secure random string (e.g., use `openssl rand -hex 32`)
    - This secret will be used to authenticate all cron job requests
-   - **IMPORTANT**: Use the same `CRON_SECRET` value for both your web service and all cron jobs
+   - **IMPORTANT**: Use the same `CRON_SECRET` value for both your web service and all cron job
 
 2. **NEXT_PUBLIC_BASE_URL**
    - Set this to your Render web service URL
