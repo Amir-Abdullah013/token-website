@@ -82,6 +82,9 @@ model User {
   referrals      User[]  @relation("UserReferrals")
   sentReferrals  Referral[] @relation("ReferrerReferrals")
   receivedReferrals Referral[] @relation("ReferredReferrals")
+  
+  // Ad rewards
+  adRewards      AdReward[]
 
   @@map("users")
 }
@@ -91,7 +94,9 @@ model Wallet {
   userId     String   @unique
   balance    Float    @default(0)        // USD balance
   VonBalance Decimal @db.Decimal(30,8)        // Von token balance
-  stakingTokensAmount Decimal @db.Decimal(30,8) // Locked staking tokens in user's account
+  stakingTokensAmount Decimal @db.Decimal(30,8) @default(0) // Locked staking tokens in user's account
+  lockedPlanTokensAmount Decimal @db.Decimal(30,8) @default(0) // Locked plan purchase tokens
+  lockedAdPoints Decimal @db.Decimal(30,8) @default(0) // Locked points from ad rewards
   currency   String   @default("USD")
   lastUpdated DateTime @default(now())
   createdAt  DateTime @default(now())
@@ -259,6 +264,33 @@ model TokenStats {
   @@map("token_stats")
 }
 
+// Ad Rewards Model - Tracks rewards earned from watching ads
+model AdReward {
+  id                String   @id @default(cuid())
+  userId            String
+  reward            Decimal  @default(10) @db.Decimal(30,8) // VON tokens earned
+  status            AdRewardStatus @default(COMPLETED)
+  adTransactionId   String?  @unique // AdMaven transaction ID for verification
+  adProvider        String   @default("AdMaven") // Ad network provider
+  adType            String?  // Type of ad (video, banner, etc.)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([adTransactionId])
+  @@map("ad_rewards")
+}
+
+enum AdRewardStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+
 // Enums
 enum Role {
   USER
@@ -273,6 +305,9 @@ enum TransactionType {
   WALLET_FEE
   UNSTAKE
   STAKE_REWARD
+  AD_REWARD
+  PLAN_PURCHASE
+  REFERRAL_REWARD
 }
 
 enum TransactionStatus {

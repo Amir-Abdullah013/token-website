@@ -23,6 +23,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
     { name: 'Send Tokens', href: '/user/send', icon: '📤', category: 'wallet' },
     { name: 'Investment Plans', href: '/user/plans', icon: '💎', category: 'earn' },
     { name: 'Staking', href: '/user/staking', icon: '🏦', category: 'earn' },
+    { name: 'Ads & Rewards', href: '/user/ads', icon: '🎬', category: 'earn' },
     { name: 'Referrals', href: '/user/referrals', icon: '👥', category: 'earn' },
     { name: 'Transactions', href: '/user/transactions', icon: '📋', category: 'history' },
     { name: 'Profile', href: '/user/profile', icon: '👤', category: 'account' },

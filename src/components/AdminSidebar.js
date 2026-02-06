@@ -24,6 +24,7 @@ const AdminSidebar = ({ user, isOpen, onClose }) => {
     { name: 'Fees', href: '/admin/fees', icon: '💳', description: 'Fee analytics', category: 'reports' },
     { name: 'Transactions', href: '/admin/transactions', icon: '📋', description: 'All transactions', category: 'reports' },
     { name: 'Plan Purchases', href: '/admin/plans', icon: '🛍️', description: 'Plan history & fees', category: 'reports' },
+    { name: 'Ad Rewards', href: '/admin/ads', icon: '🎬', description: 'Ad rewards tracking', category: 'reports' },
     { name: 'Reserve History', href: '/admin/reserve-history', icon: '📋', description: 'Reserve history', category: 'reports' },
   ];
   

@@ -7,6 +7,7 @@ import Sidebar from './Sidebar';
 import AdminSidebar from './AdminSidebar';
 import MobileNavigation from './MobileNavigation';
 import VonStatusBar from './VonStatusBar';
+import Footer from './Footer';
 import { useAuth } from '@/lib/auth-context';
 
 const Layout = ({ children, showSidebar = false }) => {
@@ -78,6 +79,9 @@ const Layout = ({ children, showSidebar = false }) => {
           </div>
         </main>
       </div>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };

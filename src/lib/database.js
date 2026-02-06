@@ -47,11 +47,23 @@ const createPool = () => {
     idleTimeoutMillis: 30000, // 30 seconds
     connectionTimeoutMillis: 10000, // 10 seconds
     acquireTimeoutMillis: 15000, // 15 seconds
-    allowExitOnIdle: true
+    allowExitOnIdle: true,
+    // CRITICAL: Force UTC timezone for all connections
+    options: '-c timezone=UTC'
   });
 };
 
 const pool = createPool();
+
+// Force UTC timezone on every connection
+pool.on('connect', async (client) => {
+  try {
+    await client.query("SET timezone='UTC'");
+    console.log('✅ Database connection timezone set to UTC');
+  } catch (error) {
+    console.error('❌ Failed to set timezone to UTC:', error);
+  }
+});
 
 // Test database connection with retry logic
 const testConnection = async (retries = 3) => {

@@ -42,6 +42,7 @@ export async function GET(request) {
         usdBalance: newWallet.balance || 0,
         VonBalance: newWallet.VonBalance || 0,
         lockedPlanTokensAmount: newWallet.lockedPlanTokensAmount || 0,
+        lockedAdPoints: newWallet.lockedAdPoints || 0,
         VonPrice: VonPrice
       });
     }
@@ -75,6 +76,7 @@ export async function GET(request) {
       usdBalance: wallet.balance || 0,
       VonBalance: wallet.VonBalance || 0,
       lockedPlanTokensAmount: lockedTokens,
+      lockedAdPoints: wallet.lockedAdPoints || 0,
       VonPrice: VonPrice
     });
 
