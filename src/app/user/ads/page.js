@@ -31,7 +31,7 @@ export default function AdsPage() {
   
   // Constants
   const REWARD_PER_AD = 10; // Locked Points
-  const COOLDOWN_MINUTES = 30; // minutes between ads
+  const COOLDOWN_MINUTES = 5; // minutes between ads
   const ADSTERRA_URL = 'https://www.effectivegatecpm.com/hjjxn97b?key=3a6e1a82e551092c43248e0fac7bc362';
   const MIN_AD_TIME = 30; // Minimum seconds user must spend on ad
   

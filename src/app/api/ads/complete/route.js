@@ -4,7 +4,9 @@ import { databaseHelpers } from '@/lib/database';
 /**
  * POST /api/ads/complete
  * Credits LOCKED POINTS to user after successfully watching an ad
- * Enforces 30-minute cooldown between ads
+ * Enforces 5-minute cooldown between ads
+ * If user has referrer: 80% to user, 20% to referrer
+ * If no referrer: 100% to user
  */
 export async function POST(request) {
   try {
@@ -15,7 +17,7 @@ export async function POST(request) {
     }
 
     const REWARD_AMOUNT = 10; // Locked points per ad
-    const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
+    const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
 
     // Check cooldown - get last ad timestamp
     const lastAdResult = await databaseHelpers.pool.query(
@@ -41,6 +43,28 @@ export async function POST(request) {
       }
     }
 
+    // Get user info to check for referrer
+    const userResult = await databaseHelpers.pool.query(
+      `SELECT "referrerId" FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+    }
+
+    const user = userResult.rows[0];
+    const hasReferrer = !!user.referrerId;
+
+    // Calculate reward distribution
+    let userReward = REWARD_AMOUNT;
+    let referrerReward = 0;
+
+    if (hasReferrer) {
+      userReward = REWARD_AMOUNT * 0.8; // 80% to user
+      referrerReward = REWARD_AMOUNT * 0.2; // 20% to referrer
+    }
+
     // Start transaction
     const client = await databaseHelpers.pool.connect();
     
@@ -50,14 +74,38 @@ export async function POST(request) {
       // Get current timestamp
       const now = new Date();
 
-      // Credit LOCKED POINTS
+      // Credit LOCKED POINTS to user
       await client.query(
         `UPDATE wallets 
          SET "lockedAdPoints" = "lockedAdPoints" + $1::DECIMAL(30,8), 
              "updatedAt" = $2
          WHERE "userId" = $3`,
-        [REWARD_AMOUNT, now, userId]
+        [userReward, now, userId]
       );
+
+      // Credit referrer if exists
+      if (hasReferrer && referrerReward > 0) {
+        await client.query(
+          `UPDATE wallets 
+           SET "lockedAdPoints" = "lockedAdPoints" + $1::DECIMAL(30,8), 
+               "updatedAt" = $2
+           WHERE "userId" = $3`,
+          [referrerReward, now, user.referrerId]
+        );
+
+        // Create transaction record for referrer
+        await databaseHelpers.transaction.createTransaction({
+          userId: user.referrerId,
+          type: 'AD_REWARD',
+          amount: referrerReward,
+          currency: 'Points',
+          status: 'COMPLETED',
+          gateway: 'Adsterra',
+          description: `Referral ad bonus: Earned ${referrerReward} locked points from referral's ad view`,
+          feeAmount: 0,
+          netAmount: referrerReward
+        });
+      }
 
       // Record ad reward
       const adRewardResult = await client.query(
@@ -67,17 +115,19 @@ export async function POST(request) {
         [userId, REWARD_AMOUNT, now]
       );
 
-      // Create transaction record
+      // Create transaction record for user
       await databaseHelpers.transaction.createTransaction({
         userId,
         type: 'AD_REWARD',
-        amount: REWARD_AMOUNT,
+        amount: userReward,
         currency: 'Points',
         status: 'COMPLETED',
         gateway: 'Adsterra',
-        description: `Ad reward: Visited Adsterra ad and earned ${REWARD_AMOUNT} locked points`,
+        description: hasReferrer 
+          ? `Ad reward: Visited Adsterra ad and earned ${userReward} locked points (80% share)`
+          : `Ad reward: Visited Adsterra ad and earned ${userReward} locked points`,
         feeAmount: 0,
-        netAmount: REWARD_AMOUNT
+        netAmount: userReward
       });
 
       await client.query('COMMIT');
@@ -94,20 +144,27 @@ export async function POST(request) {
 
       const adsWatchedToday = parseInt(countResult.rows[0]?.count || 0);
 
-      // Calculate next available time (current time + 30 minutes)
+      // Calculate next available time (current time + 5 minutes)
       const createdAt = new Date(adRewardResult.rows[0].createdAt);
       const nextAvailable = new Date(createdAt.getTime() + COOLDOWN_MS);
 
       console.log('✅ Ad completed successfully');
       console.log('User:', userId);
+      console.log('User reward:', userReward);
+      if (hasReferrer) {
+        console.log('Referrer reward:', referrerReward);
+      }
       console.log('Watched at:', createdAt.toISOString());
       console.log('Next available:', nextAvailable.toISOString());
       console.log('Ads today:', adsWatchedToday);
 
       return NextResponse.json({
         success: true,
-        message: `Successfully earned ${REWARD_AMOUNT} locked points!`,
-        reward: REWARD_AMOUNT,
+        message: hasReferrer 
+          ? `Successfully earned ${userReward} locked points! Your referrer earned ${referrerReward} points.`
+          : `Successfully earned ${userReward} locked points!`,
+        reward: userReward,
+        referrerReward: hasReferrer ? referrerReward : 0,
         adsWatchedToday,
         nextAdAvailable: nextAvailable.toISOString()
       });
