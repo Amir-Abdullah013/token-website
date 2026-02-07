@@ -28,6 +28,9 @@ export default function AdsPage() {
   const [canCloseAd, setCanCloseAd] = useState(false);
   const [cooldownMinutes, setCooldownMinutes] = useState(0);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [referralEarnings, setReferralEarnings] = useState(0);
+  const [totalReferralAds, setTotalReferralAds] = useState(0);
+  const [hasReferrals, setHasReferrals] = useState(false);
   
   // Constants
   const REWARD_PER_AD = 10; // Locked Points
@@ -57,6 +60,8 @@ export default function AdsPage() {
       fetchAdStats();
       fetchAdHistory();
       fetchLockedPoints();
+      fetchReferralEarnings();
+      checkHasReferrals();
     }
   }, [isAuthenticated, user?.id]);
 
@@ -182,6 +187,35 @@ export default function AdsPage() {
       }
     } catch (err) {
       console.error('Error fetching locked points:', err);
+    }
+  };
+
+  const fetchReferralEarnings = async () => {
+    try {
+      const response = await fetch(`/api/ads/referral-earnings?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setReferralEarnings(parseFloat(data.totalEarnings || 0));
+        setTotalReferralAds(parseInt(data.totalReferralAds || 0));
+        console.log('Referral ad earnings:', data.totalEarnings);
+      }
+    } catch (err) {
+      console.error('Error fetching referral earnings:', err);
+    }
+  };
+
+  const checkHasReferrals = async () => {
+    try {
+      const response = await fetch(`/api/referrals/${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        const hasAnyReferrals = data.referrals && data.referrals.length > 0;
+        setHasReferrals(hasAnyReferrals);
+        console.log('Has referrals:', hasAnyReferrals);
+        console.log('Referral count:', data.referralCount);
+      }
+    } catch (err) {
+      console.error('Error checking referrals:', err);
     }
   };
 
@@ -316,6 +350,7 @@ export default function AdsPage() {
         // Refresh data
         await fetchAdHistory();
         await fetchLockedPoints();
+        await fetchReferralEarnings();
         
         // Trigger wallet refresh
         if (typeof window !== 'undefined') {
@@ -393,12 +428,6 @@ export default function AdsPage() {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
                   Earn Points by Watching Ads
                 </h1>
-                <span className="px-2 py-1 text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full">
-                  BETA
-                </span>
-                <span className="px-2 py-1 text-xs font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-full">
-                  ✓ Powered by Adsterra
-                </span>
               </div>
               <p className="text-slate-300 mt-1">Visit ads and earn locked points!</p>
             </div>
@@ -406,7 +435,7 @@ export default function AdsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className={`grid grid-cols-1 md:grid-cols-${hasReferrals ? '5' : '4'} gap-6 mb-8`}>
           <Card className="bg-gradient-to-br from-amber-500/30 via-yellow-500/30 to-orange-500/30 border border-amber-400/50 hover:shadow-xl hover:shadow-amber-500/30 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-lg text-white flex items-center">
@@ -420,6 +449,9 @@ export default function AdsPage() {
               </div>
               <p className="text-amber-200 text-sm">
                 From ad rewards
+              </p>
+              <p className="text-amber-300 text-xs mt-1 font-medium">
+                1 point = 1 Von
               </p>
             </CardContent>
           </Card>
@@ -474,6 +506,29 @@ export default function AdsPage() {
               </p>
             </CardContent>
           </Card>
+
+          {/* Referral Earnings Card - Only shown to users with referrals */}
+          {hasReferrals && (
+            <Card className="bg-gradient-to-br from-rose-500/30 via-pink-500/30 to-fuchsia-500/30 border border-rose-400/50 hover:shadow-xl hover:shadow-rose-500/30 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-lg text-white flex items-center">
+                  <TrendingUp className="h-5 w-5 mr-2" />
+                  Referral Earnings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-white mb-2">
+                  {referralEarnings.toFixed(2)}
+                </div>
+                <p className="text-rose-200 text-sm">
+                  From {totalReferralAds} referral ads
+                </p>
+                <p className="text-rose-300 text-xs mt-1 font-medium">
+                  20% bonus per ad
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Watch Ad Section */}
