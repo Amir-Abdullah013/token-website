@@ -3,21 +3,30 @@ import { databaseHelpers } from '@/lib/database';
 
 /**
  * POST /api/ads/complete
- * Credits LOCKED POINTS to user after successfully watching an ad
+ * Credits IMMEDIATE USABLE POINTS to user after successfully watching an ad
  * Enforces 5-minute cooldown between ads
  * If user has referrer: 80% to user, 20% to referrer
  * If no referrer: 100% to user
  */
 export async function POST(request) {
   try {
-    const { userId } = await request.json();
+    const { userId, timeSpent } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
     }
 
-    const REWARD_AMOUNT = 10; // Locked points per ad
-    const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+    // Require minimum 15 seconds viewing time
+    const MIN_VIEW_TIME = 15; // seconds
+    if (!timeSpent || timeSpent < MIN_VIEW_TIME) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `Please watch the ad for at least ${MIN_VIEW_TIME} seconds. You watched for ${Math.floor(timeSpent || 0)} seconds.` 
+      }, { status: 400 });
+    }
+
+    const REWARD_AMOUNT = 10; // Points per ad (immediately usable)
+    const COOLDOWN_MS = 20 * 60 * 1000; // 20 minutes in milliseconds
 
     // Check cooldown - get last ad timestamp
     const lastAdResult = await databaseHelpers.pool.query(
@@ -74,10 +83,10 @@ export async function POST(request) {
       // Get current timestamp
       const now = new Date();
 
-      // Credit LOCKED POINTS to user
+      // Credit IMMEDIATE AD POINTS to user (not locked!)
       await client.query(
         `UPDATE wallets 
-         SET "lockedAdPoints" = "lockedAdPoints" + $1::DECIMAL(30,8), 
+         SET "adPoints" = COALESCE("adPoints", 0) + $1::DECIMAL(30,8), 
              "updatedAt" = $2
          WHERE "userId" = $3`,
         [userReward, now, userId]
@@ -87,7 +96,7 @@ export async function POST(request) {
       if (hasReferrer && referrerReward > 0) {
         await client.query(
           `UPDATE wallets 
-           SET "lockedAdPoints" = "lockedAdPoints" + $1::DECIMAL(30,8), 
+           SET "adPoints" = COALESCE("adPoints", 0) + $1::DECIMAL(30,8), 
                "updatedAt" = $2
            WHERE "userId" = $3`,
           [referrerReward, now, user.referrerId]
@@ -101,13 +110,13 @@ export async function POST(request) {
           currency: 'Points',
           status: 'COMPLETED',
           gateway: 'Adsterra',
-          description: `Referral ad bonus: Earned ${referrerReward} locked points from referral's ad view`,
+          description: `Referral ad bonus: Earned ${referrerReward} points from referral's ad view`,
           feeAmount: 0,
           netAmount: referrerReward
         });
       }
 
-      // Record ad reward
+      // Record ad reward with time spent
       const adRewardResult = await client.query(
         `INSERT INTO ad_rewards (id, "userId", reward, status, "createdAt", "updatedAt")
          VALUES (gen_random_uuid(), $1, $2, 'COMPLETED', $3, $3)
@@ -124,8 +133,8 @@ export async function POST(request) {
         status: 'COMPLETED',
         gateway: 'Adsterra',
         description: hasReferrer 
-          ? `Ad reward: Visited Adsterra ad and earned ${userReward} locked points (80% share)`
-          : `Ad reward: Visited Adsterra ad and earned ${userReward} locked points`,
+          ? `Ad reward: Watched ad for ${Math.floor(timeSpent)}s and earned ${userReward} points (80% share)`
+          : `Ad reward: Watched ad for ${Math.floor(timeSpent)}s and earned ${userReward} points`,
         feeAmount: 0,
         netAmount: userReward
       });
@@ -150,9 +159,10 @@ export async function POST(request) {
 
       console.log('✅ Ad completed successfully');
       console.log('User:', userId);
-      console.log('User reward:', userReward);
+      console.log('Time spent:', timeSpent, 'seconds');
+      console.log('User reward:', userReward, 'points (immediate)');
       if (hasReferrer) {
-        console.log('Referrer reward:', referrerReward);
+        console.log('Referrer reward:', referrerReward, 'points');
       }
       console.log('Watched at:', createdAt.toISOString());
       console.log('Next available:', nextAvailable.toISOString());
@@ -161,8 +171,8 @@ export async function POST(request) {
       return NextResponse.json({
         success: true,
         message: hasReferrer 
-          ? `Successfully earned ${userReward} locked points! Your referrer earned ${referrerReward} points.`
-          : `Successfully earned ${userReward} locked points!`,
+          ? `Successfully earned ${userReward} points! Your referrer earned ${referrerReward} points. Points are immediately usable!`
+          : `Successfully earned ${userReward} points! Use them right away!`,
         reward: userReward,
         referrerReward: hasReferrer ? referrerReward : 0,
         adsWatchedToday,

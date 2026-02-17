@@ -43,10 +43,10 @@ const createPool = () => {
   return new Pool({
     ...dbConfig,
     ssl: { rejectUnauthorized: false }, // Explicitly Enforce SSL
-    max: 5, // Reduced max connections for better stability
+    max: 20, // Increased max connections to handle concurrent API requests
     idleTimeoutMillis: 30000, // 30 seconds
-    connectionTimeoutMillis: 10000, // 10 seconds
-    acquireTimeoutMillis: 15000, // 15 seconds
+    connectionTimeoutMillis: 30000, // 30 seconds
+    acquireTimeoutMillis: 30000, // 30 seconds
     allowExitOnIdle: true,
     // CRITICAL: Force UTC timezone for all connections
     options: '-c timezone=UTC'

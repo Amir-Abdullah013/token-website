@@ -28,8 +28,8 @@ import {
 
 // Define 11 plans
 const PLANS = [
-  { id: 1, amount: 2, name: 'Trial Plan', icon: '', color: 'from-slate-500/20 to-gray-500/20', borderColor: 'border-slate-400/50' },
-  { id: 2, amount: 3, name: 'Beginner Plan', icon: '', color: 'from-blue-500/20 to-cyan-500/20', borderColor: 'border-blue-400/50' },
+  { id: 1, amount: 0.36, name: 'Trial Plan', icon: '', color: 'from-slate-500/20 to-gray-500/20', borderColor: 'border-slate-400/50' },
+  { id: 2, amount: 2, name: 'Beginner Plan', icon: '', color: 'from-blue-500/20 to-cyan-500/20', borderColor: 'border-blue-400/50' },
   { id: 3, amount: 5, name: 'Starter Plan', icon: '', color: 'from-sky-500/20 to-blue-500/20', borderColor: 'border-sky-400/50' },
   { id: 4, amount: 10, name: 'Basic Plan', icon: '', color: 'from-indigo-500/20 to-purple-500/20', borderColor: 'border-indigo-400/50' },
   { id: 5, amount: 20, name: 'Standard Plan', icon: '', color: 'from-teal-500/20 to-emerald-500/20', borderColor: 'border-teal-400/50' },
@@ -422,10 +422,10 @@ export default function StakingPage() {
                 let tokenPercent, referrerPercent, adminPercent;
                 
                 if (hasReferrer) {
-                  // Scenario 2: With Referrer -> 30% Tokens, 40% Referrer, 30% Admin
+                  // Scenario 2: With Referrer -> 30% Tokens, 50% Referrer, 20% Admin
                   tokenPercent = 0.30;
-                  referrerPercent = 0.40;
-                  adminPercent = 0.30;
+                  referrerPercent = 0.50;
+                  adminPercent = 0.20;
                 } else {
                   // Scenario 1: No Referrer -> 70% Tokens, 0% Referrer, 30% Admin
                   tokenPercent = 0.30;
@@ -533,7 +533,6 @@ export default function StakingPage() {
                     {hasReferrer 
                       ? "30% of your plan amount buys tokens at market price." 
                       : "30% of your plan amount receives tokens at market price, maximizing your investment."} 
-                    These tokens are locked for 6 months.
                   </p>
                 </div>
 
@@ -541,10 +540,10 @@ export default function StakingPage() {
                   <div className="bg-gradient-to-r from-amber-500/30 via-orange-500/30 to-yellow-500/30 p-4 rounded-lg border border-amber-400/50">
                     <div className="flex items-center mb-3">
                       <Users className="h-5 w-5 text-amber-400 mr-2" />
-                      <h3 className="text-sm font-medium text-white">40% - Referrer Reward</h3>
+                      <h3 className="text-sm font-medium text-white">50% - Referrer Reward</h3>
                     </div>
                     <p className="text-sm text-slate-300">
-                      40% of the plan amount is sent to your referrer as a reward for inviting you to the platform.
+                      50% of the plan amount is sent to your referrer as a reward for inviting you to the platform.
                     </p>
                   </div>
                 ) : (

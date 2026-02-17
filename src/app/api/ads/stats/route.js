@@ -14,7 +14,7 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
     }
 
-    const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const COOLDOWN_MS = 20 * 60 * 1000; // 20 minutes in milliseconds
 
     // Get today's start
     const today = new Date();

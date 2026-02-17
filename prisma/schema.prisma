@@ -96,7 +96,8 @@ model Wallet {
   VonBalance Decimal @db.Decimal(30,8)        // Von token balance
   stakingTokensAmount Decimal @db.Decimal(30,8) @default(0) // Locked staking tokens in user's account
   lockedPlanTokensAmount Decimal @db.Decimal(30,8) @default(0) // Locked plan purchase tokens
-  lockedAdPoints Decimal @db.Decimal(30,8) @default(0) // Locked points from ad rewards
+  lockedAdPoints Decimal @db.Decimal(30,8) @default(0) // Locked points from ad rewards (6 months)
+  adPoints Decimal @db.Decimal(30,8) @default(0) // Immediately usable ad points
   currency   String   @default("USD")
   lastUpdated DateTime @default(now())
   createdAt  DateTime @default(now())
@@ -306,6 +307,7 @@ enum TransactionType {
   UNSTAKE
   STAKE_REWARD
   AD_REWARD
+  AD_INTERACTION
   PLAN_PURCHASE
   REFERRAL_REWARD
 }

@@ -89,7 +89,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.effectivegatecpm.com https://*.adsterra.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cloud.appwrite.io https://fra.cloud.appwrite.io https://*.effectivegatecpm.com https://*.adsterra.com; frame-src 'self' https://accounts.google.com https://accounts.youtube.com https://*.effectivegatecpm.com https://*.adsterra.com; media-src 'self' https: blob:;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https: http:; style-src 'self' 'unsafe-inline' fonts.googleapis.com https:; font-src 'self' fonts.gstatic.com data:; img-src 'self' data: https: http:; connect-src 'self' https: http: wss: ws:; frame-src 'self' https: http:; media-src 'self' https: http: blob: data:;",
           },
         ],
       },
