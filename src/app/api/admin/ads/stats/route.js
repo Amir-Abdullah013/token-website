@@ -18,22 +18,22 @@ export async function GET(request) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Fetch total statistics
+    // Fetch total statistics from the single-row-per-user ad_rewards table
     const totalStatsResult = await databaseHelpers.pool.query(
       `SELECT 
-        COUNT(*) as total_rewards,
-        COALESCE(SUM(reward), 0) as total_tokens,
-        COUNT(DISTINCT "userId") as total_users
+        COUNT(*) as total_users,
+        COALESCE(SUM("adsWatched"), 0) as total_rewards,
+        COALESCE(SUM("totalPoints"), 0) as total_tokens
        FROM ad_rewards`
     );
 
-    // Fetch today's statistics
+    // Today's active users (watched an ad today)
     const todayStatsResult = await databaseHelpers.pool.query(
       `SELECT 
-        COUNT(*) as today_rewards,
-        COALESCE(SUM(reward), 0) as today_tokens
+        COUNT(*) as today_users,
+        COALESCE(SUM("adsWatched"), 0) as today_rewards
        FROM ad_rewards
-       WHERE "createdAt" >= $1`,
+       WHERE "lastWatchedAt" >= $1`,
       [today]
     );
 
@@ -47,7 +47,7 @@ export async function GET(request) {
         totalTokensDistributed: parseFloat(totalStats.total_tokens || 0),
         totalUsers: parseInt(totalStats.total_users || 0),
         todayRewards: parseInt(todayStats.today_rewards || 0),
-        todayTokens: parseFloat(todayStats.today_tokens || 0)
+        todayTokens: 0 // Not tracked daily anymore (cumulative only)
       }
     });
 

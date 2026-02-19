@@ -113,23 +113,9 @@ export default function StakingPage() {
       const response = await fetch(`/api/wallet/overview?userId=${currentUserId}&_t=${Date.now()}`);
       if (response.ok) {
         const data = await response.json();
-        
         // Filter recent transactions for plan purchases
         const purchases = (data.recentTransactions || []).filter(tx => tx.gateway === 'PLAN_PURCHASE');
         setPlanPurchases(purchases);
-        
-        // Infer unlock date from most recent purchase
-        if (purchases.length > 0) {
-            // Assuming sorted by createdAt DESC
-            const lastPurchase = purchases[0]; 
-            const purchaseDate = new Date(lastPurchase.createdAt);
-            const calculatedUnlock = new Date(purchaseDate.getTime() + 180 * 24 * 60 * 60 * 1000);
-            setUnlockDate(calculatedUnlock.toISOString());
-        } else if (data.wallet && data.wallet.lockedPlanTokensAmount > 0) {
-            // Fallback if tx not found but tokens exist (e.g. older txs)
-            // Default to 6 months from now or keep null to show default text
-             setUnlockDate(new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString());
-        }
       }
     } catch (error) {
       console.error('Error fetching plan purchases:', error);
@@ -139,30 +125,7 @@ export default function StakingPage() {
   };
 
   const fetchLockedTokens = async () => {
-    // Get current user.id from ref to avoid stale closure issues
-    const currentUserId = userIdRef.current;
-    if (!currentUserId) return;
-    
-    try {
-      // Add cache busting timestamp
-      const response = await fetch(`/api/wallet/overview?userId=${currentUserId}&_t=${Date.now()}`);
-      if (response.ok) {
-        const data = await response.json();
-        // Get locked tokens from wallet - handle Decimal type
-        if (data.wallet) {
-          const locked = data.wallet.lockedPlanTokensAmount;
-          // Handle both string (Decimal) and number types
-          const lockedValue = typeof locked === 'string' ? parseFloat(locked) : (locked || 0);
-          console.log('UsePlan Debug: Locked Tokens Fetched:', lockedValue);
-          setLockedTokens(lockedValue);
-        }
-      }
-    } catch (error) {
-      // Only log error if it's not a connection refused (server might be restarting)
-      if (error.message && !error.message.includes('Failed to fetch') && !error.message.includes('ERR_CONNECTION_REFUSED')) {
-        console.error('Error fetching locked tokens:', error);
-      }
-    }
+    // No longer needed - tokens go directly to VonBalance
   };
 
   const handlePlanPurchase = async (plan) => {
@@ -191,22 +154,19 @@ export default function StakingPage() {
       const result = await response.json();
 
       if (result.success) {
-        success(`Successfully purchased ${plan.name}! ${result.data.tokensBought.toFixed(2)} tokens locked for 6 months.`);
+        success(`Successfully purchased ${plan.name}! ${result.data.tokensBought.toFixed(2)} tokens added to your wallet.`);
         // Trigger wallet refresh in Von context immediately
         if (typeof window !== 'undefined') {
-          console.log('UsePlan Debug: Dispatching wallet-updated event');
           window.dispatchEvent(new Event('wallet-updated'));
         }
 
         // Refresh local component data
         await fetchPlanPurchases();
-        await fetchLockedTokens();
       } else {
         error(result.error || 'Failed to purchase plan');
       }
     } catch (err) {
       console.error('Plan purchase error:', err);
-      // We assume 'error' refers to the toast function available in scope
       error('Failed to purchase plan. Please try again.');
     } finally {
       setIsPurchasing(false);
@@ -274,7 +234,7 @@ export default function StakingPage() {
   }
 
   return (
-    <Layout>
+    <Layout showSidebar={true}>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         {/* Header Section */}
         <div className="bg-gradient-to-r from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm shadow-xl border-b border-slate-600/30">
@@ -289,7 +249,7 @@ export default function StakingPage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Balance Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <Card className="bg-gradient-to-br from-cyan-500/30 via-blue-500/30 to-indigo-500/30 border border-cyan-400/50 hover:shadow-xl hover:shadow-cyan-500/30 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-lg text-white flex items-center">
@@ -307,98 +267,11 @@ export default function StakingPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-emerald-500/30 via-teal-500/30 to-cyan-500/30 border border-emerald-400/50 hover:shadow-xl hover:shadow-emerald-500/30 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center">
-                  <Coins className="h-5 w-5 mr-2" />
-                  Locked Tokens
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-white mb-2">
-                  {formatVon(lockedTokens)}
-                </div>
-                
-                {lockedTokens > 0 && (
-                  <div className="mt-4">
-                    {(() => {
-                        // Mock unlock date calculation (fetched from DB in real implementation)
-                        // For now we use the one from state or default to 6 months
-                        const targetDate = unlockDate ? new Date(unlockDate) : new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
-                        const now = new Date();
-                        const isClaimable = now >= targetDate;
-                        const daysRemaining = Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
-
-                        return (
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between text-sm text-slate-300 bg-slate-800/50 p-2 rounded">
-                                    <div className="flex items-center">
-                                         <Clock className="h-4 w-4 mr-2 text-cyan-400" />
-                                         <span>Unlocks: <span className="text-white font-medium">{formatDate(targetDate)}</span></span>
-                                    </div>
-                                    {!isClaimable && <span className="text-xs text-amber-400">({daysRemaining} days left)</span>}
-                                </div>
-                                
-                                <Button 
-                                    onClick={async () => {
-                                        if (!isClaimable) {
-                                            // User requested specific behavior: show message if time remaining
-                                            error(`Cannot claim yet! Tokens are locked until ${formatDate(targetDate)}.`);
-                                            return;
-                                        }
-                                            try {
-                                                const response = await fetch('/api/plans/claim', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ userId: user.id })
-                                                });
-                                                
-                                                const result = await response.json();
-                                                
-                                                if (result.success) {
-                                                    success(result.message);
-                                                    // Refresh data
-                                                    await fetchLockedTokens();
-                                                    // Force global wallet update
-                                                    if (typeof window !== 'undefined') {
-                                                        window.dispatchEvent(new Event('wallet-updated'));
-                                                    }
-                                                } else {
-                                                    error(result.error || "Failed to claim tokens.");
-                                                }
-                                            } catch (err) {
-                                                console.error("Claim error:", err);
-                                                error("An error occurred while claiming.");
-                                            }
-                                    }}
-                                    className={`w-full font-bold shadow-lg transition-all transform hover:scale-[1.02] ${
-                                        isClaimable 
-                                        ? "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-emerald-500/30 animate-pulse" 
-                                        : "bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 text-slate-200 shadow-slate-900/40 opacity-90"
-                                    }`}
-                                >
-                                    <Gift className={`h-4 w-4 mr-2 ${isClaimable ? "animate-bounce" : ""}`} />
-                                    {isClaimable ? "Claim Tokens Now" : "Claim Locked Tokens"}
-                                </Button>
-                            </div>
-                        );
-                    })()}
-                  </div>
-                )}
-                
-                {lockedTokens === 0 && (
-                    <p className="text-slate-300 text-sm">
-                      Unlock in 6 months
-                    </p>
-                )}
-              </CardContent>
-            </Card>
-
             <Card className="bg-gradient-to-br from-violet-500/30 via-purple-500/30 to-indigo-500/30 border border-violet-400/50 hover:shadow-xl hover:shadow-violet-500/30 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-lg text-white flex items-center">
                   <TrendingUp className="h-5 w-5 mr-2" />
-                  Current Price
+                  Current Token Price
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -406,14 +279,13 @@ export default function StakingPage() {
                   {formatCurrency(VonPrice, 'USD')}
                 </div>
                 <p className="text-slate-300 text-sm">
-                  Per token
+                  Per token — tokens credited instantly on purchase
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          
-            {/* Plans Grid - Available for ALL users */}
+          {/* Plans Grid - Available for ALL users */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose Your Plan</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -479,11 +351,11 @@ export default function StakingPage() {
                         </div>
                       </div>
 
-                      {/* Lock Period */}
+                      {/* Lock Period
                       <div className="flex items-center justify-center text-slate-300 text-sm">
                         <Lock className="h-4 w-4 mr-2" />
                         <span>Locked for 6 months</span>
-                      </div>
+                      </div> */}
 
                       {/* Purchase Button */}
                       <Button

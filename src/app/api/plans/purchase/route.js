@@ -98,47 +98,16 @@ export async function POST(request) {
       }
       console.log('New Balance after deduction:', deductResult.rows[0].balance);
 
-      // 2. Add Tokens to User (Locked in Staking aka stakingTokensAmount)
+      // 2. Add Tokens DIRECTLY to User's VonBalance (no locking)
       const tokenAddResult = await client.query(
-        'UPDATE wallets SET "stakingTokensAmount" = (COALESCE("stakingTokensAmount"::numeric, 0) + $1), "updatedAt" = NOW() WHERE "userId" = $2',
+        'UPDATE wallets SET "VonBalance" = (COALESCE("VonBalance"::numeric, 0) + $1), "updatedAt" = NOW() WHERE "userId" = $2',
         [tokensBought, session.id]
       );
       
       if (tokenAddResult.rowCount === 0) {
-        throw new Error('Failed to add locked tokens: Wallet not found');
+        throw new Error('Failed to add tokens to VonBalance');
       }
-
-      // 3. Create Staking Record (Lock)
-      const stakingId = require('crypto').randomUUID();
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setDate(startDate.getDate() + 180); // 6 months lock
-
-      await client.query(`
-        INSERT INTO staking (
-          id, "userId", "amountStaked", "durationDays", "rewardPercent", 
-          "startDate", "endDate", status, claimed, "rewardAmount", 
-          "dailyRewardAmount", "rewardAccrued", "daysRewarded", "createdAt", "updatedAt"
-        ) VALUES (
-          $1, $2, $3, $4, $5, 
-          $6, $7, $8, $9, $10,
-          $11, $12, $13, NOW(), NOW()
-        )
-      `, [
-        stakingId,
-        session.id,
-        tokensBought,
-        180,
-        0,
-        startDate,
-        endDate,
-        'ACTIVE',
-        false,
-        0,
-        0,
-        0,
-        0
-      ]);
+      console.log('Tokens added to VonBalance:', tokensBought);
 
       // 4. Update Token Supply (Price Impact / Inflation)
       // This mimics the 'deductSupply' logic to ensure the price increases due to usage
@@ -187,7 +156,7 @@ export async function POST(request) {
                await client.query(`
                 INSERT INTO referral_earnings (id, "referralId", "stakingId", amount, "createdAt")
                 VALUES ($1, $2, $3, $4, NOW())
-              `, [require('crypto').randomUUID(), referralIdResult.rows[0].id, stakingId, referrerRewardAmount]);
+              `, [require('crypto').randomUUID(), referralIdResult.rows[0].id, null, referrerRewardAmount]);
             }
         }
       }
@@ -195,9 +164,9 @@ export async function POST(request) {
       // 5. Construct a detailed description for Admin & User
       let description = `Plan Purchase ($${planAmount})`;
       if (hasReferrer) {
-        description += `: ${tokensBought.toFixed(2)} tokens locked (30%), $${referrerRewardAmount} ref reward (40%), $${adminFeeAmount} admin fee (30%).`;
+        description += `: ${tokensBought.toFixed(2)} tokens bought (30%), $${referrerRewardAmount} ref reward (40%), $${adminFeeAmount} admin fee (30%).`;
       } else {
-        description += `: ${tokensBought.toFixed(2)} tokens locked (30%), $${adminFeeAmount} admin fee (70%).`;
+        description += `: ${tokensBought.toFixed(2)} tokens bought (30%), $${adminFeeAmount} admin fee (70%).`;
       }
 
       // Record the User's Purchase in transactions

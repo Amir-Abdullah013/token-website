@@ -353,7 +353,7 @@ export default function StakingPage() {
   }
 
   return (
-    <Layout>
+    <Layout showSidebar={true}>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         {/* Header Section */}
         <div className="bg-gradient-to-r from-slate-800/40 via-slate-700/30 to-slate-800/40 backdrop-blur-sm shadow-xl border-b border-slate-600/30">

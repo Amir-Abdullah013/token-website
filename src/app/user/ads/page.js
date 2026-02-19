@@ -20,9 +20,7 @@ export default function AdsPage() {
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [adsWatchedToday, setAdsWatchedToday] = useState(0);
   const [nextAdAvailable, setNextAdAvailable] = useState(null);
-  const [adHistory, setAdHistory] = useState([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [adPoints, setAdPoints] = useState(0); // Changed from lockedPoints
+  const [adPoints, setAdPoints] = useState(0);
   const [adWindow, setAdWindow] = useState(null);
   const [adStartTime, setAdStartTime] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -147,8 +145,7 @@ export default function AdsPage() {
   useEffect(() => {
     if (isAuthenticated && user?.id) {
       fetchAdStats();
-      fetchAdHistory();
-      fetchAdPoints(); // Changed from fetchLockedPoints
+      fetchAdPoints();
       fetchReferralEarnings();
       checkHasReferrals();
       checkConverterEligibility();
@@ -314,20 +311,6 @@ export default function AdsPage() {
     }
   };
 
-  const fetchAdHistory = async () => {
-    try {
-      setIsLoadingHistory(true);
-      const response = await fetch(`/api/ads/history?userId=${user.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setAdHistory(data.history || []);
-      }
-    } catch (err) {
-      console.error('Error fetching ad history:', err);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
 
   const fetchAdPoints = async () => {
     try {
@@ -565,8 +548,7 @@ export default function AdsPage() {
         setAdsWatchedToday(result.adsWatchedToday);
         
         // Refresh data
-        await fetchAdHistory();
-        await fetchAdPoints(); // Changed from fetchLockedPoints
+        await fetchAdPoints();
         await fetchReferralEarnings();
         
         // Trigger wallet refresh
@@ -696,7 +678,7 @@ export default function AdsPage() {
         </Card>
 
         {/* Stats Cards */}
-        <div className={`grid grid-cols-1 md:grid-cols-${hasReferrals ? '5' : '4'} gap-6 mb-8`}>
+        <div className={`grid grid-cols-1 md:grid-cols-${hasReferrals ? '4' : '3'} gap-6 mb-8`}>
           <Card className="bg-gradient-to-br from-amber-500/30 via-yellow-500/30 to-orange-500/30 border border-amber-400/50 hover:shadow-xl hover:shadow-amber-500/30 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-lg text-white flex items-center">
@@ -712,10 +694,10 @@ export default function AdsPage() {
                 Usable right away!
               </p>
               <p className="text-amber-300 text-xs mt-1 font-medium">
-                1 point = $0.00036 USD
+                1 point = $0.000036 USD
               </p>
               <p className="text-amber-400 text-xs">
-                ({adPoints.toFixed(2)} pts ≈ ${(adPoints * 0.00036).toFixed(4)} USD)
+                ({adPoints.toFixed(2)} pts ≈ ${(adPoints * 0.000036).toFixed(4)} USD)
               </p>
             </CardContent>
           </Card>
@@ -737,7 +719,7 @@ export default function AdsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-cyan-500/30 via-blue-500/30 to-indigo-500/30 border border-cyan-400/50 hover:shadow-xl hover:shadow-cyan-500/30 backdrop-blur-sm">
+          {/* <Card className="bg-gradient-to-br from-cyan-500/30 via-blue-500/30 to-indigo-500/30 border border-cyan-400/50 hover:shadow-xl hover:shadow-cyan-500/30 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-lg text-white flex items-center">
                 <TrendingUp className="h-5 w-5 mr-2" />
@@ -752,7 +734,7 @@ export default function AdsPage() {
                 Today
               </p>
             </CardContent>
-          </Card>
+          </Card> */}
 
           <Card className="bg-gradient-to-br from-violet-500/30 via-purple-500/30 to-indigo-500/30 border border-violet-400/50 hover:shadow-xl hover:shadow-violet-500/30 backdrop-blur-sm">
             <CardHeader>
@@ -955,7 +937,7 @@ export default function AdsPage() {
                       </p>
                       <p className="text-slate-300">
                         Refer <span className="text-amber-400 font-bold">5 users</span> who create accounts and watch ads. 
-                        Once they collectively earn <span className="text-amber-400 font-bold">2000 points</span>, you'll unlock the ability to:
+                        Each of them must individually earn <span className="text-amber-400 font-bold">2,000 points</span>, then you'll unlock:
                       </p>
                       <ul className="space-y-2 text-slate-300 ml-4">
                         <li className="flex items-center">
@@ -1003,6 +985,48 @@ export default function AdsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Per-referral Points Breakdown */}
+                {converterData?.requirements?.referralDetails?.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-slate-300 text-sm font-medium mb-3 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-purple-400" />
+                      Your Referrals Progress (each needs 2,000 pts):
+                    </p>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {converterData.requirements.referralDetails.map((ref, idx) => (
+                        <div key={ref.id} className={`flex items-center gap-3 p-2 rounded-lg border ${
+                          ref.qualified
+                            ? 'bg-emerald-500/10 border-emerald-500/30'
+                            : 'bg-slate-800/50 border-slate-600/30'
+                        }`}>
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                            ref.qualified ? 'bg-emerald-500 text-white' : 'bg-slate-600 text-slate-300'
+                          }`}>{idx + 1}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-white text-xs font-medium truncate">{ref.name}</span>
+                              <span className={`text-xs font-bold ml-2 flex-shrink-0 ${
+                                ref.qualified ? 'text-emerald-400' : 'text-slate-400'
+                              }`}>{ref.adPoints.toFixed(0)}/2000</span>
+                            </div>
+                            <div className="w-full bg-slate-700 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full transition-all ${
+                                  ref.qualified
+                                    ? 'bg-gradient-to-r from-emerald-500 to-green-400'
+                                    : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                                }`}
+                                style={{ width: `${Math.min((ref.adPoints / 2000) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                          {ref.qualified && <CheckCircle className="h-4 w-4 text-emerald-400 flex-shrink-0" />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -1019,66 +1043,7 @@ export default function AdsPage() {
           </CardContent>
         </Card>
 
-        {/* Ad History */}
-        <Card className="bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
-              Your Reward History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingHistory ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-                <p className="text-slate-400">Loading history...</p>
-              </div>
-            ) : adHistory.length === 0 ? (
-              <div className="text-center py-8">
-                <Gift className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400">No ads watched yet. Start earning now!</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-600/30">
-                  <thead className="bg-gradient-to-r from-slate-700/30 to-slate-800/30">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                        Reward
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-gradient-to-br from-slate-800/20 to-slate-900/20 divide-y divide-slate-600/20">
-                    {adHistory.map((record, index) => (
-                      <tr key={record.id || index} className="hover:bg-slate-700/20 transition-colors duration-150">
-                        <td className="px-4 py-3 text-sm text-white">
-                          {formatDate(record.createdAt)}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium text-amber-400">
-                          <div className="flex items-center">
-                            <Lock className="h-3 w-3 mr-1" />
-                            +{record.reward} Points
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-400/30">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Completed
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+       
 
         {/* Banner 300x250 */}
         <Card className="mt-8 bg-gradient-to-br from-slate-800/40 via-slate-700/30 to-slate-800/40 border border-slate-600/30 backdrop-blur-sm">

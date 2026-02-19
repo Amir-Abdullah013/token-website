@@ -6,7 +6,7 @@ import { databaseHelpers } from '@/lib/database';
  * Check if user is eligible to convert points to USD
  * Requirements:
  * - User must have referred 5 users
- * - Those 5 users must have collectively earned at least 2000 points
+ * - Each of those 5 referrals must individually have at least 2000 points
  */
 export async function GET(request) {
   try {
@@ -17,37 +17,30 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
     }
 
-    // Get user's referrals
+    // Get user's referrals with their individual ad points
     const referralsResult = await databaseHelpers.pool.query(
-      `SELECT id FROM users WHERE "referrerId" = $1`,
+      `SELECT u.id, u.name, u.email,
+              COALESCE(w."adPoints", w."lockedAdPoints", 0) as ad_points
+       FROM users u
+       LEFT JOIN wallets w ON w."userId" = u.id
+       WHERE u."referrerId" = $1
+       ORDER BY ad_points DESC`,
       [userId]
     );
 
     const referrals = referralsResult.rows;
     const referralCount = referrals.length;
+    const REQUIRED_POINTS_PER_REFERRAL = 2000;
+    const REQUIRED_REFERRALS = 5;
 
-    // Get total points earned by referrals
-    let totalReferralPoints = 0;
-    if (referralCount > 0) {
-      const referralIds = referrals.map(r => r.id);
-      try {
-        const pointsResult = await databaseHelpers.pool.query(
-          `SELECT COALESCE(SUM(COALESCE("adPoints", "lockedAdPoints", 0)), 0) as total_points
-           FROM wallets
-           WHERE "userId" = ANY($1)`,
-          [referralIds]
-        );
-        totalReferralPoints = parseFloat(pointsResult.rows[0]?.total_points || 0);
-      } catch (err) {
-        console.error('Error getting referral points:', err);
-        totalReferralPoints = 0;
-      }
-    }
+    // Count how many referrals individually have >= 2000 points
+    const qualifiedReferrals = referrals.filter(r => parseFloat(r.ad_points) >= REQUIRED_POINTS_PER_REFERRAL);
+    const qualifiedCount = qualifiedReferrals.length;
 
-    // Check eligibility
-    const hasEnoughReferrals = referralCount >= 5; // Changed from 5 to 1 as requested
-    const hasEnoughPoints = totalReferralPoints >= 2000;
-    const isEligible = hasEnoughReferrals && hasEnoughPoints;
+    // Check eligibility: need 5 referrals that EACH have >= 2000 points
+    const hasEnoughReferrals = referralCount >= REQUIRED_REFERRALS;
+    const hasEnoughQualifiedReferrals = qualifiedCount >= REQUIRED_REFERRALS;
+    const isEligible = hasEnoughQualifiedReferrals;
 
     // Get user's current ad points
     let userAdPoints = 0;
@@ -67,16 +60,24 @@ export async function GET(request) {
       isEligible,
       requirements: {
         referralCount,
-        requiredReferrals: 5, // Changed from 5
+        requiredReferrals: REQUIRED_REFERRALS,
         hasEnoughReferrals,
-        totalReferralPoints,
-        requiredPoints: 2000,
-        hasEnoughPoints
+        qualifiedCount,
+        hasEnoughQualifiedReferrals,
+        requiredPointsPerReferral: REQUIRED_POINTS_PER_REFERRAL,
+        // Per-referral breakdown for display
+        referralDetails: referrals.map(r => ({
+          id: r.id,
+          name: r.name || 'User',
+          email: r.email,
+          adPoints: parseFloat(r.ad_points || 0),
+          qualified: parseFloat(r.ad_points || 0) >= REQUIRED_POINTS_PER_REFERRAL
+        }))
       },
       userAdPoints,
-      conversionRate: 1000 / 0.36, // 1000 points = $0.36 USD, so rate = 2777.78 points per $1
-      pointsPerDollar: 1000 / 0.36,
-      dollarsPerPoint: 0.36 / 1000 // $0.00036 per point
+      conversionRate: 10000 / 0.36,
+      pointsPerDollar: 10000 / 0.36,
+      dollarsPerPoint: 0.36 / 10000
     });
 
   } catch (error) {

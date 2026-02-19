@@ -3,7 +3,8 @@ import { databaseHelpers } from '@/lib/database';
 
 /**
  * GET /api/ads/referral-earnings
- * Returns the total ad points earned from referrals
+ * Returns the total ad points earned as a referrer from the ad_rewards table.
+ * No longer reads from the transactions table (AD_REWARD rows have been removed).
  */
 export async function GET(request) {
   try {
@@ -14,40 +15,24 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
     }
 
-    // Get all transactions where this user received ad rewards from their referrals
-    const earningsResult = await databaseHelpers.pool.query(
-      `SELECT 
-        SUM(amount) as total_earnings,
-        COUNT(*) as total_referral_ads
-       FROM transactions 
-       WHERE "userId" = $1 
-       AND type = 'AD_REWARD'
-       AND description LIKE '%Referral ad bonus%'
-       AND status = 'COMPLETED'`,
+    // Read directly from the summary row in ad_rewards
+    const result = await databaseHelpers.pool.query(
+      `SELECT
+         COALESCE("referralPoints", 0)::FLOAT as total_earnings,
+         COALESCE("adsWatched", 0) as total_referral_ads
+       FROM ad_rewards
+       WHERE "userId" = $1`,
       [userId]
     );
 
-    const totalEarnings = parseFloat(earningsResult.rows[0]?.total_earnings || 0);
-    const totalReferralAds = parseInt(earningsResult.rows[0]?.total_referral_ads || 0);
-
-    // Get recent referral ad earnings
-    const recentResult = await databaseHelpers.pool.query(
-      `SELECT amount, "createdAt", description
-       FROM transactions 
-       WHERE "userId" = $1 
-       AND type = 'AD_REWARD'
-       AND description LIKE '%Referral ad bonus%'
-       AND status = 'COMPLETED'
-       ORDER BY "createdAt" DESC
-       LIMIT 10`,
-      [userId]
-    );
+    const totalEarnings = result.rows[0]?.total_earnings || 0;
+    const totalReferralAds = result.rows[0]?.total_referral_ads || 0;
 
     return NextResponse.json({
       success: true,
       totalEarnings,
       totalReferralAds,
-      recentEarnings: recentResult.rows
+      recentEarnings: [] // No longer stored per-row; historical detail not available
     });
 
   } catch (error) {

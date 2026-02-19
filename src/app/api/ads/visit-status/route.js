@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/ads/visit-status
- * Checks when the next visit reward is available
+ * Checks when the next visit reward is available.
+ * Now reads from ad_rewards.updatedAt instead of transactions table.
  */
 export async function GET(request) {
   try {
@@ -18,13 +19,9 @@ export async function GET(request) {
 
     const COOLDOWN = 30 * 60 * 1000; // 30 minutes
 
-    // Check last visit reward
+    // Check ad_rewards.updatedAt for last visit reward (interaction-reward updates this on page_visit)
     const lastReward = await databaseHelpers.pool.query(
-      `SELECT "createdAt" FROM transactions
-       WHERE "userId" = $1
-       AND description LIKE '%page_visit%'
-       ORDER BY "createdAt" DESC
-       LIMIT 1`,
+      `SELECT "updatedAt" FROM ad_rewards WHERE "userId" = $1`,
       [userId]
     );
 
@@ -32,8 +29,8 @@ export async function GET(request) {
     let available = true;
     let remainingSeconds = 0;
 
-    if (lastReward.rows.length > 0) {
-      const lastTime = new Date(lastReward.rows[0].createdAt).getTime();
+    if (lastReward.rows.length > 0 && lastReward.rows[0].updatedAt) {
+      const lastTime = new Date(lastReward.rows[0].updatedAt).getTime();
       const now = Date.now();
       const diff = now - lastTime;
 

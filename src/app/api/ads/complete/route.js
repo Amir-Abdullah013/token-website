@@ -3,10 +3,10 @@ import { databaseHelpers } from '@/lib/database';
 
 /**
  * POST /api/ads/complete
- * Credits IMMEDIATE USABLE POINTS to user after successfully watching an ad
- * Enforces 5-minute cooldown between ads
- * If user has referrer: 80% to user, 20% to referrer
- * If no referrer: 100% to user
+ * Credits IMMEDIATE USABLE POINTS to user after successfully watching an ad.
+ * Enforces 20-minute cooldown between ads.
+ * Instead of inserting a new row per ad, we UPSERT a single row per user in ad_rewards.
+ * No transaction row is created for ad rewards (keeps transactions table clean).
  */
 export async function POST(request) {
   try {
@@ -28,27 +28,26 @@ export async function POST(request) {
     const REWARD_AMOUNT = 10; // Points per ad (immediately usable)
     const COOLDOWN_MS = 20 * 60 * 1000; // 20 minutes in milliseconds
 
-    // Check cooldown - get last ad timestamp
+    // Check cooldown using single-row ad_rewards record (lastWatchedAt field)
     const lastAdResult = await databaseHelpers.pool.query(
-      `SELECT "createdAt" FROM ad_rewards 
-       WHERE "userId" = $1 
-       ORDER BY "createdAt" DESC 
-       LIMIT 1`,
+      `SELECT "lastWatchedAt", "adsWatched", "totalPoints" FROM ad_rewards WHERE "userId" = $1`,
       [userId]
     );
 
+    const now = new Date();
+
     if (lastAdResult.rows.length > 0) {
-      const lastAdTime = new Date(lastAdResult.rows[0].createdAt).getTime();
-      const now = Date.now();
-      const timeSinceLastAd = now - lastAdTime;
-      
-      if (timeSinceLastAd < COOLDOWN_MS) {
-        const minutesLeft = Math.ceil((COOLDOWN_MS - timeSinceLastAd) / 60000);
-        console.log('❌ Cooldown active:', minutesLeft, 'minutes remaining');
-        return NextResponse.json({ 
-          success: false, 
-          error: `Please wait ${minutesLeft} minutes before watching another ad.` 
-        }, { status: 429 });
+      const lastWatchedAt = lastAdResult.rows[0].lastWatchedAt;
+      if (lastWatchedAt) {
+        const lastTime = new Date(lastWatchedAt).getTime();
+        const timeSinceLastAd = Date.now() - lastTime;
+        if (timeSinceLastAd < COOLDOWN_MS) {
+          const minutesLeft = Math.ceil((COOLDOWN_MS - timeSinceLastAd) / 60000);
+          return NextResponse.json({ 
+            success: false, 
+            error: `Please wait ${minutesLeft} minutes before watching another ad.` 
+          }, { status: 429 });
+        }
       }
     }
 
@@ -70,20 +69,16 @@ export async function POST(request) {
     let referrerReward = 0;
 
     if (hasReferrer) {
-      userReward = REWARD_AMOUNT * 0.8; // 80% to user
+      userReward = REWARD_AMOUNT * 0.8;   // 80% to user
       referrerReward = REWARD_AMOUNT * 0.2; // 20% to referrer
     }
 
-    // Start transaction
     const client = await databaseHelpers.pool.connect();
     
     try {
       await client.query('BEGIN');
 
-      // Get current timestamp
-      const now = new Date();
-
-      // Credit IMMEDIATE AD POINTS to user (not locked!)
+      // 1. Credit IMMEDIATE AD POINTS to user wallet
       await client.query(
         `UPDATE wallets 
          SET "adPoints" = COALESCE("adPoints", 0) + $1::DECIMAL(30,8), 
@@ -92,7 +87,7 @@ export async function POST(request) {
         [userReward, now, userId]
       );
 
-      // Credit referrer if exists
+      // 2. Credit referrer if exists (also just wallet update, no transaction row)
       if (hasReferrer && referrerReward > 0) {
         await client.query(
           `UPDATE wallets 
@@ -102,80 +97,44 @@ export async function POST(request) {
           [referrerReward, now, user.referrerId]
         );
 
-        // Create transaction record for referrer
-        await databaseHelpers.transaction.createTransaction({
-          userId: user.referrerId,
-          type: 'AD_REWARD',
-          amount: referrerReward,
-          currency: 'Points',
-          status: 'COMPLETED',
-          gateway: 'Adsterra',
-          description: `Referral ad bonus: Earned ${referrerReward} points from referral's ad view`,
-          feeAmount: 0,
-          netAmount: referrerReward
-        });
+        // Update referrer's single ad_rewards row for their stats
+        await client.query(
+          `INSERT INTO ad_rewards (id, "userId", reward, "totalPoints", "referralPoints", "adsWatched", "lastWatchedAt", status, "createdAt", "updatedAt")
+           VALUES (gen_random_uuid(), $1, 0, 0, $2, 0, NULL, 'COMPLETED', $3, $3)
+           ON CONFLICT ("userId") DO UPDATE SET
+             "referralPoints" = COALESCE(ad_rewards."referralPoints", 0) + $2,
+             "totalPoints" = COALESCE(ad_rewards."totalPoints", 0) + $2,
+             "updatedAt" = $3`,
+          [user.referrerId, referrerReward, now]
+        );
       }
 
-      // Record ad reward with time spent
-      const adRewardResult = await client.query(
-        `INSERT INTO ad_rewards (id, "userId", reward, status, "createdAt", "updatedAt")
-         VALUES (gen_random_uuid(), $1, $2, 'COMPLETED', $3, $3)
-         RETURNING "createdAt"`,
+      // 3. UPSERT single ad_rewards row for this user (no new row per watch)
+      const upsertResult = await client.query(
+        `INSERT INTO ad_rewards (id, "userId", reward, "totalPoints", "referralPoints", "adsWatched", "lastWatchedAt", status, "createdAt", "updatedAt")
+         VALUES (gen_random_uuid(), $1, $2, $2, 0, 1, $3, 'COMPLETED', $3, $3)
+         ON CONFLICT ("userId") DO UPDATE SET
+           "totalPoints" = COALESCE(ad_rewards."totalPoints", 0) + $2,
+           "adsWatched" = COALESCE(ad_rewards."adsWatched", 0) + 1,
+           "lastWatchedAt" = $3,
+           "updatedAt" = $3
+         RETURNING "adsWatched", "lastWatchedAt"`,
         [userId, REWARD_AMOUNT, now]
       );
 
-      // Create transaction record for user
-      await databaseHelpers.transaction.createTransaction({
-        userId,
-        type: 'AD_REWARD',
-        amount: userReward,
-        currency: 'Points',
-        status: 'COMPLETED',
-        gateway: 'Adsterra',
-        description: hasReferrer 
-          ? `Ad reward: Watched ad for ${Math.floor(timeSpent)}s and earned ${userReward} points (80% share)`
-          : `Ad reward: Watched ad for ${Math.floor(timeSpent)}s and earned ${userReward} points`,
-        feeAmount: 0,
-        netAmount: userReward
-      });
-
       await client.query('COMMIT');
 
-      // Get today's count
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const countResult = await client.query(
-        `SELECT COUNT(*) as count FROM ad_rewards 
-         WHERE "userId" = $1 AND "createdAt" >= $2`,
-        [userId, today]
-      );
-
-      const adsWatchedToday = parseInt(countResult.rows[0]?.count || 0);
-
-      // Calculate next available time (current time + 5 minutes)
-      const createdAt = new Date(adRewardResult.rows[0].createdAt);
-      const nextAvailable = new Date(createdAt.getTime() + COOLDOWN_MS);
-
-      console.log('✅ Ad completed successfully');
-      console.log('User:', userId);
-      console.log('Time spent:', timeSpent, 'seconds');
-      console.log('User reward:', userReward, 'points (immediate)');
-      if (hasReferrer) {
-        console.log('Referrer reward:', referrerReward, 'points');
-      }
-      console.log('Watched at:', createdAt.toISOString());
-      console.log('Next available:', nextAvailable.toISOString());
-      console.log('Ads today:', adsWatchedToday);
+      const adsWatched = parseInt(upsertResult.rows[0]?.adsWatched || 1);
+      const nextAvailable = new Date(now.getTime() + COOLDOWN_MS);
 
       return NextResponse.json({
         success: true,
         message: hasReferrer 
-          ? `Successfully earned ${userReward} points! Your referrer earned ${referrerReward} points. Points are immediately usable!`
+          ? `Successfully earned ${userReward} points! Your referrer earned ${referrerReward} points.`
           : `Successfully earned ${userReward} points! Use them right away!`,
         reward: userReward,
         referrerReward: hasReferrer ? referrerReward : 0,
-        adsWatchedToday,
+        adsWatchedToday: adsWatched,
         nextAdAvailable: nextAvailable.toISOString()
       });
 

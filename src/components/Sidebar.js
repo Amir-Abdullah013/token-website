@@ -21,7 +21,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
     { name: 'Deposit', href: '/user/deposit', icon: '💰', category: 'wallet' },
     { name: 'Withdraw', href: '/user/withdraw', icon: '💸', category: 'wallet' },
     { name: 'Send Tokens', href: '/user/send', icon: '📤', category: 'wallet' },
-    { name: 'Investment Plans', href: '/user/plans', icon: '💎', category: 'earn' },
+    { name: 'Premium Plans', href: '/user/plans', icon: '💎', category: 'earn' },
     { name: 'Staking', href: '/user/staking', icon: '🏦', category: 'earn' },
     { name: 'Ads & Rewards', href: '/user/ads', icon: '🎬', category: 'earn' },
     { name: 'Referrals', href: '/user/referrals', icon: '👥', category: 'earn' },
@@ -85,7 +85,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen
       `}>
-        <div className="flex flex-col h-full overflow-y-auto">
+      <div className="flex flex-col h-full overflow-hidden">
          
           
           {/* Premium User Info Section */}
@@ -113,7 +113,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
           </div>
           
           {/* Premium Navigation with Categories */}
-          <nav className="flex-1 px-4 py-4 space-y-6 overflow-y-auto">
+          <nav className="flex-1 px-4 py-4 space-y-6 overflow-y-auto overscroll-contain">
             {Object.entries(groupedNavigation).map(([category, items]) => (
               <div key={category}>
                 <h3 className="px-2 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 bg-gradient-to-r from-slate-600/20 to-slate-700/20 rounded">

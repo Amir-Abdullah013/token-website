@@ -30,34 +30,40 @@ export async function POST(request) {
     // Verify eligibility one more time (server-side check)
     const eligibilityCheck = await databaseHelpers.pool.query(
       `SELECT 
-        (SELECT COUNT(*) FROM users WHERE "referrerId" = $1) as referral_count,
-        (SELECT COALESCE(SUM(w."adPoints"), 0) 
-         FROM wallets w 
-         INNER JOIN users u ON w."userId" = u.id 
-         WHERE u."referrerId" = $1) as total_referral_points,
-        w."adPoints"
-       FROM wallets w
-       WHERE w."userId" = $1`,
+        u.id,
+        COALESCE(w."adPoints", w."lockedAdPoints", 0) as ad_points,
+        w."adPoints" as user_ad_points
+       FROM users u
+       LEFT JOIN wallets w ON w."userId" = u.id
+       WHERE u."referrerId" = $1`,
       [userId]
     );
 
-    const check = eligibilityCheck.rows[0];
-    const referralCount = parseInt(check?.referral_count || 0);
-    const totalReferralPoints = parseFloat(check?.total_referral_points || 0);
+    const referralRows = eligibilityCheck.rows;
+    const referralCount = referralRows.length;
+    const qualifiedReferrals = referralRows.filter(r => parseFloat(r.ad_points || 0) >= 2000);
+    const qualifiedCount = qualifiedReferrals.length;
+
+    // Get user's own ad points
+    const userWalletResult = await databaseHelpers.pool.query(
+      `SELECT COALESCE("adPoints", 0) as "adPoints" FROM wallets WHERE "userId" = $1`,
+      [userId]
+    );
+    const check = userWalletResult.rows[0];
     const userAdPoints = parseFloat(check?.adPoints || 0);
 
-    // Verify eligibility
+    // Verify eligibility: need 5 referrals that EACH have >= 2000 points
     if (referralCount < 1) {
       return NextResponse.json({ 
         success: false, 
-        error: 'You must have at least 1 referrals to convert points' 
+        error: 'You must have at least 1 referral to convert points' 
       }, { status: 403 });
     }
 
-    if (totalReferralPoints < 2000) {
+    if (qualifiedCount < 5) {
       return NextResponse.json({ 
         success: false, 
-        error: 'Your referrals must have collectively earned at least 2000 points' 
+        error: `You need 5 referrals with 2000+ points each. Currently ${qualifiedCount}/5 qualify.` 
       }, { status: 403 });
     }
 

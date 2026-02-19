@@ -265,23 +265,22 @@ model TokenStats {
   @@map("token_stats")
 }
 
-// Ad Rewards Model - Tracks rewards earned from watching ads
+// Ad Rewards Model - Single row per user tracks cumulative stats
 model AdReward {
   id                String   @id @default(cuid())
-  userId            String
-  reward            Decimal  @default(10) @db.Decimal(30,8) // VON tokens earned
+  userId            String   @unique // ONE row per user
+  reward            Decimal  @default(0) @db.Decimal(30,8)  // Last single ad reward amount
+  totalPoints       Decimal  @default(0) @db.Decimal(30,8)  // Cumulative total points earned from ads
+  referralPoints    Decimal  @default(0) @db.Decimal(30,8)  // Points earned as referral bonus
+  adsWatched        Int      @default(0)                     // Total ads watched (lifetime)
+  lastWatchedAt     DateTime?                                // Last time user watched an ad (cooldown check)
   status            AdRewardStatus @default(COMPLETED)
-  adTransactionId   String?  @unique // AdMaven transaction ID for verification
-  adProvider        String   @default("AdMaven") // Ad network provider
-  adType            String?  // Type of ad (video, banner, etc.)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, createdAt])
-  @@index([adTransactionId])
   @@map("ad_rewards")
 }
 

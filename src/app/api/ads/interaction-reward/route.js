@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { databaseHelpers } from '@/lib/database';
-import crypto from 'crypto';
 
 /**
  * POST /api/ads/interaction-reward
- * Rewards users for page interactions and ad viewing time
- * This helps reward engagement with embedded Adsterra ads
+ * Rewards users for page visits and ad impressions.
+ * Does NOT insert transaction rows (keeps transactions table clean).
+ * Only updates wallet adPoints and uses ad_rewards row for cooldown tracking.
  */
 export async function POST(request) {
   try {
@@ -16,10 +16,9 @@ export async function POST(request) {
     }
 
     // Define reward amounts based on interaction type
-    // Define reward amounts based on interaction type
     const REWARDS = {
-      'page_visit': 20,        // 20 points for visiting (25 min cooldown)
-      'ad_click': 10,          // 10 points for clicking ads (as requested)
+      'page_visit': 20,        // 20 points for visiting (30 min cooldown)
+      'ad_click': 10,          // 10 points for clicking ads
       'time_spent_30s': 0,     // Disabled
       'time_spent_60s': 0,     // Disabled
       'time_spent_120s': 0,    // Disabled
@@ -35,98 +34,64 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    // Check last interaction reward time to prevent spam
-    // 30 minutes for page visit, 10 seconds for others
+    // Cooldown durations
     const COOLDOWNS = {
-      'page_visit': 30 * 60 * 1000, 
-      'default': 10 * 1000
+      'page_visit': 30 * 60 * 1000,   // 30 minutes
+      'default': 10 * 1000             // 10 seconds for other types
     };
-    
     const cooldownDuration = COOLDOWNS[interactionType] || COOLDOWNS['default'];
 
     const client = await databaseHelpers.pool.connect();
-    
-    try {
-      // Check last interaction
-      const lastInteraction = await client.query(
-        `SELECT "createdAt" FROM transactions
-         WHERE "userId" = $1
-         AND description LIKE $2
-         ORDER BY "createdAt" DESC
-         LIMIT 1`,
-        [userId, `%${interactionType}%`]
-      );
 
-      if (lastInteraction.rows.length > 0) {
-        const lastTime = new Date(lastInteraction.rows[0].createdAt).getTime();
-        const now = Date.now();
-        const diff = now - lastTime;
-        
-        if (diff < cooldownDuration) {
-          client.release(); // Important: Release before returning early
-          const remainingMinutes = Math.ceil((cooldownDuration - diff) / 60000);
-          return NextResponse.json({
-            success: false,
-            error: `Please wait ${remainingMinutes} minutes before next reward`
-          }, { status: 429 });
+    try {
+      // Check cooldown from ad_rewards row (lastWatchedAt for page_visit; or just use a short ad_rewards check)
+      // For page_visit cooldown, check the ad_rewards row's updatedAt is older than cooldown
+      // For simplicity, we check via a separate ad_interaction_cooldowns pattern using ad_rewards referralPoints timestamp trick.
+      // Actually: for page_visit, use the existing ad_rewards "updatedAt" field as the interaction timestamp check.
+      // For other short interactions, skip cooldown tracking in DB (10s is handled client-side).
+      if (interactionType === 'page_visit') {
+        const lastVisit = await client.query(
+          `SELECT "updatedAt" FROM ad_rewards WHERE "userId" = $1`,
+          [userId]
+        );
+        if (lastVisit.rows.length > 0 && lastVisit.rows[0].updatedAt) {
+          const lastTime = new Date(lastVisit.rows[0].updatedAt).getTime();
+          const diff = Date.now() - lastTime;
+          if (diff < cooldownDuration) {
+            client.release();
+            const remainingMinutes = Math.ceil((cooldownDuration - diff) / 60000);
+            return NextResponse.json({
+              success: false,
+              error: `Please wait ${remainingMinutes} minutes before next reward`
+            }, { status: 429 });
+          }
         }
       }
 
       await client.query('BEGIN');
 
       const now = new Date();
-      const transactionId = crypto.randomUUID();
 
-      // Credit ad points - try adPoints first, fallback to lockedAdPoints
-      try {
-        // Create a savepoint so we can rollback just this update if it fails (e.g. column missing)
-        await client.query('SAVEPOINT try_ad_points');
-        
+      // Credit ad points to user wallet
+      await client.query(
+        `UPDATE wallets 
+         SET "adPoints" = COALESCE("adPoints", 0) + $1::DECIMAL(30,8), 
+             "updatedAt" = $2
+         WHERE "userId" = $3`,
+        [rewardAmount, now, userId]
+      );
+
+      // For page_visit: update the ad_rewards row (upsert) to track cooldown via updatedAt
+      if (interactionType === 'page_visit') {
         await client.query(
-          `UPDATE wallets 
-           SET "adPoints" = COALESCE("adPoints", 0) + $1::DECIMAL(30,8), 
-               "updatedAt" = $2
-           WHERE "userId" = $3`,
-          [rewardAmount, now, userId]
-        );
-        
-        await client.query('RELEASE SAVEPOINT try_ad_points');
-      } catch (updateErr) {
-        // Rollback to savepoint to recover the transaction
-        await client.query('ROLLBACK TO SAVEPOINT try_ad_points');
-        
-        console.log('adPoints update failed (likely column missing), falling back to lockedAdPoints');
-        // Fallback to lockedAdPoints
-        await client.query(
-          `UPDATE wallets 
-           SET "lockedAdPoints" = COALESCE("lockedAdPoints", 0) + $1::DECIMAL(30,8), 
-               "updatedAt" = $2
-           WHERE "userId" = $3`,
-          [rewardAmount, now, userId]
+          `INSERT INTO ad_rewards (id, "userId", reward, "totalPoints", "referralPoints", "adsWatched", "lastWatchedAt", status, "createdAt", "updatedAt")
+           VALUES (gen_random_uuid(), $1, 0, $2, 0, 0, NULL, 'COMPLETED', $3, $3)
+           ON CONFLICT ("userId") DO UPDATE SET
+             "totalPoints" = COALESCE(ad_rewards."totalPoints", 0) + $2,
+             "updatedAt" = $3`,
+          [userId, rewardAmount, now]
         );
       }
-
-      // Create transaction record
-      await client.query(
-        `INSERT INTO transactions (
-          id, "userId", type, amount, currency, status, gateway, description, 
-          "feeAmount", "netAmount", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-        [
-          transactionId,
-          userId,
-          'AD_INTERACTION',
-          rewardAmount,
-          'Points',
-          'COMPLETED',
-          'Adsterra',
-          `Interaction reward: ${interactionType} (${durationSeconds || 0}s) - earned ${rewardAmount} points`,
-          0,
-          rewardAmount,
-          now,
-          now
-        ]
-      );
 
       await client.query('COMMIT');
 
@@ -147,9 +112,9 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Error processing interaction reward:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to process reward' 
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to process reward'
     }, { status: 500 });
   }
 }
