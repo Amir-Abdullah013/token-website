@@ -249,7 +249,6 @@ export async function POST(request) {
         data: {
           planAmount,
           tokensBought,
-          lockDate: endDate,
           txId
         }
       });
